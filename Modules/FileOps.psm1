@@ -235,7 +235,7 @@ function GetScriptInfo
 	.State
 		Prod
 	.Author
-		Smorkster
+		Carl Franzén (6g1w)
 	#>
 
 	param (
@@ -288,14 +288,13 @@ function GetScriptInfo
 
 	if ( $FileContent -match "(?s)<#(?<Info>.*?)#>" )
 	{
-		[regex]::Matches( $Matches.Info , "\s*\.(?<InfoType>(?!Parameter)\w*)\s*(?<InfoComment>.*)" ) | `
+		[regex]::Matches( $Matches.Info , "\s*\.(?<InfoType>(?!Parameter)\w*)\s*((?<InputVar>\w*)\s*(?<InputComment>(?!\s*\.\w*\s*).*)*)*" ) | `
 			ForEach-Object `
 				-Begin { $InputDataList = [System.Collections.ArrayList]::new() } `
 				-Process {
 					if ( "InputData" -eq $_.Groups["InfoType"].Value )
 					{
-						$_.Groups["InfoComment"].Value.Trim() -match "(?<VarName>\w*)\s*(?<VarDesc>\w*)" | Out-Null
-						$InputDataList.Add( ( [pscustomobject]@{ Name = $Matches.VarName ; InputDescription = $Matches.VarDesc ; EnteredValue = "" } ) ) | Out-Null
+						$InputDataList.Add( ( [pscustomobject]@{ Name = $_.Groups["InputVar"].Captures[0].Value ; InputDescription = ( $_.Groups["InputComment"].Captures[0].Value ).Trim() ; EnteredValue = "" } ) ) | Out-Null
 					}
 					elseif ( "NoRunspace" -eq $_.Groups["InfoType"].Value )
 					{
@@ -303,9 +302,9 @@ function GetScriptInfo
 					}
 					else
 					{
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $_.Groups["InfoType"].Value -Value $_.Groups['InfoComment'].Value.Trim()
+						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $_.Groups["InfoType"].Value -Value "$( $_.Groups["InputVar"].Captures[0].Value ) $( $_.Groups["InputComment"].Captures.Value )".Trim()
 					}
-				} `
+					} `
 				-End {
 					if ( $InputDataList.Count -gt 0 )
 					{
