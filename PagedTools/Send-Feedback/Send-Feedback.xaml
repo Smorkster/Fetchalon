@@ -1,0 +1,72 @@
+﻿<Page Name="Window"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Page.Resources>
+        <CollectionViewSource x:Key="CvsFunctions">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="Name" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+    </Page.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="30" />
+            <RowDefinition />
+            <RowDefinition Height="30" />
+        </Grid.RowDefinitions>
+        <TextBlock Name="TblScriptTitle">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="FontSize"
+                            Value="14" />
+                    <Setter Property="FontWeight"
+                            Value="Bold" />
+                    <Setter Property="Text"
+                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblScriptTitle}" />
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <ComboBox Name="CbFunctionsList">
+            <ComboBox.Style>
+                <Style TargetType="ComboBox">
+                    <Setter Property="DisplayMemberPath"
+                            Value="Name" />
+                    <Setter Property="Grid.Row"
+                            Value="1" />
+                    <Setter Property="ItemsSource"
+                            Value="{Binding Source={StaticResource CvsFunctions}}" />
+                </Style>
+            </ComboBox.Style>
+        </ComboBox>
+        <TextBox Name="TbText">
+            <TextBox.Style>
+                <Style TargetType="TextBox">
+                    <Setter Property="Grid.Row"
+                            Value="2" />
+                </Style>
+            </TextBox.Style>
+        </TextBox>
+        <Button Name="BtnSendReport">
+            <Button.Style>
+                <Style TargetType="Button">
+                    <Setter Property="Grid.Row"
+                            Value="3" />
+                    <Setter Property="Content"
+                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSendReport}" />
+                    <Setter Property="IsEnabled"
+                            Value="True" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=TbText, Path=Text.Length}"
+                                     Value="0">
+                            <Setter Property="IsEnabled"
+                                    Value="False" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
+    </Grid>
+</Page>
