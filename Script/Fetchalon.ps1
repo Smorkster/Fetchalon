@@ -467,12 +467,16 @@ function PrepareToRunScript
 			$syncHash.Jobs.ExecuteFunction.P.AddArgument( $null ) | Out-Null
 		}
 		# SearchedItem is allowed/requested in the function
-		elseif ( $null -ne $ScriptObject.SearchedItem )
+		else
 		{
-			$ItemToSend = @{}
-			$syncHash.Data.SearchedItem | `
-				Get-Member -MemberType NoteProperty | `
-				ForEach-Object { $ItemToSend."$( $_.Name )" = $syncHash.Data.SearchedItem."$( $_.Name )" }
+			if ( $null -ne $syncHash.Data.SearchedItem )
+			{
+				$ItemToSend = @{}
+
+				$syncHash.Data.SearchedItem | `
+					Get-Member -MemberType NoteProperty | `
+					ForEach-Object { $ItemToSend."$( $_.Name )" = $syncHash.Data.SearchedItem."$( $_.Name )" }
+			}
 
 			$syncHash.Jobs.ExecuteFunction.P.AddArgument( $ItemToSend ) | Out-Null
 		}
@@ -695,14 +699,14 @@ catch
 
 # A hash for search texts for testing or default searches
 $syncHash.Data.TestSearches = @{
-"TC1" = "C1";
-"TU1" = "U1";
-"TG1" = "G_1";
-"TP1" = "0.0.0.0";
-"TP2" = "P_1";
-"TD1" = "G:\F\F1\";
-"TF1" = "G:\F\F1\F.xls"
-}
+	"TC1" = "C1";
+	"TU1" = "U1";
+	"TG1" = "G_1";
+	"TP1" = "0.0.0.0";
+	"TP2" = "P_1";
+	"TD1" = "G:\F\F1\";
+	"TF1" = "G:\F\F1\F.xls"
+	}
 
 Update-SplashText -Text $msgTable.StrSplashReadingSettings
 ReadSettingsFile
