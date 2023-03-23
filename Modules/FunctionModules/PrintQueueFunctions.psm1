@@ -20,7 +20,7 @@ function Install-SysManPrinter
 	.Author Smorkster
 	#>
 
-	param ( $InputData )
+	param ( $Item, $InputData )
 
 	$PIdsString = [System.Text.StringBuilder]::new()
 	$CIdsString = [System.Text.StringBuilder]::new()
