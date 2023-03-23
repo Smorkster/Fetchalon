@@ -69,7 +69,7 @@ function Install-SysManPrinter
 			{
 				$OFS = ", "
 				Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/printer/Install" -Method Post -UseDefaultCredentials -ContentType "application/json" -Body $b -ErrorAction Stop | Out-Null
-				Set-Clipboard -Value ( $IntmsgTable.InstallSysManPrinterSuccess -replace "CNames", $FoundComputers.result.Name -replace "PNames", $FoundPrinters.result.Name -replace "\\", "`r`n" ) | Out-Null
+				Set-Clipboard -Value ( $IntMsgTable.InstallSysManPrinterSuccess -replace "CNames", $FoundComputers.result.Name -replace "PNames", $FoundPrinters.result.Name -replace "\\", "`r`n" ) | Out-Null
 			}
 			catch
 			{
@@ -86,7 +86,7 @@ function Install-SysManPrinter
 		throw $IntMsgTable.InstallSysManPrinterNoPrinter
 	}
 
-	$ReturnMessage = $IntmsgTable.InstallSysManPrinterReturn
+	$ReturnMessage = $IntMsgTable.InstallSysManPrinterReturn
 	if ( $FailedComputers.Count -gt 0 )
 	{
 		$ReturnMessage.Append( "$InstallSysManPrinterNotFoundComputers" ) | Out-Null
@@ -102,7 +102,8 @@ function Install-SysManPrinter
 	return $ReturnMessage.ToString()
 }
 
-$RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
-Import-LocalizedData -BindingVariable IntmsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization\$culture\Modules"
+$RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
+
+Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 Export-ModuleMember -Function Install-SysManPrinter

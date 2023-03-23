@@ -264,7 +264,7 @@ function GetScriptInfo
 		try
 		{
 			$ResolvedFilePath = Resolve-Path $FilePath -ErrorAction Stop
-			$FileContent = Get-Content $ResolvedFilePath.Path -Raw
+			$FileContent = Get-Content $ResolvedFilePath.Path -Raw -ErrorAction Stop
 			if ( [string]::IsNullOrEmpty( $InfoObject.Name ) )
 			{ Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Name" -Value ( Get-Item $ResolvedFilePath ).BaseName -Force }
 		}
@@ -580,12 +580,15 @@ function WriteOutput
 		[string] $Output,
 		[string] $FileExtension = "txt",
 		[switch] $Scoreboard,
-		[switch] $Append
+		[switch] $Append,
+	[Parameter( Mandatory = $true )]
+		[string] $FileName
 	)
 
 	if ( $Scoreboard ) { $Folder = "Scoreboard" } else { $Folder = $env:USERNAME }
 
-	$FileName = "{0} {1}, {2}.{3}" -f $CallingScript.BaseName, "$( if ( $FileNameAddition ) { "$FileNameAddition " } )", ( Get-Date -Format "yyyy-MM-dd HH.mm.ss" ), $FileExtension
+	$FileName = "{0} {1}, {2}.{3}" -f $FileName, "$( if ( $FileNameAddition ) { "$FileNameAddition " } )", ( Get-Date -Format "yyyy-MM-dd HH.mm.ss" ), $FileExtension
+
 	$OutputFilePath = Get-LogFilePath -TopFolder "Output" -SubFolder $Folder -FileName $FileName
 	Set-Content -Path $OutputFilePath -Value ( $Output )
 
@@ -642,16 +645,21 @@ try
 }
 catch
 {
-	$RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
+	$RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 }
+
 $CallingScript = try { Get-Item $MyInvocation.PSCommandPath } catch { [pscustomobject]@{ BaseName = "NoScript"; Name = "NoScript" } }
 
-Import-LocalizedData -BindingVariable IntmsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] )" -BaseDirectory "$RootDir\Localization\$culture\Modules"
-try {
-	Import-LocalizedData -BindingVariable msgTable -UICulture $culture -FileName "$( $CallingScript.BaseName ).psd1" -BaseDirectory ( Get-ChildItem -Path "$RootDir\Localization\$culture" -Filter "$( $CallingScript.BaseName ).psd1" -Recurse ).Directory.FullName -ErrorAction SilentlyContinue
-} catch { [System.Windows.MessageBox]::Show( $_ ) }
+Import-LocalizedData -BindingVariable IntmsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-try { $Host.UI.RawUI.WindowTitle = "$( $IntmsgTable.ConsoleWinTitlePrefix ): $( ( ( Get-Item $MyInvocation.PSCommandPath ).FullName -split "Script" )[1] )" } catch {}
+try
+{
+	Import-LocalizedData -BindingVariable msgTable -UICulture $culture -FileName "$( $CallingScript.BaseName ).psd1" -BaseDirectory "$RootDir\Localization" -ErrorAction SilentlyContinue
+}
+catch
+{
+	[System.Windows.MessageBox]::Show( $_ )
+}
 
 Export-ModuleMember -Function EndScript, GetUserInput, ShowMessageBox, WriteErrorlog, WriteLog, WriteOutput, WriteLogTest, WriteErrorlogTest, WriteSurvey, New*, GetScriptInfo
 Export-ModuleMember -Variable msgTable

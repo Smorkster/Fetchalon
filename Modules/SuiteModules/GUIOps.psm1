@@ -198,7 +198,7 @@ function CreatePage
 	}
 	else
 	{
-		throw
+		throw "NotPage"
 	}
 }
 
@@ -658,8 +658,8 @@ namespace FetchalonConverters
 
 if ( $LoadConverters ) { LoadConverters }
 
-$RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
-Import-LocalizedData -BindingVariable IntmsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization\$culture\Modules"
+$RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
+Import-LocalizedData -BindingVariable IntmsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 $CallingScript = try { ( Get-Item $MyInvocation.PSCommandPath ) } catch { [pscustomobject]@{ BaseName = "NoScript" } }
 try { $Host.UI.RawUI.WindowTitle = "$( $IntmsgTable.ConsoleWinTitlePrefix ): $( ( ( Get-Item $MyInvocation.PSCommandPath ).FullName -split "Script" )[1] )" } catch {}
