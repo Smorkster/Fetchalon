@@ -457,14 +457,14 @@ function PrepareToRunScript
 		$syncHash.Jobs.ExecuteFunction = [pscustomobject]@{ P = [powershell]::Create() ; H = $null }
 		$syncHash.Jobs.ExecuteFunction.P.Runspace = $syncHash.Jobs.ScriptsRunspace
 		$syncHash.Jobs.ExecuteFunction.P.AddScript( $syncHash.Code.SBlockExecuteFunction ) | Out-Null
-		$syncHash.Jobs.ExecuteFunction.P.AddArgument( $syncHash ) | Out-Null
-		$syncHash.Jobs.ExecuteFunction.P.AddArgument( $ScriptObject ) | Out-Null
-		$syncHash.Jobs.ExecuteFunction.P.AddArgument( ( Get-Module ) ) | Out-Null
+		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "syncHash", $syncHash ) | Out-Null
+		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "ScriptObject", $ScriptObject ) | Out-Null
+		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "Modules", ( Get-Module ) ) | Out-Null
 
 		# SearchedItem is not requested in the function
 		if ( "None" -eq $ScriptObject.SearchedItemRequest )
 		{
-			$syncHash.Jobs.ExecuteFunction.P.AddArgument( $null ) | Out-Null
+			$syncHash.Jobs.ExecuteFunction.P.AddParameter( "SearchedItem", $null ) | Out-Null
 		}
 		# SearchedItem is allowed/requested in the function
 		else
@@ -478,7 +478,7 @@ function PrepareToRunScript
 					ForEach-Object { $ItemToSend."$( $_.Name )" = $syncHash.Data.SearchedItem."$( $_.Name )" }
 			}
 
-			$syncHash.Jobs.ExecuteFunction.P.AddArgument( $ItemToSend ) | Out-Null
+			$syncHash.Jobs.ExecuteFunction.P.AddParameter( "SearchedItem", $ItemToSend ) | Out-Null
 		}
 
 		# The function does not want input
@@ -670,7 +670,7 @@ $culture = "sv-SE"
 $BaseDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName UIAutomationClient
-"ExchangeOnlineManagement", "ActiveDirectory", ( Get-ChildItem "$BaseDir\Modules\*" ).FullName | Import-Module -Force -ArgumentList $culture
+"ExchangeOnlineManagement", "ActiveDirectory", ( Get-ChildItem -Path "$BaseDir\Modules\SuiteModules\*" -File ).FullName | Import-Module -Force -ArgumentList $culture
 ShowSplash -Text "" -SelfAdmin
 
 $controls = [System.Collections.ArrayList]::new()
@@ -686,6 +686,7 @@ Update-SplashText -Text $msgTable.StrSplashCreatingWindow
 $syncHash = CreateWindowExt -ControlsToBind $controls -IncludeConverters
 $Global:syncHash = $syncHash
 $syncHash.Data.msgTable = $msgTable
+$syncHash.Data.Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $culture )
 $syncHash.Data.BaseDir = $BaseDir
 $syncHash.Data.UserGroups = ( Get-ADUser $env:USERNAME -Properties memberof ).memberof | Get-ADGroup | Select-Object -ExpandProperty Name
 try
@@ -706,7 +707,7 @@ $syncHash.Data.TestSearches = @{
 	"TP2" = "P_1";
 	"TD1" = "G:\F\F1\";
 	"TF1" = "G:\F\F1\F.xls"
-	}
+}
 
 Update-SplashText -Text $msgTable.StrSplashReadingSettings
 ReadSettingsFile
@@ -1297,7 +1298,14 @@ $(
 				}
 				catch
 				{
-					ShowMessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
+					if ( "NotPage" -eq $_.Exception.Message )
+					{
+						ShowMessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
+					}
+					else
+					{
+						ShowMessageBox -Text $_
+					}
 				}
 			}
 
@@ -1588,8 +1596,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 SetLocalizations
 
 # Load imported functions to menuitems
-Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\*.psm1" | `
-	Where-Object { $_.BaseName -match "Functions$" } | `
+Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\*.psm1" | `
 	ForEach-Object {
 		$ModuleName = $_.BaseName
 		Import-Module $_.FullName -Force -ArgumentList $culture
@@ -1612,63 +1619,47 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\*.psm1" | `
 			}
 	}
 
-Get-ChildItem -Directory -Path $syncHash.Data.BaseDir | `
+Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 	Where-Object { "PagedTools", "SeparateTools" -match $_.Name } | `
 	ForEach-Object {
 		Get-ChildItem $_.FullName | `
 			ForEach-Object {
 				try { Remove-Variable MiObject, add, File, ScriptInfo, MenuItemText -ErrorAction Stop } catch {}
-				$MiObject = [pscustomobject]@{
-					Name = $_.Name
-					PS = ""
-					Xaml = ""
-					BaseDir = $_.Parent.FullName
-					Localization = ""
-					PageObject = $null
-					Separate = $_.Parent.Name -eq "SeparateTools"
-				}
-				$add = $true
-
-				if ( $MiObject.Separate )
+				$File = $_
+				$MiObject = GetScriptInfo -FilePath $File.FullName
+				if (
+					-not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or`
+					$MiObject.AllowedUsers -match $env:USERNAME -or`
+					$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0
+				)
 				{
+					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "BaseDir" -Value $File.Directory.FullName
+					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "PageObject" -Value $null
 					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Process" -Value $null
-				}
-				Get-ChildItem $_.FullName | `
-					ForEach-Object {
-						$File = $_
-						switch -Regex ( $File.Extension )
+					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Ps" -Value $File.FullName
+					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Separate" -Value ( "PagedTools" -ne $_.Directory.Name )
+
+					if ( "PagedTools" -eq $_.Directory.Name )
+					{
+						Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Xaml" -Value ( Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Gui\$( $File.BaseName ).xaml" ).FullName
+						try
 						{
-							"psm*1$" {
-								$ScriptInfo = GetScriptInfo -FilePath $File.FullName
-								$ScriptInfo | Get-Member -MemberType NoteProperty | ForEach-Object { Add-Member -InputObject $MiObject -MemberType NoteProperty -Name $_.Name -Value $ScriptInfo."$( $_.Name )" -Force }
-
-								if (
-									-not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or`
-									$MiObject.AllowedUsers -match $env:USERNAME -or`
-									$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0
-								)
-								{
-									if ( [string]::IsNullOrEmpty( $MiObject.MenuItem ) )
-									{
-										if ( [string]::IsNullOrEmpty( $MiObject.Synopsis ) ) { $MenuItemText = $MiObject.Name }
-										else { $MenuItemText = $MiObject.Synopsis }
-										Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "MenuItem" -Value $MenuItemText.Trim() -Force
-									}
-
-									$MiObject.PS = $File.FullName
-								}
-								else
-								{
-									$add = $false
-								}
-							}
-							"xaml$" { $MiObject.Xaml = $File.FullName }
-							"psd1$" { $MiObject.Localization = $File }
+							$LocFile = Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Localization\$( $syncHash.Data.Culture.Name )\$( $_.BaseName ).psd1" -ErrorAction Stop
 						}
+						catch
+						{
+							$LocFile = Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Localization\sv-SE\$( $_.BaseName ).psd1"
+						}
+						Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Localization" -Value $LocFile
 					}
 
-				if ( $add )
-				{
+					if ( [string]::IsNullOrEmpty( $MiObject.MenuItem ) )
+					{
+						if ( [string]::IsNullOrEmpty( $MiObject.Synopsis ) ) { $MenuItemText = $MiObject.Name }
+						else { $MenuItemText = $MiObject.Synopsis }
+						Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "MenuItem" -Value $MenuItemText.Trim() -Force
+					}
+
 					if ( "Send-Feedback" -eq $MiObject.Name )
 					{
 						$syncHash.Window.Resources['CvsMiAbout'].Source.Add( $MiObject )
@@ -1719,7 +1710,7 @@ $syncHash.BtnEnterFunctionInput.Add_Click( {
 	}
 	else
 	{
-		$syncHash.Jobs.ExecuteFunction.P.AddArgument( $EnteredInput )
+		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "InputData", $EnteredInput )
 		RunScript
 	}
 } )
@@ -1967,7 +1958,7 @@ $syncHash.Window.Add_Loaded( {
 	}
 	$this.Resources.GetEnumerator() | Where-Object { $_.Name -match "^Cvs" } | ForEach-Object { $_.Value.View.Refresh() }
 	$this.Resources['MenuTextVisibility'] = [System.Windows.Visibility]::Parse( [System.Windows.Visibility], $syncHash.Data.UserSettings.MenuTextVisible )
-	$this.Resources['MainOutput'].Title = $msgTable.StrDefaultMainTitle
+	$this.Resources['MainOutput'].Title = $syncHash.Data.msgTable.StrDefaultMainTitle
 	Update-SplashText -Text $syncHash.Data.msgTable.StrSplashFinished
 	Close-SplashScreen
 } )
