@@ -370,15 +370,6 @@
                                             </Style>
                                         </Border.Style>
                                         <Grid>
-                                            <!--
-                                    Groups   : {0}
-                                    Success  : True
-                                    Name     : 0
-                                    Captures : {0}
-                                    Index    : 241
-                                    Length   : 1
-                                    Value    : -
-                                    -->
                                             <Grid.RowDefinitions>
                                                 <RowDefinition />
                                                 <RowDefinition />
