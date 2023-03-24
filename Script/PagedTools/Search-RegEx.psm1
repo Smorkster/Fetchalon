@@ -60,10 +60,10 @@ $syncHash.Controls.Window.Resources['CvsPropertyNames'].Source = [System.Collect
 $syncHash.Controls.Window.Resources['CvsDefaultRegExs'].Source.Add( ( [pscustomobject]@{ Name = $syncHash.Data.msgTable.StrDefaultRegExAdSAN ; RegEx = $syncHash.Data.msgTable.StrDefaultRegExAdSANCode ; ObjectClass = "user" } ) )
 
 $syncHash.Controls.IcMatches.Resources['BrdStyle'].Setters[0].Handler = [System.Windows.Input.MouseEventHandler] {
-	param ( $sender, $e )
+	param ( $ObjectSender, $e )
 
-	$syncHash.Controls.TbTextToMatch.SelectionStart = $sender.DataContext.Index
-	$syncHash.Controls.TbTextToMatch.SelectionLength = $sender.DataContext.Length
+	$syncHash.Controls.TbTextToMatch.SelectionStart = $ObjectSender.DataContext.Index
+	$syncHash.Controls.TbTextToMatch.SelectionLength = $ObjectSender.DataContext.Length
 }
 
 $syncHash.Controls.BtnCopyAsAD.Add_Click( {
