@@ -204,7 +204,7 @@
                x:Key="PathObjectMenuIconStyle"
                BasedOn="{StaticResource PathMenuIconStyle}">
             <Style.Triggers>
-                <DataTrigger Binding="{Binding ElementName=IcObjectDetailed, Path=ItemsSource.Count}"
+                <DataTrigger Binding="{Binding ElementName=IcPropsList, Path=ItemsSource.Count}"
                              Value="0">
                     <Setter Property="Fill"
                             Value="LightGray" />
@@ -227,7 +227,7 @@
                 </Setter.Value>
             </Setter>
             <Style.Triggers>
-                <DataTrigger Binding="{Binding ElementName=IcObjectDetailed, Path=ItemsSource.Count}"
+                <DataTrigger Binding="{Binding ElementName=IcPropsList, Path=ItemsSource.Count}"
                              Value="{x:Null}">
                     <Setter Property="Fill"
                             Value="LightGray" />
@@ -305,10 +305,57 @@
         </Style>
         <Style TargetType="Button"
                x:Key="BtnBaseStyle">
-            <Setter Property="Margin"
-                    Value="{StaticResource StdMargin}" />
-            <Setter Property="Padding"
-                    Value="5" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Margin"
+                                            Value="3,0" />
+                                </Style>
+                            </Grid.Style>
+                            <Border Name="BtnBrd">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush"
+                                                Value="#FF555555" />
+                                        <Setter Property="BorderThickness"
+                                                Value="1" />
+                                        <Setter Property="Background"
+                                                Value="#FFDDDDDD" />
+                                        <Setter Property="CornerRadius"
+                                                Value="0" />
+                                        <Setter Property="Margin"
+                                                Value="0" />
+                                        <Setter Property="Padding"
+                                                Value="7" />
+                                    </Style>
+                                </Border.Style>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <EventTrigger RoutedEvent="Keyboard.PreviewGotKeyboardFocus">
+                                <BeginStoryboard Name="BtnFocusStory">
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="BtnBrd"
+                                                        AutoReverse="True"
+                                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="PowderBlue"
+                                                        RepeatBehavior="Forever"
+                                                        Duration="0:0:1" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="Keyboard.PreviewLostKeyboardFocus">
+                                <StopStoryboard BeginStoryboardName="BtnFocusStory" />
+                            </EventTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="Button"
                x:Key="BtnCopyOutputBaseStyle"
@@ -434,6 +481,17 @@
                     Value="False" />
             <Setter Property="ItemsSource"
                     Value="{Binding Path=.}" />
+        </Style>
+        <Style TargetType="Ellipse"
+               x:Key="ElipseO365Status">
+            <Setter Property="Fill"
+                    Value="Red" />
+            <Setter Property="Grid.Row"
+                    Value="1" />
+            <Setter Property="Height"
+                    Value="10" />
+            <Setter Property="Width"
+                    Value="10" />
         </Style>
         <Style TargetType="ItemsControl"
                x:Key="IcBaseStyle">
@@ -1022,7 +1080,7 @@
             <Setter Property="Visibility"
                     Value="{DynamicResource MenuTextVisibility}" />
             <Style.Triggers>
-                <DataTrigger Binding="{Binding ElementName=IcObjectDetailed, Path=ItemsSource.Count}"
+                <DataTrigger Binding="{Binding ElementName=IcPropsList, Path=ItemsSource.Count}"
                              Value="0">
                     <Setter Property="Foreground"
                             Value="LightGray" />
@@ -1734,7 +1792,8 @@
             </TextBox>
             <Button Name="BtnSearch">
                 <Button.Style>
-                    <Style TargetType="Button">
+                    <Style TargetType="Button"
+                           BasedOn="{StaticResource BtnBaseStyle}">
                         <Setter Property="Content"
                                 Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSearch}" />
                         <Setter Property="Grid.Column"
@@ -1743,8 +1802,8 @@
                                 Value="1" />
                         <Setter Property="IsEnabled"
                                 Value="True" />
-                        <Setter Property="Padding"
-                                Value="10" />
+                        <Setter Property="Margin"
+                                Value="0" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding ElementName=PbSearchProgress, Path=Visibility}"
                                          Value="Visible">
@@ -2140,7 +2199,7 @@
                                     <Setter Property="IsEnabled"
                                             Value="True" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=IcObjectDetailed, Path=ItemsSource.Count}"
+                                        <DataTrigger Binding="{Binding ElementName=IcPropsList, Path=ItemsSource.Count}"
                                                      Value="0">
                                             <Setter Property="IsEnabled"
                                                     Value="False" />
@@ -2273,6 +2332,13 @@
                                                                    BasedOn="{StaticResource TblObjectMenuStyle}">
                                                                 <Setter Property="Text"
                                                                         Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiCopyObj}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding ElementName=IcPropsList, Path=Visibility}"
+                                                                                 Value="Visible">
+                                                                        <Setter Property="Text"
+                                                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiCopyObjSelected}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
                                                             </Style>
                                                         </TextBlock.Style>
                                                     </TextBlock>
@@ -2280,7 +2346,14 @@
                                             </Setter.Value>
                                         </Setter>
                                         <Setter Property="ToolTip"
-                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTTMiCopyObj}" />
+                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTTMiCopyObjSelected}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ElementName=IcObjectDetailed, Path=Visibility}"
+                                                         Value="Visible">
+                                                <Setter Property="ToolTip"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTTMiCopyObj}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
                                     </Style>
                                 </MenuItem.Style>
                             </MenuItem>
@@ -3082,39 +3155,119 @@
                         <RowDefinition />
                         <RowDefinition />
                     </Grid.RowDefinitions>
-                    <ToggleButton Name="TBtnObjectDetailed">
-                        <ToggleButton.Style>
-                            <Style TargetType="ToggleButton">
-                                <Setter Property="Content"
-                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTBtnObjectDetailed}" />
-                                <Setter Property="Height"
-                                        Value="30" />
-                                <Setter Property="IsEnabled"
-                                        Value="False" />
+                    <Border>
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Background"
+                                        Value="#FFDDDDDD" />
+                                <Setter Property="BorderBrush"
+                                        Value="#FF707070" />
+                                <Setter Property="BorderThickness"
+                                        Value="1" />
                                 <Setter Property="Margin"
                                         Value="{StaticResource StdMargin}" />
                                 <Setter Property="Visibility"
                                         Value="{Binding ElementName=IcObjectDetailed, Path=Visibility}" />
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsChecked}"
+                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
                                                  Value="True">
                                         <Setter Property="Background"
-                                                Value="Chartreuse" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding ElementName=IcObjectDetailed, Path=Visibility}"
-                                                 Value="Visible">
-                                        <Setter Property="IsEnabled"
-                                                Value="True" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding ElementName=IcObjectDetailed, Path=ItemsSource.Count}"
-                                                 Value="0">
-                                        <Setter Property="Visibility"
-                                                Value="Collapsed" />
+                                                Value="#FFCCE8FF" />
                                     </DataTrigger>
                                 </Style.Triggers>
                             </Style>
-                        </ToggleButton.Style>
-                    </ToggleButton>
+                        </Border.Style>
+                        <ToggleButton Name="TBtnObjectDetailed">
+                            <ToggleButton.Style>
+                                <Style TargetType="ToggleButton">
+                                    <Setter Property="Background"
+                                            Value="Transparent" />
+                                    <Setter Property="Height"
+                                            Value="30" />
+                                    <Setter Property="IsEnabled"
+                                            Value="False" />
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Grid>
+                                                    <TextBlock>
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock">
+                                                                <Setter Property="Background"
+                                                                        Value="Transparent" />
+                                                                <Setter Property="HorizontalAlignment"
+                                                                        Value="Stretch" />
+                                                                <Setter Property="Text"
+                                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTBtnObjectDetailed}" />
+                                                                <Setter Property="TextAlignment"
+                                                                        Value="Center" />
+                                                                <Setter Property="VerticalAlignment"
+                                                                        Value="Center" />
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsChecked}"
+                                                     Value="True">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ToggleButton">
+                                                        <Grid>
+                                                            <ProgressBar>
+                                                                <ProgressBar.Style>
+                                                                    <Style TargetType="ProgressBar">
+                                                                        <Setter Property="Background"
+                                                                                Value="Transparent" />
+                                                                        <Setter Property="IsIndeterminate"
+                                                                                Value="True" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding ElementName=TBtnObjectDetailed, Path=IsMouseOver}"
+                                                                                         Value="True">
+                                                                                <Setter Property="Background"
+                                                                                        Value="#FFCCE8FF" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </ProgressBar.Style>
+                                                            </ProgressBar>
+                                                            <TextBlock>
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Background"
+                                                                                Value="Transparent" />
+                                                                        <Setter Property="HorizontalAlignment"
+                                                                                Value="Center" />
+                                                                        <Setter Property="Text"
+                                                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrSelectPropsDesc}" />
+                                                                        <Setter Property="VerticalAlignment"
+                                                                                Value="Center" />
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Grid>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ElementName=IcObjectDetailed, Path=Visibility}"
+                                                     Value="Visible">
+                                            <Setter Property="IsEnabled"
+                                                    Value="True" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ElementName=IcObjectDetailed, Path=ItemsSource.Count}"
+                                                     Value="0">
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </ToggleButton.Style>
+                        </ToggleButton>
+                    </Border>
                     <TextBlock Name="TblVisiblePropsTitle">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
@@ -3159,8 +3312,6 @@
                                    BasedOn="{StaticResource BtnBaseStyle}">
                                 <Setter Property="Content"
                                         Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnGetExtraInfo}" />
-                                <Setter Property="Height"
-                                        Value="30" />
                                 <Setter Property="IsEnabled"
                                         Value="True" />
                                 <Style.Triggers>
@@ -3218,12 +3369,12 @@
                                 </Style>
                             </CheckBox.Style>
                         </CheckBox>
-                        <CheckBox Name="ChBGetFromComputerWmi">
+                        <CheckBox Name="ChBGetFromComputerProcesses">
                             <CheckBox.Style>
                                 <Style TargetType="CheckBox"
                                        BasedOn="{StaticResource CbPropValueStyle}">
                                     <Setter Property="Content"
-                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentChBGetFromComputerWmi}" />
+                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentChBGetFromComputerProcesses}" />
                                 </Style>
                             </CheckBox.Style>
                         </CheckBox>
@@ -3311,6 +3462,8 @@
                         <Grid Name="GridO365Status">
                             <Grid.Style>
                                 <Style TargetType="Grid">
+                                    <Setter Property="DataContext"
+                                            Value="{Binding ElementName=Window, Path=DataContext.O365AccountStatus, NotifyOnSourceUpdated=True}" />
                                     <Setter Property="Visibility"
                                             Value="Visible" />
                                     <Style.Triggers>
@@ -3343,18 +3496,6 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <Grid.Resources>
-                                <Style TargetType="Ellipse">
-                                    <Setter Property="Fill"
-                                            Value="LightCoral" />
-                                    <Setter Property="Grid.Row"
-                                            Value="1" />
-                                    <Setter Property="Height"
-                                            Value="10" />
-                                    <Setter Property="Width"
-                                            Value="10" />
-                                </Style>
-                            </Grid.Resources>
                             <Label Name="LblUserADCheck">
                                 <Label.Style>
                                     <Style TargetType="Label">
@@ -3365,9 +3506,10 @@
                             </Label>
                             <Ellipse Name="ElUserADCheck">
                                 <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
+                                    <Style TargetType="Ellipse"
+                                           BasedOn="{StaticResource ElipseO365Status}">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.ADCheck}"
+                                            <DataTrigger Binding="{Binding ADCheck, NotifyOnSourceUpdated=True}"
                                                          Value="True">
                                                 <Setter Property="Fill"
                                                         Value="LightGreen" />
@@ -3388,11 +3530,12 @@
                             </Label>
                             <Ellipse Name="ElUserADActiveCheck">
                                 <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
+                                    <Style TargetType="Ellipse"
+                                           BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="1" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.ADActiveCheck}"
+                                            <DataTrigger Binding="{Binding ADActiveCheck, NotifyOnSourceUpdated=True}"
                                                          Value="True">
                                                 <Setter Property="Fill"
                                                         Value="LightGreen" />
@@ -3413,11 +3556,12 @@
                             </Label>
                             <Ellipse Name="ElUserADLockCheck">
                                 <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
+                                    <Style TargetType="Ellipse"
+                                           BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="2" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.ADLockCheck}"
+                                            <DataTrigger Binding="{Binding ADLockCheck, NotifyOnSourceUpdated=True}"
                                                          Value="True">
                                                 <Setter Property="Fill"
                                                         Value="LightGreen" />
@@ -3438,11 +3582,12 @@
                             </Label>
                             <Ellipse Name="ElUserADMailCheck">
                                 <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
+                                    <Style TargetType="Ellipse"
+                                           BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="3" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.ADMailCheck}"
+                                            <DataTrigger Binding="{Binding ADMailCheck, NotifyOnSourceUpdated=True}"
                                                          Value="True">
                                                 <Setter Property="Fill"
                                                         Value="LightGreen" />
@@ -3463,11 +3608,12 @@
                             </Label>
                             <Ellipse Name="ElUserADmsECheck">
                                 <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
+                                    <Style TargetType="Ellipse"
+                                           BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="4" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.ADmsECheck}"
+                                            <DataTrigger Binding="{Binding ADmsECheck, NotifyOnSourceUpdated=True}"
                                                          Value="True">
                                                 <Setter Property="Fill"
                                                         Value="LightGreen" />
@@ -3488,11 +3634,12 @@
                             </Label>
                             <Ellipse Name="ElUserOAccountCheck">
                                 <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
+                                    <Style TargetType="Ellipse"
+                                           BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="5" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.OAccountCheck}"
+                                            <DataTrigger Binding="{Binding OAccountCheck, NotifyOnSourceUpdated=True}"
                                                          Value="True">
                                                 <Setter Property="Fill"
                                                         Value="LightGreen" />
@@ -3513,11 +3660,12 @@
                             </Label>
                             <Ellipse Name="ElUserOLoginCheck">
                                 <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
+                                    <Style TargetType="Ellipse"
+                                           BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="6" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.OMigCheck}"
+                                            <DataTrigger Binding="{Binding OMigCheck, NotifyOnSourceUpdated=True}"
                                                          Value="True">
                                                 <Setter Property="Fill"
                                                         Value="LightGreen" />
@@ -3538,11 +3686,12 @@
                             </Label>
                             <Ellipse Name="ElUserOMigCheck">
                                 <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
+                                    <Style TargetType="Ellipse"
+                                           BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="7" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.OMigCheck}"
+                                            <DataTrigger Binding="{Binding OMigCheck, NotifyOnSourceUpdated=True}"
                                                          Value="True">
                                                 <Setter Property="Fill"
                                                         Value="LightGreen" />
@@ -3563,16 +3712,17 @@
                             </Label>
                             <Ellipse Name="ElUserOLicCheck">
                                 <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
+                                    <Style TargetType="Ellipse"
+                                           BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="8" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.OLicCheck}"
+                                            <DataTrigger Binding="{Binding OLicCheck, NotifyOnSourceUpdated=True}"
                                                          Value="True">
                                                 <Setter Property="Fill"
                                                         Value="LightGreen" />
                                             </DataTrigger>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.OLicCheck}"
+                                            <DataTrigger Binding="{Binding OLicCheck, NotifyOnSourceUpdated=True}"
                                                          Value="{x:Null}">
                                                 <Setter Property="Fill"
                                                         Value="LightGray" />
@@ -3593,11 +3743,12 @@
                             </Label>
                             <Ellipse Name="ElUserOExchCheck">
                                 <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
+                                    <Style TargetType="Ellipse"
+                                           BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="9" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus.OExchCheck}"
+                                            <DataTrigger Binding="{Binding OExchCheck, NotifyOnSourceUpdated=True}"
                                                          Value="True">
                                                 <Setter Property="Fill"
                                                         Value="LightGreen" />
@@ -3619,6 +3770,9 @@
                                             Value="Collapsed" />
                                 </Style>
                             </ItemsControl.Style>
+                            <ItemsControl.Resources>
+                                <sys:String x:Key="ContentTblPropNameTT">x</sys:String>
+                            </ItemsControl.Resources>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid>
@@ -3678,11 +3832,14 @@
                                                             Value="{Binding Path=Name}" />
                                                     <Setter Property="ToolTip">
                                                         <Setter.Value>
-                                                            <TextBlock>
-                                                                <Run Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPropNameTT}" />
-                                                                <Run Text=": " />
-                                                                <Run Text="{Binding RelativeSource={RelativeSource AncestorType=TextBlock}, Path=DataContext.Source}" />
-                                                            </TextBlock>
+                                                            <Grid>
+                                                                <TextBlock>
+                                                                    <Run Text="{DynamicResource ContentTblPropNameTT}"
+                                                                         FontWeight="Bold" />
+                                                                    <Run Text=": " />
+                                                                    <Run Text="{Binding Path=Source}" />
+                                                                </TextBlock>
+                                                            </Grid>
                                                         </Setter.Value>
                                                     </Setter>
                                                 </Style>
@@ -3704,6 +3861,17 @@
                                                                                     Value="1" />
                                                                             <Setter Property="Text"
                                                                                     Value="{Binding Path=Value, Mode=OneWay}" />
+                                                                            <Style.Triggers>
+                                                                                <DataTrigger Binding="{Binding Path=Value}"
+                                                                                             Value="NULL">
+                                                                                    <Setter Property="FontStyle"
+                                                                                            Value="Italic" />
+                                                                                    <Setter Property="FontWeight"
+                                                                                            Value="Bold" />
+                                                                                    <Setter Property="Background"
+                                                                                            Value="LightGray" />
+                                                                                </DataTrigger>
+                                                                            </Style.Triggers>
                                                                         </Style>
                                                                     </TextBox.Style>
                                                                 </TextBox>
@@ -3712,28 +3880,42 @@
                                                     </Setter>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding Path=Type}"
-                                                                     Value="List">
+                                                                     Value="ArrayList">
                                                             <Setter Property="Template">
                                                                 <Setter.Value>
                                                                     <ControlTemplate>
-                                                                        <ItemsControl>
-                                                                            <ItemsControl.Style>
-                                                                                <Style TargetType="ItemsControl">
-                                                                                    <Setter Property="ItemsSource"
-                                                                                            Value="{Binding RelativeSource={RelativeSource AncestorType=ContentControl}, Path=DataContext.Value}" />
-                                                                                </Style>
-                                                                            </ItemsControl.Style>
-                                                                            <ItemsControl.ItemTemplate>
-                                                                                <DataTemplate>
-                                                                                    <TextBox Text="{Binding Mode=OneWay}">
-                                                                                        <TextBox.Style>
-                                                                                            <Style TargetType="TextBox"
-                                                                                                   BasedOn="{StaticResource TbListValueBaseStyle}" />
-                                                                                        </TextBox.Style>
-                                                                                    </TextBox>
-                                                                                </DataTemplate>
-                                                                            </ItemsControl.ItemTemplate>
-                                                                        </ItemsControl>
+                                                                        <Expander>
+                                                                            <Expander.Header>
+                                                                                <TextBlock>
+                                                                                    <TextBlock.Style>
+                                                                                        <Style TargetType="TextBlock">
+                                                                                            <Setter Property="FontWeight"
+                                                                                                    Value="Bold" />
+                                                                                            <Setter Property="Text"
+                                                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrPropList}" />
+                                                                                        </Style>
+                                                                                    </TextBlock.Style>
+                                                                                </TextBlock>
+                                                                            </Expander.Header>
+                                                                            <ItemsControl>
+                                                                                <ItemsControl.Style>
+                                                                                    <Style TargetType="ItemsControl">
+                                                                                        <Setter Property="ItemsSource"
+                                                                                                Value="{Binding RelativeSource={RelativeSource AncestorType=ContentControl}, Path=DataContext.Value}" />
+                                                                                    </Style>
+                                                                                </ItemsControl.Style>
+                                                                                <ItemsControl.ItemTemplate>
+                                                                                    <DataTemplate>
+                                                                                        <TextBox Text="{Binding Mode=OneWay}">
+                                                                                            <TextBox.Style>
+                                                                                                <Style TargetType="TextBox"
+                                                                                                       BasedOn="{StaticResource TbListValueBaseStyle}" />
+                                                                                            </TextBox.Style>
+                                                                                        </TextBox>
+                                                                                    </DataTemplate>
+                                                                                </ItemsControl.ItemTemplate>
+                                                                            </ItemsControl>
+                                                                        </Expander>
                                                                     </ControlTemplate>
                                                                 </Setter.Value>
                                                             </Setter>
