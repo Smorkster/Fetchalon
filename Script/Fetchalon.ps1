@@ -287,8 +287,6 @@ function ReadSettingsFile
 		VisibleProperties = [pscustomobject]@{
 			User = [System.Collections.ArrayList]::new()
 			Computer = [System.Collections.ArrayList]::new()
-			Directory = [System.Collections.ArrayList]::new()
-			File = [System.Collections.ArrayList]::new()
 			PrintQueue = [System.Collections.ArrayList]::new()
 			Group = [System.Collections.ArrayList]::new()
 			DirectoryInfo = [System.Collections.ArrayList]::new()
@@ -887,15 +885,6 @@ $syncHash.Code.ListItem =
 
 		if ( $syncHash.Data.SearchedItem.ObjectClass -match "(Directory)|(File)Info" )
 		{
-			try
-			{
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value ( Get-ADUser $Object.Owner.Sid )
-			}
-			catch
-			{
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value $syncHash.Data.msgTable.StrNoOwner
-			}
-
 			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADGroups" -Value ( [System.Collections.ArrayList]::new() )
 			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ReadPermissions" -Value ( [System.Collections.ArrayList]::new() )
 			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "WritePermissions" -Value ( [System.Collections.ArrayList]::new() )
@@ -912,12 +901,30 @@ $syncHash.Code.ListItem =
 						Get-ADGroupMember $_.Name | `
 							Sort-Object Name | `
 							ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $_.DistinguishedName ) }
+						if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Count )
+						{
+							$syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $syncHash.Data.msgTable.ContentNoMembersOfList ) | Out-Null
+						}
+
+						try
+						{
+							Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value ( ( Get-ADUser ( Get-ADGroup $_.DistinguishedName -Properties managedBy ).managedBy ).Name )
+						}
+						catch
+						{
+							Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value $syncHash.Data.msgTable.StrNoOwner
+						}
+
 					}
 					else
 					{
 						Get-ADGroupMember $_.Name | `
 							Sort-Object Name | `
 							ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $_.DistinguishedName ) }
+						if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Count )
+						{
+							$syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $syncHash.Data.msgTable.ContentNoMembersOfList ) | Out-Null
+						}
 					}
 				}
 		}
@@ -1276,8 +1283,9 @@ $(
 					$page.Page.DataContext = [pscustomobject]@{
 						MsgTable = $page.Data.msgTable
 					}
-					$syncHash.Window.Resources.Add( $name , $page.Page )
 					$SenderObject.DataContext.PageObject = $page
+					$syncHash.Window.Resources.Add( $name , $page.Page )
+
 					Import-Module $SenderObject.DataContext.PS -ArgumentList $page -Force
 
 					if ( $SenderObject.DataContext.Name -eq "Send-Feedback" )
@@ -1515,7 +1523,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 	param ( $syncHash, $ScriptObject, $Modules, $ItemToSend, $InputData )
 
 	Add-Type -AssemblyName PresentationFramework
-	Import-Module $Modules
+	Import-Module $Modules -Force
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
 
 	$Info = [pscustomobject]@{ Finished = $null ; Data = $null ; Script = $ScriptObject ; Error = $null ; Item = $Item ; OutputType = "String" }
