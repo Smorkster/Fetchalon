@@ -48,7 +48,7 @@ function CheckUser
 	else
 	{
 		$syncHash.ErrorUsers += $Id
-		$syncHash.Data.ErrorHashes += WriteErrorLogTest -LogText "$( $syncHash.Data.msgTable.ErrMessageGetUser )" -UserInput $Id -Severity "UserInputFail"
+		$syncHash.Data.ErrorHashes += WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrMessageGetUser )" -UserInput $Id -Severity "UserInputFail"
 		return "NotFound"
 	}
 }
@@ -327,13 +327,13 @@ function PerformPermissions
 				if ( $syncHash.AddUsers )
 				{
 					try { Add-ADGroupMember -Identity $Group -Members $syncHash.AddUsers.Id -Confirm:$false }
-					catch { $syncHash.Data.ErrorHashes += WriteErrorLogTest -LogText $_ -UserInput "$( $Group.Name )`n$( $OFS = ", "; $syncHash.AddUsers.Id )" -Severity "UserInputFail" }
+					catch { $syncHash.Data.ErrorHashes += WriteErrorLog -LogText $_ -UserInput "$( $Group.Name )`n$( $OFS = ", "; $syncHash.AddUsers.Id )" -Severity "UserInputFail" }
 				}
 
 				if ( $syncHash.RemoveUsers )
 				{
 					try { Remove-ADGroupMember -Identity $Group -Members $syncHash.RemoveUsers.Id -Confirm:$false }
-					catch { $syncHash.Data.ErrorHashes += WriteErrorLogTest -LogText $_ -UserInput "$( $Group.Name )`n$( $OFS = ", "; $syncHash.AddUsers.Id )" -Severity "UserInputFail" }
+					catch { $syncHash.Data.ErrorHashes += WriteErrorLog -LogText $_ -UserInput "$( $Group.Name )`n$( $OFS = ", "; $syncHash.AddUsers.Id )" -Severity "UserInputFail" }
 				}
 				$loopCounter++
 			}
@@ -346,7 +346,7 @@ function PerformPermissions
 				}
 				catch
 				{
-					$syncHash.Data.ErrorHashes += WriteErrorLogTest -LogText "$( $syncHash.Data.msgTable.ErrMessageSetPassword )`n$_" -UserInput $u.AD.SamAccountName -Severity "UserInputFail"
+					$syncHash.Data.ErrorHashes += WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrMessageSetPassword )`n$_" -UserInput $u.AD.SamAccountName -Severity "UserInputFail"
 				}
 			}
 			foreach ( $c in $syncHash.AddComputer )
@@ -366,17 +366,17 @@ function PerformPermissions
 							}
 							else
 							{
-								WriteErrorLogTest -LogText "$( $syncHash.Data.msgTable.ErrSysManNoSystem )" -UserInput $g -Severity "UserInputFail"
+								WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrSysManNoSystem )" -UserInput $g -Severity "UserInputFail"
 							}
 						}
 						else
 						{
-							WriteErrorLogTest -LogText "$( $syncHash.Data.msgTable.ErrSysManNoComputer )" -UserInput $c -Severity "UserInputFail"
+							WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrSysManNoComputer )" -UserInput $c -Severity "UserInputFail"
 						}
 					}
 					catch
 					{
-						WriteErrorLogTest -LogText "$( $syncHash.Data.msgTable.ErrSysManGenError )`n$_" -UserInput $c -Severity "OtherFail"
+						WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrSysManGenError )`n$_" -UserInput $c -Severity "OtherFail"
 					}
 				}
 			}
@@ -451,7 +451,7 @@ function SetUserSettings
 	}
 	catch
 	{
-		WriteErrorLogTest -LogText $_ -UserInput $syncHash.Data.msgTable.ErrMessageSetSettings -Severity "PermissionFail"
+		WriteErrorLog -LogText $_ -UserInput $syncHash.Data.msgTable.ErrMessageSetSettings -Severity "PermissionFail"
 		ShowMessageBox -Text $syncHash.Data.msgTable.ErrScriptPermissions -Icon "Stop"
 		Exit
 	}
@@ -505,7 +505,7 @@ function UpdateAppGroupList
 		}
 		catch
 		{
-			$syncHash.Data.ErrorHashes += WriteErrorLogTest -LogText $_ -UserInput $syncHash.Data.msgTable.ErrMessageGetAppGroups -Severity "ConnectionFail"
+			$syncHash.Data.ErrorHashes += WriteErrorLog -LogText $_ -UserInput $syncHash.Data.msgTable.ErrMessageGetAppGroups -Severity "ConnectionFail"
 		}
 	}
 
@@ -555,7 +555,7 @@ function WriteToLogFile
 	if ( $syncHash.Controls.TxtUsersRemovePermission.Text.Length -gt 0 ) { $UserInput += "$( $syncHash.Data.msgTable.LogInputRemove ) $( $syncHash.Controls.TxtUsersRemovePermission.Text -split "\W" )`n" }
 	$UserInput += $syncHash.DC.LbGroupsChosen[1]
 
-	WriteLogTest -Text $LogText -UserInput $UserInput -Success ( $syncHash.Data.ErrorHashes.Count -lt 1 ) -ErrorLogHash $syncHash.Data.ErrorHashes
+	WriteLog -Text $LogText -UserInput $UserInput -Success ( $syncHash.Data.ErrorHashes.Count -lt 1 ) -ErrorLogHash $syncHash.Data.ErrorHashes
 }
 
 ######################### Script start #########################
