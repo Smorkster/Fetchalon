@@ -9,13 +9,72 @@
                                                 PropertyName="Name" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
+        <Style TargetType="Button"
+               x:Key="BtnBaseStyle">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Margin"
+                                            Value="5" />
+                                </Style>
+                            </Grid.Style>
+                            <Border Name="BtnBrd">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush"
+                                                Value="#FFAAAAAA" />
+                                        <Setter Property="BorderThickness"
+                                                Value="1" />
+                                        <Setter Property="Background"
+                                                Value="#FFDDDDDD" />
+                                        <Setter Property="CornerRadius"
+                                                Value="0" />
+                                        <Setter Property="Margin"
+                                                Value="0" />
+                                        <Setter Property="Padding"
+                                                Value="7" />
+                                    </Style>
+                                </Border.Style>
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center" />
+                            </Border>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <EventTrigger RoutedEvent="Keyboard.PreviewGotKeyboardFocus">
+                                <BeginStoryboard Name="BtnFocusStory">
+                                    <Storyboard>
+                                        <ColorAnimation Storyboard.TargetName="BtnBrd"
+                                                        AutoReverse="True"
+                                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="PowderBlue"
+                                                        RepeatBehavior="Forever"
+                                                        Duration="0:0:1" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="Keyboard.PreviewLostKeyboardFocus">
+                                <StopStoryboard BeginStoryboardName="BtnFocusStory" />
+                            </EventTrigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Page.Resources>
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="30" />
+            <RowDefinition Height="Auto"
+                           MinHeight="40" />
             <RowDefinition />
-            <RowDefinition Height="30" />
+            <RowDefinition Height="40" />
         </Grid.RowDefinitions>
         <TextBlock Name="TblScriptTitle">
             <TextBlock.Style>
@@ -24,6 +83,10 @@
                             Value="14" />
                     <Setter Property="FontWeight"
                             Value="Bold" />
+                    <Setter Property="Grid.ColumnSpan"
+                            Value="2" />
+                    <Setter Property="Margin"
+                            Value="5" />
                     <Setter Property="Text"
                             Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblScriptTitle}" />
                 </Style>
@@ -34,28 +97,61 @@
                 <Style TargetType="ComboBox">
                     <Setter Property="DisplayMemberPath"
                             Value="Name" />
+                    <Setter Property="Grid.ColumnSpan"
+                            Value="2" />
                     <Setter Property="Grid.Row"
                             Value="1" />
                     <Setter Property="ItemsSource"
                             Value="{Binding Source={StaticResource CvsFunctions}}" />
+                    <Setter Property="Margin"
+                            Value="5" />
+                    <Setter Property="VerticalContentAlignment"
+                            Value="Center" />
                 </Style>
             </ComboBox.Style>
         </ComboBox>
         <TextBox Name="TbText">
             <TextBox.Style>
                 <Style TargetType="TextBox">
+                    <Setter Property="Grid.ColumnSpan"
+                            Value="2" />
                     <Setter Property="Grid.Row"
                             Value="2" />
+                    <Setter Property="Margin"
+                            Value="5" />
                 </Style>
             </TextBox.Style>
         </TextBox>
         <Button Name="BtnSendReport">
             <Button.Style>
-                <Style TargetType="Button">
+                <Style TargetType="Button"
+                       BasedOn="{StaticResource BtnBaseStyle}">
                     <Setter Property="Grid.Row"
                             Value="3" />
                     <Setter Property="Content"
                             Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSendReport}" />
+                    <Setter Property="IsEnabled"
+                            Value="True" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=TbText, Path=Text.Length}"
+                                     Value="0">
+                            <Setter Property="IsEnabled"
+                                    Value="False" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
+        <Button Name="BtnAbortReport">
+            <Button.Style>
+                <Style TargetType="Button"
+                       BasedOn="{StaticResource BtnBaseStyle}">
+                    <Setter Property="Grid.Column"
+                            Value="1" />
+                    <Setter Property="Grid.Row"
+                            Value="3" />
+                    <Setter Property="Content"
+                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnAbortReport}" />
                     <Setter Property="IsEnabled"
                             Value="True" />
                     <Style.Triggers>
