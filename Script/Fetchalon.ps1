@@ -285,45 +285,67 @@ function ReadSettingsFile
 
 	$syncHash.Data.UserSettings = [pscustomobject]@{
 		VisibleProperties = [pscustomobject]@{
-			User = [System.Collections.ArrayList]::new()
 			Computer = [System.Collections.ArrayList]::new()
-			PrintQueue = [System.Collections.ArrayList]::new()
-			Group = [System.Collections.ArrayList]::new()
 			DirectoryInfo = [System.Collections.ArrayList]::new()
 			FileInfo = [System.Collections.ArrayList]::new()
+			Group = [System.Collections.ArrayList]::new()
+			PrintQueue = [System.Collections.ArrayList]::new()
+			User = [System.Collections.ArrayList]::new()
 		}
 		Maximized = $false
 		MenuTextVisible = $true
 		WindowHeight = 0
+		WindowLeft = 0
 		WindowWidth = 0
 		WindowTop = 0
-		WindowLeft = 0
 	}
 
-	$ReadSettings = Get-Content $env:USERPROFILE\FetchalonSettings.json | ConvertFrom-Json
-	$ReadSettings.VisibleProperties | Get-Member -MemberType NoteProperty | ForEach-Object {
-		$Class = $_.Name
-		$ReadSettings.VisibleProperties.$Class | `
-			ForEach-Object {
-				if ( [string]::IsNullOrEmpty( $_.Handler ) )
-				{
-					try { $_.Handler = $syncHash.Code."PropHandler$( $_.Name )" }
-					catch { Add-Member -InputObject $_ -MemberType NoteProperty -Name "Handler" -Value ( $syncHash.Code."PropHandler$( $_.Name )" ) }
-				}
-				if ( [string]::IsNullOrEmpty( $_.HandlerTitle ) )
-				{
-					try { $_.HandlerTitle = $syncHash.Data.msgTable.StrRunHandler }
-					catch { Add-Member -InputObject $_ -MemberType NoteProperty -Name "HandlerTitle" -Value $syncHash.Data.msgTable.StrRunHandler }
-				}
-				if ( [string]::IsNullOrEmpty( $_.HandlerDescription ) -or $null -eq $_.HandlerDescription )
-				{
-					try { Add-Member -InputObject $_ -MemberType NoteProperty -Name "HandlerDescription" -Value $syncHash.Data.msgTable.StrDefaultHandlerDescription -ErrorAction Stop } catch {}
-				}
-				[void] $syncHash.Data.UserSettings.VisibleProperties.$Class.Add( $_ )
-			}
-	}
+	$ReadSettings = Get-Content $syncHash.Data.SettingsPath | ConvertFrom-Json
+	$ReadSettings.VisibleProperties | `
+		Get-Member -MemberType NoteProperty | `
+		ForEach-Object {
+			$ObjectClass = $_.Name
+			$ReadSettings.VisibleProperties.$ObjectClass | `
+				ForEach-Object {
+					if ( [string]::IsNullOrEmpty( $_.Handler ) )
+					{
+						try
+						{
+							$_.Handler = $syncHash.Code."PropHandler$( $_.Name )"
+						}
+						catch
+						{
+							Add-Member -InputObject $_ -MemberType NoteProperty -Name "Handler" -Value ( $syncHash.Code."PropHandler$( $_.Name )" )
+						}
+					}
 
-	$ReadSettings | Get-Member -MemberType NoteProperty | Where-Object { $_.Name -notmatch "VisibleProperties" } | ForEach-Object { $syncHash.Data.UserSettings."$( $_.Name )" = $ReadSettings."$( $_.Name )" }
+					if ( [string]::IsNullOrEmpty( $_.HandlerTitle ) )
+					{
+						try
+						{
+							$_.HandlerTitle = $syncHash.Data.msgTable.StrRunHandler
+						}
+						catch
+						{
+							Add-Member -InputObject $_ -MemberType NoteProperty -Name "HandlerTitle" -Value $syncHash.Data.msgTable.StrRunHandler
+						}
+					}
+					if ( [string]::IsNullOrEmpty( $_.HandlerDescription ) -or $null -eq $_.HandlerDescription )
+					{
+						try
+						{
+							Add-Member -InputObject $_ -MemberType NoteProperty -Name "HandlerDescription" -Value $syncHash.Data.msgTable.StrDefaultHandlerDescription -ErrorAction Stop
+						}
+						catch {}
+					}
+					[void] $syncHash.Data.UserSettings.VisibleProperties.$ObjectClass.Add( $_ )
+				}
+		}
+
+	$ReadSettings | `
+		Get-Member -MemberType NoteProperty | `
+		Where-Object { $_.Name -notmatch "VisibleProperties" } | `
+		ForEach-Object { $syncHash.Data.UserSettings."$( $_.Name )" = $ReadSettings."$( $_.Name )" }
 
 	$syncHash.Window.Resources['MenuTextVisibility'] = [System.Windows.Visibility]::Parse( [System.Windows.Visibility], $syncHash.Data.UserSettings.MenuTextVisible )
 }
@@ -658,6 +680,7 @@ $controls = [System.Collections.ArrayList]::new()
 Update-SplashText -Text $msgTable.StrSplashCreatingWindow
 $syncHash = CreateWindowExt -ControlsToBind $controls -IncludeConverters
 $Global:syncHash = $syncHash
+$syncHash.Data.SettingsPath = Resolve-Path $env:UserProfile\FetchalonSettings.json
 $syncHash.Data.msgTable = $msgTable
 $syncHash.Data.Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $culture )
 $syncHash.Data.BaseDir = $BaseDir
@@ -1049,6 +1072,7 @@ $syncHash.Code.ListProperties =
 			-Begin {
 				$c = 0
 				$OtherObjectClass = ( ( Get-Member -InputObject $syncHash.Data.UserSettings.VisibleProperties -MemberType NoteProperty ).Name -notcontains $syncHash.Data.SearchedItem.ObjectClass )
+				$syncHash.Window.Resources['CvsDetailedProps'].Source.Clear()
 				$syncHash.Window.Resources['CvsPropsList'].Source.Clear()
 			} `
 			-Process {
@@ -1588,7 +1612,8 @@ $syncHash.Code.SBlockExecuteFunction = {
 	{
 		$LogText = "Script: $( $ScriptObject.Name )"
 	}
-	WriteLog -Text $LogText -Success $true -UserInput $InputData
+	
+	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput $InputData
 
 	$syncHash.Window.Dispatcher.Invoke( [action] {
 		# Send result to GUI
@@ -1633,7 +1658,7 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 	ForEach-Object {
 		Get-ChildItem $_.FullName | `
 			ForEach-Object {
-				try { Remove-Variable MiObject, add, File, ScriptInfo, MenuItemText -ErrorAction Stop } catch {}
+				try { Remove-Variable MiObject, File, ScriptInfo, MenuItemText -ErrorAction Stop } catch {}
 				$File = $_
 				$MiObject = GetScriptInfo -FilePath $File.FullName
 				if (
@@ -1690,7 +1715,6 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 	}
 
 "Temp1", "Temp2" | ForEach-Object {
-	try { Remove-Variable s -ErrorAction Stop } catch {}
 	$MiObject = [pscustomobject]@{
 		Name = $_
 		Description = ""
@@ -2017,7 +2041,7 @@ $syncHash.Window.Add_LocationChanged( {
 
 # The main window closes, exits and deletes runspaces and events
 $syncHash.Window.Add_Closed( {
-	$syncHash.Data.UserSettings | ConvertTo-Json -Depth 5 | Set-Content $env:UserProfile\FetchalonSettings.json
+	$syncHash.Data.UserSettings | ConvertTo-Json -Depth 5 | Set-Content $syncHash.Data.SettingsPath
 
 	try
 	{
