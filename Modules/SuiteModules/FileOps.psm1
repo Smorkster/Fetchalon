@@ -475,7 +475,7 @@ function WriteErrorlog
 		[string] $ComputerName
 	)
 
-	$mtx = [System.Threading.Mutex]::new( $false, "WriteLogTest $( $CallingScript.Name )" )
+	$mtx = [System.Threading.Mutex]::new( $false, "WriteErrorLog $( $CallingScript.Name )" )
 	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 	$ErrorLogFilePath = Get-LogFilePath -TopFolder "ErrorLogs" -FileName "$( $CallingScript.BaseName ) - Errorlog.json"
 	$el = [ErrorLog]::new( $LogText, $UserInput.Trim(), $Severity )
@@ -521,7 +521,14 @@ function WriteLog
 		[string] $ComputerName
 	)
 
-	$mtx = [System.Threading.Mutex]::new( $false, "WriteLogTest $( $CallingScript.Name )" )
+	$ScriptName = ( $MyInvocation.PSCommandPath -split "\\" )[-1]
+	$mtx = [System.Threading.Mutex]::new( $false, "WriteLog $( $ScriptName )" )
+
+	if ( $MyInvocation.PSCommandPath -notmatch "Tools" )
+	{
+		$Function = ( Get-PSCallStack )[1].FunctionName
+		$Text = "$Function`n$Text"
+	}
 	$log = [Log]::new( $Text, $UserInput.Trim(), [Success][int]$Success )
 
 	if ( $ErrorLogHash )
