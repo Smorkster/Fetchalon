@@ -504,6 +504,7 @@ function SetLocalizations
 	#>
 
 	$syncHash.IcObjectDetailed.Resources['ContentTblPropNameTT'] = $msgTable.ContentTblPropNameTT
+	$syncHash.Window.Resources['MiSubLevelBaseStyle'].Resources['StrOpensSeparateWindow'] = $msgTable.StrOpensSeparateWindow
 
 	$DateTimeFormats = [System.Globalization.CultureInfo]::CurrentCulture.DateTimeFormat
 	$syncHash.Window.Resources['ContentNoMembersOfList'] = @( $msgTable.ContentNoMembersOfList )
@@ -599,7 +600,7 @@ function StartSearch
 					}
 			if ( $NotAllowedCmdLet )
 			{
-				$ForbiddenCmdLet = [System.Management.Automation.ErrorRecord]::new( $syncHash.Data.msgTable.ErrForbiddenCmdLetErrForbiddenCmdLet, "0", [System.Management.Automation.ErrorCategory]::PermissionDenied , $null )
+				$ForbiddenCmdLet = [System.Management.Automation.ErrorRecord]::new( $syncHash.Data.msgTable.ErrForbiddenCmdLet, "0", [System.Management.Automation.ErrorCategory]::PermissionDenied , $null )
 				$syncHash.DC.DgSearchResults[0].Add( $CmdLetResult )
 			}
 			else
@@ -734,9 +735,6 @@ $syncHash.Jobs.ScriptsRunspace.Open()
 $syncHash.Jobs.JobErrors = [System.Collections.ArrayList]@{}
 
 Update-SplashText -Text $msgTable.StrSplashCreatingHandlers
-
-# TODO Remove
-WriteLog -Text "Start" -Success $true | Out-Null
 
 # Set found object as datacontext for controls
 $syncHash.Code.ListItem =
@@ -1174,7 +1172,7 @@ $syncHash.Code.ListProperties =
 				}
 }
 
-Update-SplashText -Text $msgTable.StrSplash3
+Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximum 10 )"
 
 # Eventhandler to copy function output
 [System.Windows.RoutedEventHandler] $syncHash.Code.CopyOutputData =
@@ -1606,11 +1604,11 @@ $syncHash.Code.SBlockExecuteFunction = {
 	# Log activity
 	if ( $null -ne $ItemToSend )
 	{
-		$LogText = "Script: $( $ScriptObject.Name )`r`n$( $syncHash.Data.msgTable.LogStrSearchItemTitle ): $( $ItemToSend.Name )"
+		$LogText = "Function: $( $ScriptObject.Name )`r`n$( $syncHash.Data.msgTable.LogStrSearchItemTitle ): $( $ItemToSend.Name )"
 	}
 	else
 	{
-		$LogText = "Script: $( $ScriptObject.Name )"
+		$LogText = "Function: $( $ScriptObject.Name )"
 	}
 	
 	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput $InputData
