@@ -574,6 +574,9 @@
         </Style>
         <Style TargetType="MenuItem"
                x:Key="MiSubLevelBaseStyle">
+            <Style.Resources>
+                <sys:String x:Key="StrOpensSeparateWindow">x</sys:String>
+            </Style.Resources>
             <Setter Property="FontSize"
                     Value="12" />
             <Setter Property="FontStyle"
@@ -618,39 +621,41 @@
                             Value="Bold" />
                     <Setter Property="ToolTip">
                         <Setter.Value>
-                            <ToolTip>
-                                <Grid>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text"
-                                                        Value="{Binding Path=Description}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Path=Description}"
-                                                                 Value="{x:Null}">
-                                                        <Setter Property="Visibility"
-                                                                Value="Collapsed" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Grid.Row"
-                                                        Value="1" />
-                                                <Setter Property="Text"
-                                                        Value="{Binding Path=MsgTable.StrOpensSeparateWindow}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </Grid>
-                            </ToolTip>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock>
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text"
+                                                    Value="{Binding Path=Description}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Path=Description}"
+                                                             Value="{x:Null}">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock>
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontStyle"
+                                                    Value="Italic" />
+                                            <Setter Property="FontWeight"
+                                                    Value="Bold" />
+                                            <Setter Property="Grid.Row"
+                                                    Value="1" />
+                                            <Setter Property="Text"
+                                                    Value="{DynamicResource StrOpensSeparateWindow}" />
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
                         </Setter.Value>
                     </Setter>
                 </DataTrigger>
@@ -664,16 +669,11 @@
                         </Setter.Value>
                     </Setter>
                 </DataTrigger>
-                <MultiDataTrigger>
-                    <MultiDataTrigger.Conditions>
-                        <Condition Binding="{Binding Path=Name}"
-                                   Value="{x:Null}" />
-                        <Condition Binding="{Binding Path=Description}"
-                                   Value="{x:Null}" />
-                    </MultiDataTrigger.Conditions>
+                <DataTrigger Binding="{Binding Path=Description}"
+                             Value="{x:Null}">
                     <Setter Property="ToolTip"
                             Value="{x:Null}" />
-                </MultiDataTrigger>
+                </DataTrigger>
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.SearchedItemRequest}"
