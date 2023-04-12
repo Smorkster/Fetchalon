@@ -634,28 +634,34 @@ function StartSearch
 		}
 
 		$syncHash.Window.Dispatcher.Invoke( [action] {
-			$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Collapsed
+			$syncHash.DgSearchResults.SelectedIndex = 0
 			$syncHash.DC.PbSearchProgress[0] = [System.Windows.Visibility]::Collapsed
 			$syncHash.GridFailedSearch.Visibility = [System.Windows.Visibility]::Collapsed
-			$syncHash.DgSearchResults.SelectedIndex = 0
 			$syncHash.DgSearchResultsColRunCount.Text = $syncHash.DC.DgSearchResults[0].Count
-		}, [System.Windows.Threading.DispatcherPriority]::DataBind )
+			$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Collapsed
+		}, [System.Windows.Threading.DispatcherPriority]::Send )
 
 		$syncHash.Window.Dispatcher.Invoke( [action] {
-			if ( $syncHash.DC.DgSearchResults[0].Count -eq 1 )
-			{
-				Invoke-Command $syncHash.Code.ListItem
-			}
-			elseif ( $syncHash.DC.DgSearchResults[0].Count -gt 1 )
-			{
-				$a = $syncHash.DgSearchResults.ItemContainerGenerator.ContainerFromIndex( 0 )
-				$a.MoveFocus( ( [System.Windows.Input.TraversalRequest]::new( ( [System.Windows.Input.FocusNavigationDirection]::Next ) ) ) )
-			}
-			else
+			if ( 0 -eq $syncHash.DC.DgSearchResults[0].Count )
 			{
 				$syncHash.GridFailedSearch.Visibility = [System.Windows.Visibility]::Visible
 			}
-		}, [System.Windows.Threading.DispatcherPriority]::DataBind )
+			else
+			{
+				$syncHash.GridObj.Visibility = [System.Windows.Visibility]::Visible
+
+				if ( $syncHash.DC.DgSearchResults[0].Count -eq 1 )
+				{
+					Invoke-Command -ScriptBlock $syncHash.Code.ListItem -ArgumentList $syncHash.DC.DgSearchResults.Item( 0 ) -NoNewScope
+				}
+				elseif ( $syncHash.DC.DgSearchResults[0].Count -gt 1 )
+				{
+					# This sets keyboard focus on DgSearchResults
+					$a = $syncHash.DgSearchResults.ItemContainerGenerator.ContainerFromIndex( 0 )
+					$a.MoveFocus( ( [System.Windows.Input.TraversalRequest]::new( ( [System.Windows.Input.FocusNavigationDirection]::Next ) ) ) )
+				}
+			}
+		}, [System.Windows.Threading.DispatcherPriority]::Send )
 	} ).AddArgument( $syncHash )
 	$syncHash.Jobs.SearchJob.Runspace = $syncHash.Jobs.SearchRunspace
 	$syncHash.Jobs.SearchJobHandle = $syncHash.Jobs.SearchJob.BeginInvoke()
@@ -739,7 +745,7 @@ Update-SplashText -Text $msgTable.StrSplashCreatingHandlers
 # Set found object as datacontext for controls
 $syncHash.Code.ListItem =
 {
-	$Object = $syncHash.DgSearchResults.SelectedItem
+	param ( $Object )
 
 	if ( $null -ne ( $Object | Get-Member -Name ObjectClass -ErrorAction SilentlyContinue ) )
 	{
@@ -1001,10 +1007,10 @@ $syncHash.Code.ListItem =
 		}
 		else
 		{
-			$Data = ( $Object | Format-Table | Out-String )
+			$PsCmdLetData = $Object | Format-Table | Out-String
 		}
 		$ScriptObject = [pscustomobject]@{ OutputType = "String"; Name = $syncHash.Data.msgTable.StrPsGetCmdlet }
-		$Info = [pscustomobject]@{ Finished = Get-Date ; Data = $Data ; Script = $ScriptObject ; Error = $RunError ; Item = $null ; OutputType = "String" }
+		$Info = [pscustomobject]@{ Finished = Get-Date ; Data = $PsCmdLetData ; Script = $ScriptObject ; Error = $RunError ; Item = $null ; OutputType = "String" }
 		$syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $Info )
 	}
 	$syncHash.PopupMenu.IsOpen = $false
@@ -1110,65 +1116,70 @@ $syncHash.Code.ListProperties =
 				$c += 1
 			} | `
 				ForEach-Object {
-					if ( $null -eq $_.Value )
+					$Prop = $_
+					if ( $null -eq $Prop.Value )
 					{
-						Add-Member -InputObject $_ -MemberType NoteProperty -Name "Value" -Value ( "NULL" ) -Force
+						Add-Member -InputObject $Prop -MemberType NoteProperty -Name "Value" -Value ( "NULL" ) -Force
 					}
-					elseif ( $_.Value -is [array] )
+					elseif ( $Prop.Value -is [array] )
 					{
-						if ( $_.Value.Count -eq 0 )
+						if ( $Prop.Value.Count -eq 0 )
 						{
-							[void] $_.Value.Add( $syncHash.Data.msgTable.StrNoScriptOutput )
-							Add-Member -InputObject $_ -MemberType NoteProperty -Name "Type" -Value "String"
+							[void] $Prop.Value.Add( $syncHash.Data.msgTable.StrNoScriptOutput )
+							Add-Member -InputObject $Prop -MemberType NoteProperty -Name "Type" -Value "String"
 						}
-						elseif ( "pscustomobject" -eq $_.Value[0].GetType().Name )
+						elseif ( "pscustomobject" -eq $Prop.Value[0].GetType().Name )
 						{
-							Add-Member -InputObject $_ -MemberType NoteProperty -Name "Type" -Value "ObjectList"
+							Add-Member -InputObject $Prop -MemberType NoteProperty -Name "Type" -Value "ObjectList"
 						}
 					}
-					elseif ( $_.Value -is [pscustomobject] )
+					elseif ( $Prop.Value -is [pscustomobject] )
 					{
-						$t = $_.Value
-						$_.Value = [System.Collections.ArrayList]::new()
-						$_.Value.Add( $t ) | Out-Null
-						Add-Member -InputObject $_ -MemberType NoteProperty -Name "Type" -Value "ObjectList"
+						$t = $Prop.Value
+						$Prop.Value = [System.Collections.ArrayList]::new()
+						$Prop.Value.Add( $t ) | Out-Null
+						Add-Member -InputObject $Prop -MemberType NoteProperty -Name "Type" -Value "ObjectList"
 					}
 					else
 					{
-						Add-Member -InputObject $_ -MemberType NoteProperty -Name "Type" -Value ( $_.Value.GetType().Name )
+						Add-Member -InputObject $Prop -MemberType NoteProperty -Name "Type" -Value ( $Prop.Value.GetType().Name )
 					}
 
-					if ( $_.Type -eq "Int64" )
+					if ( $Prop.Type -eq "Int64" )
 					{
-						if ( 9223372036854775807 -eq $_.Value )
+						if ( 9223372036854775807 -eq $Prop.Value )
 						{
 							if ( $syncHash.Data.SearchedItem.ObjectClass -eq "user" )
 							{
-								$_.Value = $syncHash.Data.msgTable.StrAccountNeverExpires
+								$Prop.Value = $syncHash.Data.msgTable.StrAccountNeverExpires
 							}
 						}
 						else
 						{
-							$_.Value = Get-Date ( [datetime]::FromFileTime( $_.Value ) ) -Format "u"
+							$Prop.Value = Get-Date ( [datetime]::FromFileTime( $Prop.Value ) ) -Format "u"
 						}
 					}
-					elseif ( "ADPropertyValueCollection" -eq $_.Type )
+					elseif ( "ADPropertyValueCollection" -eq $Prop.Type )
 					{
-						[System.Collections.ArrayList] $_.Value = $_.Value
-						$_.Type = "ArrayList"
+						[System.Collections.ArrayList] $Prop.Value = $Prop.Value
+						$Prop.Type = "ArrayList"
 					}
 
-					Add-Member -InputObject $_ -MemberType NoteProperty -Name "Handler" -Value $syncHash.Code."PropHandler$( $_.Name )".Handler
-					Add-Member -InputObject $_ -MemberType NoteProperty -Name "HandlerTitle" -Value $syncHash.Code."PropHandler$( $_.Name )".HandlerTitle
-					Add-Member -InputObject $_ -MemberType NoteProperty -Name "HandlerDescription" -Value $syncHash.Code."PropHandler$( $_.Name )".HandlerDescription
-					Add-Member -InputObject $_ -MemberType NoteProperty -Name "HandlerProgress" -Value 0
-					Add-Member -InputObject $_ -MemberType NoteProperty -Name "CheckedForVisible" -Value ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Name -contains $_.Name )
+					Add-Member -InputObject $Prop -MemberType NoteProperty -Name "Handler" -Value $syncHash.Code."PropHandler$( $Prop.Name )".Handler
+					Add-Member -InputObject $Prop -MemberType NoteProperty -Name "HandlerTitle" -Value $syncHash.Code."PropHandler$( $Prop.Name )".HandlerTitle
+					Add-Member -InputObject $Prop -MemberType NoteProperty -Name "HandlerDescription" -Value $syncHash.Code."PropHandler$( $Prop.Name )".HandlerDescription
+					Add-Member -InputObject $Prop -MemberType NoteProperty -Name "HandlerProgress" -Value 0
+					Add-Member -InputObject $Prop -MemberType NoteProperty -Name "CheckedForVisible" -Value ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Name -contains $Prop.Name )
 
 					if ( $Detailed )
 					{
-						$syncHash.Window.Resources['CvsDetailedProps'].Source.Add( $_ )
+						$syncHash.Window.Resources['CvsDetailedProps'].Source.Add( $Prop )
 					}
-					$syncHash.Window.Resources['CvsPropsList'].Source.Add( $_ )
+					if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.Source -eq $Prop.Source -and $_.Name -eq $Prop.Name } ) -or `
+						$OtherObjectClass )
+					{
+						$syncHash.Window.Resources['CvsPropsList'].Source.Add( $Prop )
+					}
 				}
 }
 
@@ -1194,6 +1205,7 @@ Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximu
 {
 	param ( $SenderObject, $e )
 
+	WriteLog -Text "$( $syncHash.Data.msgTable.LogStrPropHandlerRun ): $( $SenderObject.DataContext.Name )::$( $SenderObject.DataContext.Source )" -Success $true
 	. ( [scriptblock]::Create( $SenderObject.DataContext.Handler ) )
 }
 
@@ -1819,14 +1831,14 @@ $syncHash.DgSearchResults.Add_LoadingRow( {
 		elseif ( "Return" -eq $args[1].Key -or "Enter" -eq $args[1].Key )
 		{
 			$args[1].Handled = $true
-			Invoke-Command $syncHash.Code.ListItem
+			Invoke-Command -ScriptBlock $syncHash.Code.ListItem -ArgumentList $syncHash.DgSearchResults.SelectedItem -NoNewScope
 		}
 	} )
 } )
 
 # A doubleclick was made, load the item
 $syncHash.DgSearchResults.Add_MouseDoubleClick( {
-	Invoke-Command $syncHash.Code.ListItem
+	Invoke-Command -ScriptBlock $syncHash.Code.ListItem -ArgumentList $syncHash.DgSearchResults.SelectedItem -NoNewScope
 } )
 
 #
@@ -2041,29 +2053,29 @@ $syncHash.Window.Add_LocationChanged( {
 $syncHash.Window.Add_Closed( {
 	$syncHash.Data.UserSettings | ConvertTo-Json -Depth 5 | Set-Content $syncHash.Data.SettingsPath
 
+	# Close runspace for functions
 	try
 	{
-		[void] $syncHash.Jobs.SearchJob.EndInvoke( $syncHash.Jobs.SearchJobHandle )
-		$syncHash.Jobs.SearchJob.Dispose()
+		[void] $syncHash.Jobs.ExecuteFunction.P.EndInvoke( $syncHash.jobs.ExecuteFunction.H )
+		$syncHash.Jobs.ExecuteFunction.P.Dispose()
 	} catch {}
 
+	# Close runspace for extra info fetching
 	try
 	{
 		[void] $syncHash.Jobs.PSysManFetch.EndInvoke( $syncHash.Jobs.HSysManFetch )
 		$syncHash.Jobs.PSysManFetch.Dispose()
 	} catch {}
 
+	# Close runspace for the search job
 	try
 	{
-		[void] $syncHash.Jobs.PClearJobs.EndInvoke( $syncHash.Jobs.HClearJobs )
-		$syncHash.Jobs.PClearJobs.Dispose()
-	} catch {}
-
-	try
-	{
+		[void] $syncHash.Jobs.SearchJob.EndInvoke( $syncHash.Jobs.SearchJobHandle )
+		$syncHash.Jobs.SearchJob.Dispose()
 		$syncHash.Jobs.SearchRunspace.Dispose()
 	} catch {}
 
+	# Close all runspaces opened for tools
 	$syncHash.MiTools.Items | Where-Object { $_.Separate -eq $true } | ForEach-Object { try { $_.Process.PObj.CloseMainWindow() ; $_.Process.PObj.Close() } catch {} }
 	[System.GC]::Collect()
 } )
@@ -2088,6 +2100,7 @@ $syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add_CollectionChanged( {
 	$syncHash.DC.IcOutputObjects[0].Clear()
 	$syncHash.DC.IcOutputObjects[0].Insert( 0, $syncHash.Window.Resources['CvsMiOutputHistory'].View.GetItemAt(0) )
 	$syncHash.GridFunctionOp.DataContext = $null
+	[System.GC]::Collect()
 } )
 
 [void] $syncHash.Window.ShowDialog()
