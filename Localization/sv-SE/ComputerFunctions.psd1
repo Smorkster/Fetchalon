@@ -1,6 +1,8 @@
 ﻿ConvertFrom-StringData @'
-SysManServerUrl = http://sysman.test.com/Sysman
+GetLastLoggedInStrCompTitle = Datornamn
+GetLastLoggedInStrUserTitle = Användare
+SendToastTitle = Titel
 StrAppId = Meddelande från Servicedesk
-SendToastTitle = Title
 StrSameCostCenterPropName = CcPropName
+SysManServerUrl = http://sysman.test.com/Sysman
 '@
