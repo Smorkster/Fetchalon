@@ -66,13 +66,13 @@ function Get-LastLoggedIn
 	.Author Smorkster
 	#>
 
-	param ( $Item, $InputData )
+	param ( $InputData )
 
 	$Output = [System.Collections.ArrayList]::new()
-	foreach ( $c in ( $InputData -split "\W" ) )
+	foreach ( $c in ( $InputData.ComputerNames -split "\W" ) )
 	{
-		$u = ( ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/Health?targetName=$c&onlyLatest=true" -UseDefaultCredentials ).lastLoggedOnUser -split "\\" )[1]
-		[void] $Output.Add( ( [pscustomobject]@{ Dator = $c ; Användare = $u } ) )
+		$u = ( ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/Health?targetName=$c&onlyLatest=true" -UseDefaultCredentials -Method Get -ContentType "application/json" )[0].lastLoggedOnUser -split "\\" )[1]
+		[void] $Output.Add( ( [pscustomobject]@{ $IntMsgTable.GetLastLoggedInStrCompTitle = $c ; $IntMsgTable.GetLastLoggedInStrUserTitle = $u } ) )
 	}
 	return $Output
 }
