@@ -1,4 +1,5 @@
 ﻿ConvertFrom-StringData @'
+GetLastLoggedInStrCompNotFound = Datornamn hittas inte i SysMan
 GetLastLoggedInStrCompTitle = Datornamn
 GetLastLoggedInStrUserTitle = Användare
 SendToastTitle = Titel

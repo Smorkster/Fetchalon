@@ -1,4 +1,5 @@
 ﻿ConvertFrom-StringData @'
+GetLastLoggedInStrCompNotFound = Computer name not found in SysMan
 GetLastLoggedInStrCompTitle = Computername
 GetLastLoggedInStrUserTitle = User
 SendToastTitle = Title
