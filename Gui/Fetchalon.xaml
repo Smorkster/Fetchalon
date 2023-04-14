@@ -1,6 +1,6 @@
 <Window Name="Window"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:c="clr-namespace:SDGUIConverters;assembly=SDGUIConverterAssembly"
+        xmlns:c="clr-namespace:FetchalonConverters;assembly=FetchalonConverterAssembly"
         xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -483,14 +483,20 @@
         </Style>
         <Style TargetType="Ellipse"
                x:Key="ElipseO365Status">
+            <Setter Property="OverridesDefaultStyle"
+                    Value="True" />
             <Setter Property="Fill"
                     Value="Red" />
             <Setter Property="Grid.Row"
                     Value="1" />
             <Setter Property="Height"
-                    Value="10" />
+                    Value="12" />
+            <Setter Property="Stroke"
+                    Value="Black" />
+            <Setter Property="StrokeThickness"
+                    Value="1" />
             <Setter Property="Width"
-                    Value="10" />
+                    Value="12" />
         </Style>
         <Style TargetType="ItemsControl"
                x:Key="IcBaseStyle">
@@ -3462,20 +3468,20 @@
                             <Grid.Style>
                                 <Style TargetType="Grid">
                                     <Setter Property="DataContext"
-                                            Value="{Binding ElementName=Window, Path=DataContext.O365AccountStatus, NotifyOnSourceUpdated=True}" />
+                                            Value="{Binding ElementName=Window, Path=DataContext.O365AccountStatus}" />
                                     <Setter Property="Visibility"
-                                            Value="Visible" />
+                                            Value="Collapsed" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365Connected}"
-                                                     Value="False">
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding ElementName=Window, Path=DataContext.SearchedItem.ObjectClass}"
+                                                           Value="user" />
+                                                <Condition Binding="{Binding ElementName=Window, Path=DataContext.O365Connected}"
+                                                           Value="True" />
+                                            </MultiDataTrigger.Conditions>
                                             <Setter Property="Visibility"
-                                                    Value="Collapsed" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365AccountStatus}"
-                                                     Value="{x:Null}">
-                                            <Setter Property="Visibility"
-                                                    Value="Collapsed" />
-                                        </DataTrigger>
+                                                    Value="Visible" />
+                                        </MultiDataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Grid.Style>
@@ -3507,13 +3513,6 @@
                                 <Ellipse.Style>
                                     <Style TargetType="Ellipse"
                                            BasedOn="{StaticResource ElipseO365Status}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ADCheck, NotifyOnSourceUpdated=True}"
-                                                         Value="True">
-                                                <Setter Property="Fill"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
@@ -3533,13 +3532,6 @@
                                            BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="1" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ADActiveCheck, NotifyOnSourceUpdated=True}"
-                                                         Value="True">
-                                                <Setter Property="Fill"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
@@ -3559,13 +3551,6 @@
                                            BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="2" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ADLockCheck, NotifyOnSourceUpdated=True}"
-                                                         Value="True">
-                                                <Setter Property="Fill"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
@@ -3585,13 +3570,6 @@
                                            BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="3" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ADMailCheck, NotifyOnSourceUpdated=True}"
-                                                         Value="True">
-                                                <Setter Property="Fill"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
@@ -3611,13 +3589,6 @@
                                            BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="4" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ADmsECheck, NotifyOnSourceUpdated=True}"
-                                                         Value="True">
-                                                <Setter Property="Fill"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
@@ -3637,13 +3608,6 @@
                                            BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="5" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding OAccountCheck, NotifyOnSourceUpdated=True}"
-                                                         Value="True">
-                                                <Setter Property="Fill"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
@@ -3663,13 +3627,6 @@
                                            BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="6" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding OMigCheck, NotifyOnSourceUpdated=True}"
-                                                         Value="True">
-                                                <Setter Property="Fill"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
@@ -3689,13 +3646,6 @@
                                            BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="7" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding OMigCheck, NotifyOnSourceUpdated=True}"
-                                                         Value="True">
-                                                <Setter Property="Fill"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
@@ -3715,18 +3665,6 @@
                                            BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="8" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding OLicCheck, NotifyOnSourceUpdated=True}"
-                                                         Value="True">
-                                                <Setter Property="Fill"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding OLicCheck, NotifyOnSourceUpdated=True}"
-                                                         Value="{x:Null}">
-                                                <Setter Property="Fill"
-                                                        Value="LightGray" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
@@ -3746,13 +3684,6 @@
                                            BasedOn="{StaticResource ElipseO365Status}">
                                         <Setter Property="Grid.Column"
                                                 Value="9" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding OExchCheck, NotifyOnSourceUpdated=True}"
-                                                         Value="True">
-                                                <Setter Property="Fill"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
                                     </Style>
                                 </Ellipse.Style>
                             </Ellipse>
