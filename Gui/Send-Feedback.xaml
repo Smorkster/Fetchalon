@@ -113,6 +113,8 @@
         <TextBox Name="TbText">
             <TextBox.Style>
                 <Style TargetType="TextBox">
+                    <Setter Property="AcceptsReturn"
+                            Value="True" />
                     <Setter Property="Grid.ColumnSpan"
                             Value="2" />
                     <Setter Property="Grid.Row"
