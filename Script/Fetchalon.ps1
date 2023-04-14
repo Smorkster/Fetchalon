@@ -172,7 +172,6 @@ function GetExtraInfoPrintQueue
 		$a = Get-Printer -Name $syncHash.Data.SearchedItem.ExtraInfo.Base.name.Trim() -ComputerName $syncHash.Data.SearchedItem.ExtraInfo.Base.server
 		$a | Get-Member -MemberType Property | ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.PrintConf."$( $_.Name )" = $a."$( $_.Name )" }
 
-		#Invoke-Command $syncHash.Code.ListExtraInfo -ArgumentList @()
 		Invoke-Command $syncHash.Code.ListProperties
 
 		$syncHash.Window.Dispatcher.Invoke( [action] {
@@ -222,8 +221,6 @@ function GetExtraInfoUser
 			else
 			{ [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.LockoutList.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrNoLockoutsFoundTitle = $syncHash.Data.msgTable.StrNoLockoutsFound } ) ) }
 		}
-
-		#Invoke-Command $syncHash.Code.ListExtraInfo -ArgumentList @()
 
 		$syncHash.Window.Dispatcher.Invoke( [action] {
 			Invoke-Command $syncHash.Code.ListProperties -ArgumentList ( "Visible" -eq $syncHash.IcObjectDetailed.Visibility )
@@ -358,6 +355,11 @@ function ResetInfo
 	#>
 
 	$syncHash.IcObjectDetailed.Visibility = [System.Windows.Visibility]::Collapsed
+	$syncHash.GridO365Status.Visibility = [System.Windows.Visibility]::Collapsed
+	$syncHash.GridO365Status.Children | `
+		Where-Object { $_ -is [System.Windows.Shapes.Ellipse] } | `
+		ForEach-Object { $_.Fill = "Red" }
+
 	$syncHash.Window.DataContext.SearchedItem = $null
 	$syncHash.Data.SearchedItem = $null
 	$syncHash.DC.DgSearchResults[0].Clear()
@@ -381,13 +383,18 @@ function RunScript
 
 function RunScriptNoRunspace
 {
-	param ( $EnteredInput )
+	param ( $ScriptObject, $EnteredInput )
 
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
-	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $syncHash.Data.msgTable.StrScriptRunningWithoutRunspace }, [System.Windows.Threading.DispatcherPriority]::DataBind )
+	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $syncHash.Data.msgTable.StrScriptRunningWithoutRunspace }, [System.Windows.Threading.DispatcherPriority]::Send )
 
-	$Info = [pscustomobject]@{ Finished = $null; Data = $null ; Script = $syncHash.GridFunctionOp.DataContext ; Error = $null ; Item = $syncHash.Data.SearchedItem ; OutputType = "String" }
-	if ( "String", "List", "ObjectList" -match $Info.Script.OutputType )
+	$Info = [pscustomobject]@{ Finished = $null; Data = $null ; Script = $ScriptObject ; Error = $null ; Item = $syncHash.Data.SearchedItem ; OutputType = "String" }
+
+	if ( $null -eq $Info.Script.OutputType )
+	{
+		$Info.OutputType = "String"
+	}
+	elseif ( "String", "List", "ObjectList" -match $Info.Script.OutputType )
 	{ $Info.OutputType = $Info.Script.OutputType }
 	else
 	{ $Info.OutputType = "String" }
@@ -440,7 +447,7 @@ function PrepareToRunScript
 	# Function is to be run without a runspace
 	if ( $ScriptObject.NoRunspace )
 	{
-		RunScriptNoRunspace
+		RunScriptNoRunspace -ScriptObject $ScriptObject
 	}
 	# Create runspace for function
 	else
@@ -523,7 +530,7 @@ function SetLocalizations
 	$syncHash.Window.Resources['BtnRunPropStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.RunPropHandler
 	$syncHash.Window.Resources['BtnViewFileDir'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.ViewFileDir
 	$syncHash.Window.Resources['MiSubLevelFunctionsStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
-	$syncHash.Window.Resources['MiSubLevelO365Style'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.O365Click
+	$syncHash.Window.Resources['MiSubLevelO365Style'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
 	$syncHash.Window.Resources['MiSubLevelToolStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
 	$syncHash.Window.Resources['TblHlStyle'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.HyperLinkClick
 
@@ -720,7 +727,18 @@ $syncHash.Code = @{}
 $syncHash.BindData = [pscustomobject]@{
 	MsgTable = $msgTable
 	O365Connected = $false
-	O365AccountStatus = $null
+	O365AccountStatus = [pscustomobject]@{
+						ADCheck = $false
+						ADActiveCheck = $false
+						ADLockCheck = $false
+						ADMailCheck = $false
+						ADmsECheck = $false
+						OAccountCheck = $false
+						OLoginCheck = $false
+						OMigCheck = $false
+						OLicCheck = $false
+						OExchCheck = $false
+					}
 	SearchedItem = $null
 }
 $syncHash.Window.DataContext = $syncHash.BindData
@@ -801,24 +819,29 @@ $syncHash.Code.ListItem =
 
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "NeedPasswordChange" -Value ( $syncHash.Data.SearchedItem.PasswordLastSet -lt ( Get-Date "2022-04-29" ) )
 
-				if ( $syncHash.Data.SearchedItem.otherTelephone -ne $null ) { [System.Collections.ArrayList] $syncHash.Data.SearchedItem.otherTelephone = $syncHash.Data.SearchedItem.otherTelephone }
-				if ( $syncHash.Data.SearchedItem.proxyAddresses -ne $null ) { [System.Collections.ArrayList] $syncHash.Data.SearchedItem.proxyAddresses = $syncHash.Data.SearchedItem.proxyAddresses | Sort-Object }
-				if ( $syncHash.Data.SearchedItem.LogonWorkstations -ne $null ) { [System.Collections.ArrayList] $syncHash.Data.SearchedItem.LogonWorkstationsList = $syncHash.Data.SearchedItem.LogonWorkstations -split "," | Sort-Object }
+				if ( $syncHash.Data.SearchedItem.otherTelephone -ne $null )
+				{
+					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.otherTelephone = $syncHash.Data.SearchedItem.otherTelephone
+				}
+
+				if ( $syncHash.Data.SearchedItem.proxyAddresses -ne $null )
+				{
+					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.proxyAddresses = $syncHash.Data.SearchedItem.proxyAddresses | Sort-Object
+				}
+
+				if ( $syncHash.Data.SearchedItem.LogonWorkstations -ne $null )
+				{
+					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.LogonWorkstationsList = $syncHash.Data.SearchedItem.LogonWorkstations -split "," | Sort-Object
+				}
+
 				if ( $syncHash.Window.DataContext.O365Connected -eq $true )
 				{
 					$syncHash.GridO365Status.Visibility = [System.Windows.Visibility]::Visible
-					$syncHash.Window.DataContext.O365AccountStatus = [pscustomobject]@{
-						ADCheck = $true
-						ADActiveCheck = $syncHash.Data.SearchedItem.Enabled
-						ADLockCheck = -not $syncHash.Data.SearchedItem.LockedOut
-						ADMailCheck = $null -ne $syncHash.Data.SearchedItem.EmailAddress
-						ADmsECheck = $null -eq $syncHash.Data.SearchedItem.msExchMailboxGuid
-						OAccountCheck = $false
-						OLoginCheck = $false
-						OMigCheck = $false
-						OLicCheck = $false
-						OExchCheck = $false
-					}
+					$syncHash.Window.DataContext.O365AccountStatus.ADCheck = $true
+					$syncHash.Window.DataContext.O365AccountStatus.ADActiveCheck = $syncHash.Data.SearchedItem.Enabled
+					$syncHash.Window.DataContext.O365AccountStatus.ADLockCheck = -not $syncHash.Data.SearchedItem.LockedOut
+					$syncHash.Window.DataContext.O365AccountStatus.ADMailCheck = $null -ne $syncHash.Data.SearchedItem.EmailAddress
+					$syncHash.Window.DataContext.O365AccountStatus.ADmsECheck = $null -eq $syncHash.Data.SearchedItem.msExchMailboxGuid
 
 					try
 					{
@@ -859,6 +882,18 @@ $syncHash.Code.ListItem =
 						}
 					}
 					catch {}
+					$syncHash.GridO365Status.Children | `
+						Where-Object { $_ -is [System.Windows.Shapes.Ellipse] } | `
+						ForEach-Object {
+							if ( $null -eq $syncHash.Window.DataContext.O365AccountStatus."$( $_.Name -replace "ElUser" )" )
+							{
+								$_.Fill = "LightGray"
+							}
+							elseif ( $syncHash.Window.DataContext.O365AccountStatus."$( $_.Name -replace "ElUser" )" )
+							{
+								$_.Fill = "LightGreen"
+							}
+						}
 				}
 			}
 			"DirectoryInfo"
@@ -1401,10 +1436,11 @@ $(
 			$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
 		}
 
-		if ( -not $SenderObject.DataContext.NoRunspace )
-		{
+# TODO Test
+#		if ( -not $SenderObject.DataContext.NoRunspace )
+#		{
 			PrepareToRunScript $SenderObject.DataContext
-		}
+#		}
 	}
 }
 
@@ -1560,7 +1596,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 	Import-Module $Modules -Force
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
 
-	$Info = [pscustomobject]@{ Finished = $null ; Data = $null ; Script = $ScriptObject ; Error = $null ; Item = $Item ; OutputType = "String" }
+	$Info = [pscustomobject]@{ Finished = $null ; Data = $null ; Script = $ScriptObject ; Error = $null ; Item = $ItemToSend ; OutputType = "String" }
 
 	try
 	{
@@ -1572,7 +1608,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 			}
 			else
 			{
-				$ScriptOutput = . $ScriptObject.Name $ItemToSend $InputData
+				$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem $InputData
 			}
 		}
 		else
@@ -1583,7 +1619,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 			}
 			else
 			{
-				$ScriptOutput = . $ScriptObject.Name $ItemToSend
+				$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem
 			}
 		}
 		$Info.Data = $ScriptOutput
@@ -1594,9 +1630,12 @@ $syncHash.Code.SBlockExecuteFunction = {
 		}
 		elseif ( $Info.Data -is [pscustomobject] )
 		{
-			$l = [System.Collections.ArrayList]@{}
-			$l.Add( $Info.Data )
-			$Info.Data = $l
+			$Info.Data | Get-Member -MemberType NoteProperty | `
+				ForEach-Object `
+					-Begin { $l = [System.Collections.ArrayList]::new() } `
+					-Process { $l.Add( ( [pscustomobject]@{ "Name" = $_.Name ; "Val" = $Info.Data."$( $_.Name )" } ) ) | Out-Null } `
+					-End { $Info.Data = $l }
+			$Info.OutputType = "ObjectList"
 		}
 
 		if ( $Info.Data -is [string] )
@@ -1623,7 +1662,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 		$LogText = "Function: $( $ScriptObject.Name )"
 	}
 	
-	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput $InputData
+	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $InputData | ConvertTo-Json -Compress )
 
 	$syncHash.Window.Dispatcher.Invoke( [action] {
 		# Send result to GUI
@@ -1724,22 +1763,6 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 			}
 	}
 
-"Temp1", "Temp2" | ForEach-Object {
-	$MiObject = [pscustomobject]@{
-		Name = $_
-		Description = ""
-		MenuItem = $_
-		PS = ""
-		Xaml = ""
-		BaseDir = ""
-		Localization = ""
-		PageObject = $null
-		Separate = $false
-	}
-
-	[void] $syncHash.Window.Resources['CvsMiO365Functions'].Source.Add( $MiObject )
-}
-
 Update-SplashText -Text $msgTable.StrSplashAddControlHandlers
 
 # Input has been entered by operator, start function
@@ -1749,7 +1772,7 @@ $syncHash.BtnEnterFunctionInput.Add_Click( {
 
 	if ( $syncHash.GridFunctionOp.DataContext.NoRunspace )
 	{
-		RunScriptNoRunspace $EnteredInput
+		RunScriptNoRunspace -ScriptObject $syncHash.GridFunctionOp.DataContext -EnteredInput $EnteredInput
 	}
 	else
 	{
@@ -1845,6 +1868,7 @@ $syncHash.DgSearchResults.Add_MouseDoubleClick( {
 $syncHash.IcOutputObjects.ItemsSource.Add_CollectionChanged( {
 	if ( $this.Count -gt 0 )
 	{
+		# TODO Verify
 		#$syncHash.Jobs.ExecuteFunction.P.Close()
 		#$syncHash.Jobs.ExecuteFunction.P.Dispose()
 	}
@@ -2015,6 +2039,14 @@ $syncHash.Window.Add_Loaded( {
 $syncHash.Window.Add_ContentRendered( {
 	$syncHash.Data.MainWindowHandle = ( [System.Windows.Interop.WindowInteropHelper]::new( $this ) ).Handle
 	$syncHash.FrameTool.Navigate( $this.Resources['MainOutput'] )
+
+	try
+	{
+		[Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens | Out-Null
+		$syncHash.Window.DataContext.O365Connected = $true
+		$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Collapsed
+	} catch {}
+
 	$this.Activate()
 } )
 
