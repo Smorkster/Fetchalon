@@ -26,8 +26,9 @@ $syncHash.Controls.BtnSendReport.Add_Click( {
 	ShowSplash -SelfAdmin
 	if ( $syncHash.Controls.CbFunctionsList.SelectedItem.Author -match "\((?<id>.{4})\)" )
 	{
+		$Author = $Matches.id
 		Send-MailMessage -From ( Get-ADUser ( $env:USERNAME.Substring( 6, 4 ) ) -Properties mail ).mail `
-			-To ( Get-ADUser $Matches.id -Properties mail ).mail `
+			-To ( Get-ADUser $Author -Properties mail ).mail `
 			-Body @"
 $( $syncHash.Data.msgTable.StrToAuthorInfo )<br>
 $( $syncHash.Data.msgTable.StrCodeTitle ): <strong>$( $syncHash.Controls.CbFunctionsList.SelectedItem.Name )</strong><br><br>
@@ -61,7 +62,7 @@ $( $syncHash.Controls.TbText.Text -replace "`n", "<br>" )<br>
 
 *******************************************<br><br>
 
-$( if ( $MailSentToAuthor ) { "$( $syncHash.Data.msgTable.StrSentToAuthor ): $( ( Get-ADUser ( $env:USERNAME.Substring( 6, 4 ) ) -Properties mail ).mail )" } else { $syncHash.Data.msgTable.StrNotSentToAuthor } )<br><br>
+$( if ( $MailSentToAuthor ) { "$( $syncHash.Data.msgTable.StrSentToAuthor ): $( $Author )" } else { $syncHash.Data.msgTable.StrNotSentToAuthor } )<br><br>
 
 $( $syncHash.Data.msgTable.StrToAuthorInfoSentBy ): $( ( Get-ADUser $env:USERNAME ).Name )
 "@ `
