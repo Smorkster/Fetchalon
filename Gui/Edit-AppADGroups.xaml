@@ -70,6 +70,8 @@
                     Value="True" />
             <Setter Property="Margin"
                     Value="0" />
+            <Setter Property="TextWrapping"
+                    Value="Wrap" />
         </Style>
     </Page.Resources>
     <Grid>
