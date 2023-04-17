@@ -1,7 +1,11 @@
 ﻿ConvertFrom-StringData @'
-SysManServerUrl = http://sysman.test.com/
 InstallSysManPrinterNoComputer = No computer was found with the given name
 InstallSysManPrinterNoPrinter = No printer was found with the specified name
-InstallSysManPrinterSuccess = Printer PNames has been added for computer CNames.\\\\Log out and then back in, alternatively restart the computer, and the printer should be available.
 InstallSysManPrinterReturn = Success. A solution message has been copied to the Clipboard
+InstallSysManPrinterSuccess = Now printers have been added for computer as ordered.
+InstallSysManPrinterSuccessComputerTitle = Computer:
+InstallSysManPrinterSuccessEnding = Log out and then log in again, alternatively restart the computer, and the printer should be available.
+InstallSysManPrinterSuccessFailedNames = We could not find these names and have therefore not been handled:
+InstallSysManPrinterSuccessPrintersTitle = Printer:
+SysManServerUrl = http://sysman.test.com/
 '@
