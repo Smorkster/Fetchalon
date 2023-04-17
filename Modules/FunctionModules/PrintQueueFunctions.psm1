@@ -24,13 +24,15 @@ function Install-SysManPrinter
 
 	$PIdsString = [System.Text.StringBuilder]::new()
 	$CIdsString = [System.Text.StringBuilder]::new()
+	$OpMessage = [System.Text.StringBuilder]::new()
 	$ReturnMessage = [System.Text.StringBuilder]::new()
-	$PrinterNames = $InputData.Printers -split "\W" | Where-Object { $_ }
-	$ComputerNames = $InputData.Computers -split "\W" | Where-Object { $_ }
 	$FoundPrinters = [System.Collections.ArrayList]::new()
 	$FailedPrinters = [System.Collections.ArrayList]::new()
 	$FoundComputers = [System.Collections.ArrayList]::new()
 	$FailedComputers = [System.Collections.ArrayList]::new()
+
+	$PrinterNames = $InputData.Printers -replace "-", "_" -split "\W" | Where-Object { $_ }
+	$ComputerNames = $InputData.Computers -split "\W" | Where-Object { $_ }
 
 	$PrinterNames | `
 		ForEach-Object {
@@ -69,7 +71,27 @@ function Install-SysManPrinter
 			{
 				$OFS = ", "
 				Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/printer/Install" -Method Post -UseDefaultCredentials -ContentType "application/json" -Body $b -ErrorAction Stop | Out-Null
-				Set-Clipboard -Value ( $IntMsgTable.InstallSysManPrinterSuccess -replace "CNames", $FoundComputers.result.Name -replace "PNames", $FoundPrinters.result.Name -replace "\\", "`r`n" ) | Out-Null
+				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccess ) | Out-Null
+				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccessPrintersTitle ) | Out-Null
+				$OpMessage.AppendLine( $FoundPrinters.result.Name ) | Out-Null
+				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccessComputerTitle ) | Out-Null
+				$OpMessage.AppendLine( $FoundComputers.result.Name ) | Out-Null
+				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccessEnding ) | Out-Null
+
+				if ( $FailedComputers.Count -gt 0 -or $FailedPrinters.Count -gt 0 )
+				{
+					$OpMessage.AppendLine() | Out-Null
+					if ( $FailedComputers.Count -gt 0 )
+					{
+						$OpMessage.AppendLine( $FailedComputers ) | Out-Null
+					}
+
+					if ( $FailedPrinters.Count -gt 0 )
+					{
+						$OpMessage.AppendLine( $FailedPrinters ) | Out-Null
+					}
+				}
+				Set-Clipboard -Value $OpMessage.ToString() | Out-Null
 			}
 			catch
 			{
@@ -86,7 +108,7 @@ function Install-SysManPrinter
 		throw $IntMsgTable.InstallSysManPrinterNoPrinter
 	}
 
-	$ReturnMessage = $IntMsgTable.InstallSysManPrinterReturn
+	$ReturnMessage.Append( $IntMsgTable.InstallSysManPrinterReturn ) | Out-Null
 	if ( $FailedComputers.Count -gt 0 )
 	{
 		$ReturnMessage.Append( "$InstallSysManPrinterNotFoundComputers" ) | Out-Null
