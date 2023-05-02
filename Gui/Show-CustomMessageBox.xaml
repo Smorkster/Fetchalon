@@ -1,0 +1,118 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Name="CustomMsgBox"
+        WindowStyle="None"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
+        ShowInTaskbar="False"
+        SizeToContent="WidthAndHeight"
+        ResizeMode="NoResize"
+        MinWidth="200"
+        Topmost="True">
+    <Window.Resources>
+        <Style TargetType="Label"
+               x:Key="LblBaseStyle">
+            <Style.Triggers>
+                <Trigger Property="Content"
+                         Value="">
+                    <Setter Property="Visibility"
+                            Value="Collapsed" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+        <Grid>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <Label Name="Header"
+                   Background="Green"
+                   FontSize="30"
+                   Foreground="White"
+                   Height="50"
+                   Margin="0"
+                   Style="{StaticResource ResourceKey=LblBaseStyle}" />
+            <Grid Grid.Row="1">
+                <StackPanel HorizontalAlignment="Center"
+                            Margin="5"
+                            Orientation="Vertical"
+                            VerticalAlignment="Center">
+                    <Label Name="MessageLabel"
+                           FontSize="24"
+                           HorizontalAlignment="Center"
+                           Margin="5"
+                           Style="{StaticResource ResourceKey=LblBaseStyle}"
+                           VerticalAlignment="Center" />
+                    <ItemsControl Name="IcButtons">
+                        <ItemsControl.Resources>
+                            <Style TargetType="Button"
+                                   x:Key="BtnAnswerStyle">
+                                <EventSetter Event="Click" />
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border Name="BtnBrd"
+                                                    Background="#FFDDDDDD"
+                                                    BorderBrush="#FF555555"
+                                                    BorderThickness="1"
+                                                    Margin="4,0"
+                                                    Padding="15,5">
+                                                <ContentPresenter HorizontalAlignment="Center"
+                                                                  VerticalAlignment="Center" />
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver"
+                                                         Value="True">
+                                                    <Trigger.EnterActions>
+                                                        <BeginStoryboard Name="StoryBtnEnterHover">
+                                                            <Storyboard>
+                                                                <ColorAnimation AutoReverse="True"
+                                                                                Duration="0:0:0.5"
+                                                                                Storyboard.TargetName="BtnBrd"
+                                                                                Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                                                To="White" />
+                                                            </Storyboard>
+                                                        </BeginStoryboard>
+                                                    </Trigger.EnterActions>
+                                                </Trigger>
+                                                <!--#region Button got focus -->
+                                                <EventTrigger RoutedEvent="Keyboard.PreviewGotKeyboardFocus">
+                                                    <BeginStoryboard Name="BtnFocusStory">
+                                                        <Storyboard>
+                                                            <ColorAnimation AutoReverse="True"
+                                                                            Duration="0:0:1"
+                                                                            RepeatBehavior="Forever"
+                                                                            Storyboard.TargetName="BtnBrd"
+                                                                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                                            To="PowderBlue" />
+                                                        </Storyboard>
+                                                    </BeginStoryboard>
+                                                </EventTrigger>
+                                                <EventTrigger RoutedEvent="Keyboard.PreviewLostKeyboardFocus">
+                                                    <StopStoryboard BeginStoryboardName="BtnFocusStory" />
+                                                </EventTrigger>
+                                                <!--#endregion Button got focus -->
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ItemsControl.Resources>
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding Path=.}" Style="{StaticResource ResourceKey=BtnAnswerStyle}"/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
