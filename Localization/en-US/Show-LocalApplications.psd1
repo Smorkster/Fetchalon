@@ -1,20 +1,19 @@
 ﻿ConvertFrom-StringData @'
-CodeRegExComputerName = (PC)|(\\w{3}(L|D)S)\\d{8}
 ContentBtnGetAppList = Fetch list of applications
 ContentBtnUninstall = Uninstall
-ContentDefWinTit = Fetching application list
-ContentUserCol = Installed for ...
 ContentInstCol = Installation date
 ContentNameCol = Application name
 ContentTblComputerNameTitle = Enter computer name:
-ContentWindow = Uninstalling applications on
+ContentUserCol = Installed for ...
+ErrComputerNotFound = No computer was found with the specified name
 ErrHiveNotAccessible = Unable to reach registry hive
 QUninstall = Sure you want to uninstall?
+StrAllUsers = Alla användare
 StrAppSum = applications
 StrDone = Applications uninstalled
-StrNoInstallDate = < Not specified >
-StrSwitchComputer = The computer loaded here, and the computer searched in the main window, are not the same, do you want to switch to the computer shown in the main window?
+StrGetApps = Hämtar applikationslista
+StrNoDate = Inget datum
+StrSwitchComputer = The computer loaded in this tool and the computer sent from the main window are not the same. Do you want to switch to the computer sent from the main window?
+StrSwitchComputer2 = Computer from main GUI:
 StrUninstalling = Uninstalling
-StrNoDate = No date
-StrAllUsers = All users
 '@

@@ -1,20 +1,19 @@
 ﻿ConvertFrom-StringData @'
-CodeRegExComputerName = (PC)|(\\w{3}(L|D)S)\\d{8}
 ContentBtnGetAppList = Hämta lista över applikationer
 ContentBtnUninstall = Avinstallera
-ContentDefWinTit = Hämtar applikationslista
-ContentUserCol = Installerad för ...
 ContentInstCol = Installationsdatum
 ContentNameCol = Applikationsnamn
 ContentTblComputerNameTitle = Ange datornamn:
-ContentWindow = Avinstallation av applikationer på
+ContentUserCol = Installerad för ...
+ErrComputerNotFound = Ingen dator hittades med angivet namn
 ErrHiveNotAccessible = Kan inte nå register hive
 QUninstall = Säker på att du vill avinstallera
+StrAllUsers = Alla användare
 StrAppSum = applikationer
 StrDone = Applikationer avinstallerade
-StrNoInstallDate = <Ej angivet>
-StrSwitchComputer = Datorn som laddats här och datorn som sökts i huvudfönstret är inte samma, vill du byta till datorn som visas i huvudfönstret?
-StrUninstalling = Avinstallerar
+StrGetApps = Hämtar applikationslista
 StrNoDate = Inget datum
-StrAllUsers = Alla användare
+StrSwitchComputer = Datorn som laddats i detta verktyg, och datorn som skickats från huvudfönstret är inte samma. Vill du byta till datorn som skickats från huvudfönstret?
+StrSwitchComputer2 = Dator från huvudfönstret:
+StrUninstalling = Avinstallerar
 '@
