@@ -1,11 +1,11 @@
 ﻿<#
-.Synopsis Visa applikationer
-.MenuItem Visa applikationer
-.Description Visa och avinstallera applikationer på dator
+.Synopsis Show applications
+.MenuItem Show applications
+.Description Show and uninstall applications on computer
 .Depends WinRM
 .State Prod
 .ObjectOperations computer
-.Author Carl Franzén (6G1W)
+.Author Smorkster (smorkster)
 #>
 
 Add-Type -AssemblyName PresentationFramework
@@ -18,15 +18,15 @@ function Reset
 	#>
 
 	$syncHash.Controls.Window.Resources['CvsApps'].Source.Clear()
-	$syncHash.DC.TbProgressInfo[0] = $syncHash.Data.msgTable.ContentDefWinTit
+	$syncHash.DC.TbProgressInfo[0] = ""
 	$syncHash.DC.TbProgressInfo[1] = "Black"
+	$syncHash.DC.TbProgressInfo[1] = [System.Windows.Visibility]::Hidden
 }
 
 ################### Start script
 $controls = [System.Collections.ArrayList]::new()
-[void]$controls.Add( @{ CName = "BtnGetAppList" ; Props = @( @{ PropName = "IsEnabled"; PropVal = $true } ) } )
 [void]$controls.Add( @{ CName = "BtnUninstall" ; Props = @( @{ PropName = "IsEnabled"; PropVal = $false } ) } )
-[void]$controls.Add( @{ CName = "PbUninstallations" ; Props = @( @{ PropName = "IsIndeterminate"; PropVal = $false } ; @{ PropName = "Value"; PropVal = [double] 0 } ) } )
+[void]$controls.Add( @{ CName = "PbProgress" ; Props = @( @{ PropName = "IsIndeterminate"; PropVal = $false } ; @{ PropName = "Value"; PropVal = [double] 0 } ; @{ PropName = "Visibility" ; PropVal = [System.Windows.Visibility]::Hidden } ) } )
 [void]$controls.Add( @{ CName = "TbProgressInfo" ; Props = @( @{ PropName = "Text"; PropVal = "" } ; @{ PropName = "Foreground" ; PropVal = "Black" } ) } )
 
 BindControls $syncHash $controls
@@ -91,46 +91,61 @@ $syncHash.Data.UninstallLog.Add_CollectionChanged( {
 
 # Get list of applications
 $syncHash.Controls.BtnGetAppList.Add_Click( {
-	Reset
 	try
 	{
-		$syncHash.Jobs.PUninstall.EndInvoke()
-		$syncHash.Jobs.PUninstall.Dispose()
-	} catch {}
-
-	$syncHash.DC.TbProgressInfo[0] = $syncHash.Data.msgTable.ContentDefWinTit
-	$syncHash.DC.PbUninstallations[0] = $true
-	$syncHash.Jobs.PFetch = [powershell]::Create().AddScript( { param ( $syncHash, $Modules )
-		Import-Module $Modules
-
+		Reset
+		Get-ADComputer $syncHash.Controls.TbComputerName.Text -ErrorAction Stop | Out-Null
+		$syncHash.Data.ComputerName = $syncHash.Controls.TbComputerName.Text
 		try
 		{
-			$syncHash.Data.Temp = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-			Invoke-Command -ComputerName $syncHash.Data.ComputerName-ScriptBlock $syncHash.Code.GetApps -ErrorAction Stop | `
-				Where-Object { $null -ne $_.App.DisplayName } |`
-				Select-Object -Property @{ Name = "Name" ; Expression = { if ( $null -eq $_.App.DisplayName ) { $_.App.ParentDisplayName } else { $_.App.DisplayName } } }, `
-							@{ Name = "Installed" ; Expression = { try { ( [datetime]::ParseExact( $_.App.InstallDate, "yyyyMMdd", $null ) ).ToShortDateString() } catch { 0 } } }, `
-							@{ Name = "ID" ; Expression = { $_.App.IdentifyingNumber } }, `
-							@{ Name = "RegItem" ; Expression = { $_.App } }, `
-							@{ Name = "Source" ; Expression = { $_.Source } }, `
-							@{ Name = "User" ; Expression = { if ( $null -ne $_.User ) { ( Get-ADUser -Identity $_.User ).Name } else { $syncHash.Data.msgTable.StrAllUsers } } } | `
-				Sort-Object User, Name | `
-				ForEach-Object { $syncHash.Data.Temp.Add( $_ ) | out-null }
-			$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-				$syncHash.Controls.Window.Resources['CvsApps'].Source = $syncHash.Data.Temp
-			} )
-		}
-		catch
-		{
-			$syncHash.Errors.Add( $_ ) | Out-Null
-			$syncHash.DC.TbProgressInfo[0] = $_
-			$syncHash.DC.TbProgressInfo[1] = "Red"
-		}
-		$syncHash.DC.PbUninstallations[0] = $false
-	} )
-	$syncHash.Jobs.PFetch.AddArgument( $syncHash )
-	$syncHash.Jobs.PFetch.AddArgument( ( Get-Module ) )
-	$syncHash.Jobs.HFetch = $syncHash.Jobs.PFetch.BeginInvoke()
+			$syncHash.Jobs.PUninstall.EndInvoke()
+			$syncHash.Jobs.PUninstall.Dispose()
+		} catch {}
+
+		$syncHash.DC.TbProgressInfo[0] = $syncHash.Data.msgTable.StrGetApps
+		$syncHash.DC.PbProgress[2] = [System.Windows.Visibility]::Visible
+		$syncHash.DC.PbProgress[0] = $true
+		$syncHash.Jobs.PFetch = [powershell]::Create().AddScript( {
+			param ( $syncHash, $Modules )
+
+			Import-Module $Modules
+
+			try
+			{
+				$syncHash.Data.Temp = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+				Invoke-Command -ComputerName $syncHash.Data.ComputerName-ScriptBlock $syncHash.Code.GetApps -ErrorAction Stop | `
+					Where-Object { $null -ne $_.App.DisplayName } |`
+					Select-Object -Property @{ Name = "Name" ; Expression = { if ( $null -eq $_.App.DisplayName ) { $_.App.ParentDisplayName } else { $_.App.DisplayName } } }, `
+								@{ Name = "Installed" ; Expression = { try { ( [datetime]::ParseExact( $_.App.InstallDate, "yyyyMMdd", $null ) ).ToShortDateString() } catch { 0 } } }, `
+								@{ Name = "ID" ; Expression = { $_.App.IdentifyingNumber } }, `
+								@{ Name = "RegItem" ; Expression = { $_.App } }, `
+								@{ Name = "Source" ; Expression = { $_.Source } }, `
+								@{ Name = "User" ; Expression = { if ( $null -ne $_.User ) { ( Get-ADUser -Identity $_.User ).Name } else { $syncHash.Data.msgTable.StrAllUsers } } } | `
+					Sort-Object User, Name | `
+					ForEach-Object { $syncHash.Data.Temp.Add( $_ ) | out-null }
+				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+					$syncHash.Controls.Window.Resources['CvsApps'].Source = $syncHash.Data.Temp
+				} )
+				$syncHash.DC.TbProgressInfo[0] = ""
+			}
+			catch
+			{
+				$syncHash.Errors.Add( $_ ) | Out-Null
+				$syncHash.DC.TbProgressInfo[0] = $_
+				$syncHash.DC.TbProgressInfo[1] = "Red"
+			}
+			$syncHash.DC.PbProgress[0] = $false
+			$syncHash.DC.PbProgress[2] = [System.Windows.Visibility]::Hidden
+		} )
+		$syncHash.Jobs.PFetch.AddArgument( $syncHash )
+		$syncHash.Jobs.PFetch.AddArgument( ( Get-Module ) )
+		$syncHash.Jobs.HFetch = $syncHash.Jobs.PFetch.BeginInvoke()
+	}
+	catch
+	{
+		$syncHash.DC.TbProgressInfo[1] = "Red"
+		$syncHash.DC.TbProgressInfo[0] = $syncHash.Data.msgTable.ErrComputerNotFound
+	}
 } )
 
 # Uninstall the selected application
@@ -142,7 +157,10 @@ $syncHash.Controls.BtnUninstall.Add_Click( {
 
 	if ( [System.Windows.MessageBox]::Show( "$( $syncHash.Data.msgTable.QUninstall ) $summary", "", [System.Windows.MessageBoxButton]::YesNo ) -eq "Yes" )
 	{
-		$syncHash.Jobs.PUninstall = [powershell]::Create().AddScript( { param ( $syncHash, $list )
+		$syncHash.Jobs.PUninstall = [powershell]::Create().AddScript( {
+			param ( $syncHash, $list )
+
+			$syncHash.DC.PbProgress[2] = [System.Windows.Visibility]::Visible
 			$Errors = [System.Collections.ArrayList]::new()
 			$Success = [System.Collections.ArrayList]::new()
 			for ( $c = 0; $c -lt $list.Count; $c++ )
@@ -157,16 +175,17 @@ $syncHash.Controls.BtnUninstall.Add_Click( {
 				{
 					[void] $Errors.Add( ( [pscustomobject]@{ App = $list[$c].Name ; Err = $_ } ) )
 				}
-				$syncHash.DC.PbUninstallations[1] = [double] ( ( $c / @( $list ).Count ) * 100 )
+				$syncHash.DC.PbProgress[1] = [double] ( ( $c / @( $list ).Count ) * 100 )
 			}
 			$ErrText = $Errors | ForEach-Object { "$( $_.App ) $( $_.Err )" }
 			$SuccessText = $Success | Sort-Object | ForEach-Object { "$_" }
 			[void] $syncHash.Data.UninstallLog.Add( ( [pscustomobject]@{ ErrorText = $ErrText ; SuccessText = $SuccessText } ) )
 			$syncHash.Window.Dispatcher.Invoke( [action] {
-				$syncHash.DC.PbUninstallations[1] = 0.0
+				$syncHash.DC.PbProgress[1] = 0.0
 				$syncHash.DC.TbProgressInfo[0] = $syncHash.Data.msgTable.StrDone
 				$syncHash.Controls.BtnGetAppList.RaiseEvent( [System.Windows.RoutedEventArgs]::new( [System.Windows.Controls.Button]::ClickEvent ) )
 			} )
+			$syncHash.DC.PbProgress[2] = [System.Windows.Visibility]::Hidden
 		} ).AddArgument( $syncHash ).AddArgument( @( $syncHash.Controls.DgAppList.SelectedItems | Where-Object { $_ } ) )
 		$syncHash.Jobs.HUninstall = $syncHash.Jobs.PUninstall.BeginInvoke()
 	}
@@ -177,44 +196,34 @@ $syncHash.Controls.DgAppList.Add_SelectionChanged( {
 	$syncHash.DC.BtnUninstall[0] = ( $syncHash.Controls.DgAppList.SelectedItems.Count -gt 0 )
 } )
 
-#
-$syncHash.Controls.TbComputerName.Add_TextChanged( {
-	if ( $this.Text -match $syncHash.Data.msgTable.CodeRegExComputerName )
-	{
-		try
-		{
-			Get-ADComputer -Identity $this.Text -ErrorAction Stop | Out-Null
-			$syncHash.Controls.BtnGetAppList.IsEnabled = $true
-			$syncHash.Data.ComputerName = $this.Text
-		}
-		catch
-		{
-			$syncHash.Controls.BtnGetAppList.IsEnabled = $false
-		}
-	}
-	else
-	{
-		$syncHash.Controls.BtnGetAppList.IsEnabled = $false
-	}
-} )
-
-#
+# When the GUI is visible, check if computername should be entered to the textbox or if applist is to be fetched
 $syncHash.Controls.Window.Add_IsVisibleChanged( {
-	if ( "" -eq $syncHash.Controls.TbComputerName.Text -and `
-		$null -ne $syncHash.Controls.Window.Resources['SearchedItem'] -and `
-		$this.IsVisible
-	)
+	if ( $this.IsVisible )
 	{
-		if ( $syncHash.Controls.TbComputerName.Text -ne $syncHash.Controls.Window.Resources['SearchedItem'].Name )
+		if ( "" -eq $syncHash.Controls.TbComputerName.Text )
 		{
-			Reset
+			if ( $null -ne $syncHash.Controls.Window.Resources['SearchedItem'] )
+			{
+				Reset
+				$syncHash.Controls.TbComputerName.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Name
+			}
+		}
+		elseif ( $syncHash.Controls.TbComputerName.Text -ne $syncHash.Controls.Window.Resources['SearchedItem'].Name )
+		{
+			if ( [System.Windows.MessageBox]::Show( "$( $syncHash.Data.msgTable.StrSwitchComputer )`n$( $syncHash.Data.msgTable.StrSwitchComputer2 ) $( $syncHash.Controls.Window.Resources['SearchedItem'].Name )", "", [System.Windows.MessageBoxButton]::YesNo ) -eq "Yes" )
+			{
+				$syncHash.Controls.TbComputerName.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Name
+			}
 		}
 
-		$syncHash.Controls.TbComputerName.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Name
+		if ( $syncHash.Controls.Window.Resources['CvsApps'].Source.Count -eq 0 )
+		{
+			$syncHash.Controls.BtnGetAppList.RaiseEvent( ( [System.Windows.RoutedEventArgs]::new( [System.Windows.Controls.Button]::ClickEvent ) ) )
+		}
 	}
 } )
 
-#
+# When GUI is first loaded, is there a name to enter to the textbox
 $syncHash.Controls.Window.Add_Loaded( {
 	try { $syncHash.Controls.TbComputerName.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Name }
 	catch {}
