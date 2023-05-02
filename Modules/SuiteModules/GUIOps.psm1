@@ -12,7 +12,8 @@ param (
 function BindControls
 {
 	<#
-	.Synopsis Create bindings between controls and an associated collections of predefined values
+	.Synopsis
+		Create bindings between controls and an associated collections of predefined values
 	.Parameter syncHash
 		The synchronized hashtable that holds the controls
 	.Parameter ControlsToBind
@@ -46,7 +47,7 @@ function BindControls
 				catch
 				{
 					if ( $_.Exception.Message -eq "Exception setting ""Mode"": ""Binding cannot be changed after it has been used.""" )
-					{ [void] [System.Windows.MessageBox]::Show( "$( $control.CName ) $( $IntmsgTable.ErrControlDuplicate ) " ) }
+					{ [void] [System.Windows.MessageBox]::Show( "$( $control.CName ) $( $IntMsgTable.BindControlsErrControlDuplicate ) " ) }
 				}
 			}
 			# Insert bindings to controls DataContext
@@ -82,14 +83,14 @@ function BindControls
 				}
 				catch
 				{
-					[void] $GenErrors.Add( "$n$( $IntmsgTable.ErrNoProperty ) '$p'")
+					[void] $GenErrors.Add( "$n$( $IntMsgTable.BindControlsErrNoProperty ) '$p'")
 					$syncHash.GenErrors.Add($_)
 				}
 			}
 		}
 		else
 		{
-			[void] $GenErrors.Add( "$( $IntmsgTable.ErrNoControl ) $n" )
+			[void] $GenErrors.Add( "$( $IntMsgTable.BindControlsErrNoControl ) $n" )
 			$syncHash.GenError.Add( $_ )
 		}
 	}
@@ -98,7 +99,7 @@ function BindControls
 	if ( $GenErrors.Count -gt 0 )
 	{
 		$ofs = "`n"
-		[void] [System.Windows.MessageBox]::Show( "$( $IntmsgTable.ErrAtGen ):`n`n$GenErrors" )
+		[void] [System.Windows.MessageBox]::Show( "$( $IntMsgTable.BindControlsErrAtGen ):`n`n$GenErrors" )
 	}
 }
 
@@ -147,10 +148,10 @@ function CreateWindow
 	}
 	catch
 	{
-		Write-Host "$( $IntmsgTable.ErrReadingXaml )`n`n" -Foreground Cyan
+		Write-Host "$( $IntMsgTable.CreateWindowErrReadingXaml )`n`n" -Foreground Cyan
 		Write-Host "Error" -Foreground Red
 		Write-Host "$( $_.Exception )`n`n"
-		Read-Host $IntmsgTable.ErrReadingXamlExit
+		Read-Host $IntMsgTable.CreateWindowErrReadingXamlExit
 		exit
 	}
 }
@@ -166,7 +167,8 @@ function CreatePage
 		@{ CName = "BtnPerform" ; Props = @( @{ PropName = "IsEnabled"; PropVal = $false } ) }
 	.Parameter FilePath
 		Full file path of the Xaml-file to parse
-	.Outputs A synchronized hashtable with the page and some usefull collections
+	.Outputs
+		A synchronized hashtable with the page and some usefull collections
 	#>
 
 	param (
@@ -263,6 +265,7 @@ function LoadConverters
 										PresentationFramework, `
 										System.DirectoryServices, `
 										System.DirectoryServices.AccountManagement, `
+										System.Drawing, `
 										System.Management.Automation, `
 										System.Windows, `
 										System.Xaml, `
@@ -275,6 +278,7 @@ function LoadConverters
 										PresentationFramework, `
 										System.DirectoryServices.AccountManagement, `
 										System.DirectoryServices, `
+										System.Drawing, `
 										System.Management.Automation, `
 										System.Xaml, `
 										System.Windows, `
@@ -285,7 +289,8 @@ function LoadConverters
 function Close-SplashScreen
 {
 	<#
-	.Synopsis Close the splash screen
+	.Synopsis
+		Close the splash screen
 	.Parameter Duration
 		Duration to wait before closing the splash screen
 	#>
@@ -296,47 +301,166 @@ function Close-SplashScreen
 	{
 		Start-Sleep -Seconds $Duration
 	}
-	$Script:hash.Window.Dispatcher.Invoke( "Normal", [action]{ $Script:hash.Window.Close() } )
-	$Script:Pwshell.EndInvoke( $handle ) | Out-Null
+	$Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action]{ $Script:SplashHash.Window.Close() } )
+	$Script:SplashShell.EndInvoke( $SplashHandle ) | Out-Null
 }
 
 function Start-SplashScreen
 {
 	<#
-	.Synopsis Start runspace to display splash screen
+	.Synopsis
+		Start runspace to display splash screen
 	#>
 
-	$Script:Pwshell.Runspace = $runspace
-	$Script:handle = $Script:Pwshell.BeginInvoke()
+	$Script:SplashShell.Runspace = $SplashRunspace
+	$Script:SplashHandle = $Script:SplashShell.BeginInvoke()
 }
 
 function Update-SplashProgress
 {
 	<#
-	.Synopsis Update the progressbar in the splash screen
+	.Synopsis
+		Update the progressbar in the splash screen
 	.Parameter Value
 		Value to update the progressbar with
 	#>
 
 	param ( $Value )
 
-	try { $Script:hash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:hash.Progress.Value = $Value } ) } catch {}
+	try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.Progress.Value = $Value } ) } catch {}
 }
 
 function Update-SplashText
 {
 	<#
-	.Synopsis Update the text in the splash screen
+	.Synopsis
+		Update the text in the splash screen
 	.Parameter Text
 		Text to update the splash screen with
 	#>
 
-	param ( $Text )
+	param (
+		$Text,
+		[switch] $Append
+	)
 
-	try { $Script:hash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:hash.LoadingLabel.Content = $Text } ) } catch {}
+	if ( $Append )
+	{
+		try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.LoadingLabel.Content += $Text } ) } catch {}
+	}
+	else
+	{
+		try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.LoadingLabel.Content = $Text } ) } catch {}
+	}
 }
 
-function ShowSplash
+function Show-CustomMessageBox
+{
+	<#
+	.Synopsis
+		Display a custom messagebox with given text
+	.Description
+		Display a custom messagebox with given text, and, if defined, title, icon and button/-s
+	.Parameter Text
+		The text to display in the custom messagebox
+	.Parameter Title
+		A string to display in the title of the custom messagebox
+	.Parameter Button
+		String list of buttons that are used in the custom messagebox
+	.Parameter Icon
+		What icon is to be displayed in the messagebox
+	.Outputs
+		Returns which button in the messagebox was clicked
+	#>
+
+	param (
+		[string] $Text,
+		[string] $Title = "",
+		[string] $BorderColor = "Green",
+		[string[]] $ButtonStrings,
+		[string] $Icon
+	)
+
+	$LabelText = $Text
+	$Script:CustomMsgBoxHash = [hashtable]::Synchronized( @{} )
+
+	if ( [string]::IsNullOrEmpty( $Title ) )
+	{
+		$Function = ( Get-PSCallStack )[1].FunctionName
+
+		$Title = "$( $IntMsgTable.ShowCustomMessageBoxDefaultTitle ) '$( $Function )'"
+	}
+
+	$CMsgBoxRunspace = [runspacefactory]::CreateRunspace()
+	$CMsgBoxRunspace.ApartmentState = "STA"
+	$CMsgBoxRunspace.ThreadOptions = "ReuseThread"
+	$CMsgBoxRunspace.Open()
+	$CMsgBoxRunspace.SessionStateProxy.SetVariable( "hash", $Script:CustomMsgBoxHash )
+	$CMsgBoxRunspace.SessionStateProxy.SetVariable( "MessageLabel", $LabelText )
+	$CMsgBoxRunspace.SessionStateProxy.SetVariable( "Title", $Title )
+	$CMsgBoxRunspace.SessionStateProxy.SetVariable( "ButtonStrings", $ButtonStrings )
+	$CMsgBoxRunspace.SessionStateProxy.SetVariable( "xml", ( [xml] ( Get-Content "$( ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName )\GUI\Show-CustomMessageBox.xaml" -Raw ) ) )
+	$Script:CustomMsgBoxShell = [powershell]::Create()
+	$Script:CustomMsgBoxShell.AddScript( {
+		Add-Type -AssemblyName PresentationFramework
+
+		$reader = New-Object System.Xml.XmlNodeReader $xml
+		$hash.Window = [Windows.Markup.XamlReader]::Load( $reader )
+		$hash.MessageLabel = $hash.Window.FindName( "MessageLabel" )
+		$hash.Header = $hash.Window.FindName( "Header" )
+		$hash.IcButtons = $hash.Window.FindName( "IcButtons" )
+
+		$hash.MessageLabel.Content = $MessageLabel
+		$hash.Header.Content = $Title
+		$hash.IcButtons.ItemsSource = $ButtonStrings
+		$hash.IcButtons.Resources['BtnAnswerStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = [System.Windows.RoutedEventHandler] {
+			param ( $SenderObject, $e )
+			$hash.Answer = $SenderObject.Content
+			$hash.Window.Close()
+		}
+		$hash.Window.ShowDialog()
+		return $Answer
+	} ) | Out-Null
+
+	$Script:CustomMsgBoxShell.Runspace = $CMsgBoxRunspace
+	$Script:CustomMsgBoxHandle = $Script:CustomMsgBoxShell.BeginInvoke()
+
+	do { Start-Sleep -Milliseconds 200 }
+	until ( $Script:CustomMsgBoxHandle.IsCompleted -eq $true )
+
+	return $Script:CustomMsgBoxHash.Answer
+}
+
+function Show-MessageBox
+{
+	<#
+	.Synopsis
+		Display a messagebox with given text
+	.Description
+		Display a messagebox with given text, and, if defined, title, icon and button/-s
+	.Parameter Text
+		The text to display in the messagebox
+	.Parameter Title
+		A string to display in the title of the messagebox
+	.Parameter Button
+		What buttons are to be used/visible in the messagebox
+	.Parameter Icon
+		What icon is to be displayed in the messagebox
+	.Outputs
+		Returns which button in the messagebox was clicked
+	#>
+
+	param (
+		[string] $Text,
+		[string] $Title = "",
+		[string] $Button = "OK",
+		[string] $Icon = "Info"
+	)
+
+	return [System.Windows.MessageBox]::Show( "$Text", "$Title", "$Button", "$Icon" )
+}
+
+function Show-Splash
 {
 	<#
 	.Synopsis
@@ -353,7 +477,7 @@ function ShowSplash
 
 	param (
 		[string] $Text,
-		[string] $Title = $IntmsgTable.StrDefaultMainTitle,
+		[string] $Title = $IntMsgTable.ShowSplashStrDefaultMainTitle,
 		[double] $Duration = 1.5,
 		[string] $BorderColor = "Green",
 		[double] $SelfProgress,
@@ -363,7 +487,7 @@ function ShowSplash
 	)
 
 	$LabelText = $Text
-	$Script:hash = [hashtable]::Synchronized( @{} )
+	$Script:SplashHash = [hashtable]::Synchronized( @{} )
 
 	if ( $NoProgressBar ) { $ProgressBarVisibility = "Collapsed" }
 	else { $ProgressBarVisibility = "Visible" }
@@ -373,60 +497,33 @@ function ShowSplash
 	if ( $SelfProgress ) { $ProgressIndeterminate = "False" ; $ProgressMax = $SelfProgress ; $SelfAdmin = $true }
 	else { $ProgressIndeterminate = "True" }
 
-	$runspace = [runspacefactory]::CreateRunspace()
-	$runspace.ApartmentState = "STA"
-	$Runspace.ThreadOptions = "ReuseThread"
-	$runspace.Open()
-	$runspace.SessionStateProxy.SetVariable( "hash", $Script:hash )
-	$runspace.SessionStateProxy.SetVariable( "LabelText", $LabelText )
-	$runspace.SessionStateProxy.SetVariable( "Title", $Title )
-	$runspace.SessionStateProxy.SetVariable( "ProgressBarVisibility", $ProgressBarVisibility )
-	$runspace.SessionStateProxy.SetVariable( "ProgressIndeterminate", $ProgressIndeterminate )
-	$runspace.SessionStateProxy.SetVariable( "ProgressMax", [double] $ProgressMax )
-	$Script:Pwshell = [PowerShell]::Create()
-	$Script:Pwshell.AddScript( {
+	$SplashRunspace = [runspacefactory]::CreateRunspace()
+	$SplashRunspace.ApartmentState = "STA"
+	$SplashRunspace.ThreadOptions = "ReuseThread"
+	$SplashRunspace.Open()
+	$SplashRunspace.SessionStateProxy.SetVariable( "hash", $Script:SplashHash )
+	$SplashRunspace.SessionStateProxy.SetVariable( "LabelText", $LabelText )
+	$SplashRunspace.SessionStateProxy.SetVariable( "Title", $Title )
+	$SplashRunspace.SessionStateProxy.SetVariable( "ProgressBarVisibility", $ProgressBarVisibility )
+	$SplashRunspace.SessionStateProxy.SetVariable( "ProgressIndeterminate", $ProgressIndeterminate )
+	$SplashRunspace.SessionStateProxy.SetVariable( "ProgressMax", [double] $ProgressMax )
+	$SplashRunspace.SessionStateProxy.SetVariable( "xml", ( [xml] ( Get-Content "$( ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName )\GUI\Show-Splash.xaml" -Raw ) ) )
+	$Script:SplashShell = [PowerShell]::Create()
+	$Script:SplashShell.AddScript( {
 		Add-Type -AssemblyName PresentationFramework
-		$xml = [xml]@"
-	<Window
-		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-		x:Name="WindowSplash" WindowStyle="None" WindowStartupLocation="CenterScreen"
-		Background="Green" ShowInTaskbar ="False"
-		SizeToContent="WidthAndHeight" ResizeMode = "NoResize" Topmost="True">
-		<Window.Resources>
-			<Style TargetType="Label"
-				   x:Key="LblBaseStyle">
-				<Setter Property="Foreground"
-						Value="White" />
-				<Style.Triggers>
-					<Trigger Property="Content"
-							 Value="">
-						<Setter Property="Visibility"
-								Value="Collapsed" />
-					</Trigger>
-				</Style.Triggers>
-			</Style>
-		</Window.Resources>
-		<Grid>
-			<Grid.RowDefinitions>
-				<RowDefinition Height="Auto" />
-				<RowDefinition/>
-			</Grid.RowDefinitions>
-			<Label Name="Header" Margin="5,0,0,0" Height="50" FontSize="30" Content="$Title" Style="{StaticResource LblBaseStyle}" />
-			<Grid Grid.Row="1">
-				<StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="5">
-					<Label Name="LoadingLabel" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="24" Margin="0" Content="$LabelText" Style="{StaticResource LblBaseStyle}" />
-					<ProgressBar Name="Progress" IsIndeterminate="$ProgressIndeterminate" Foreground="White" HorizontalAlignment="Center" Width="350" Height="20" Visibility="$ProgressBarVisibility" Maximum="$ProgressMax" />
-				</StackPanel>
-			</Grid>
-		</Grid>
-	</Window>
-"@
+
 		$reader = New-Object System.Xml.XmlNodeReader $xml
 		$hash.Window = [Windows.Markup.XamlReader]::Load( $reader )
 		$hash.LoadingLabel = $hash.Window.FindName( "LoadingLabel" )
 		$hash.Header = $hash.Window.FindName( "Header" )
 		$hash.Progress = $hash.Window.FindName( "Progress" )
+
+		$hash.Progress.IsIndeterminate = $ProgressIndeterminate
+		$hash.Progress.Visibility = $ProgressBarVisibility
+		$hash.Progress.Maximum = $ProgressMax
+		$hash.Header.Content = $Title
+		$hash.LoadingLabel.Content = $LabelText
+
 		$hash.Window.ShowDialog()
 	} ) | Out-Null
 	# Open splash screen
@@ -437,12 +534,14 @@ function ShowSplash
 		Start-Sleep -Seconds $Duration
 		Close-SplashScreen
 	}
+	$Script:SplashHash.Shell = $script:SplashShell
 }
 
 $Converters = @"
 using System;
 using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
+using System.Drawing;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -455,34 +554,36 @@ namespace FetchalonConverters
 	public class ADUserConverter : IValueConverter
 	{
 		/// <summary>Convert a SamAccountName (userId) to the username, according to AD</summary>
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			if (string.IsNullOrEmpty((string)value) || value == null)
+			if (string.IsNullOrEmpty( ( string ) value ) || value == null )
 			{
 				return "";
 			}
 			else
 			{
 				string Id;
-				if (((string)value).IndexOf('(') == -1)
+				if ( ( ( string ) value ).IndexOf( '(' ) == -1 )
 				{
-					Id = (string)value;
+					Id = ( string ) value;
 				}
 				else
 				{
-					Id = ((string)value).Split('(')[1].Split(')')[0];
+					Id = ( ( string ) value ).Split( '(' )[1].Split( ')' )[0];
 				}
 
-				PrincipalContext pc = new PrincipalContext(ContextType.Domain, "domain.test.com", "DC=domain,DC=test,DC=com");
-				UserPrincipal up = new UserPrincipal(pc) { SamAccountName = Id };
+				PrincipalContext pc = new PrincipalContext( ContextType.Domain, "%CodeConverterADDomainName%", "%CodeConverterADContainer%" );
+				UserPrincipal up = new UserPrincipal( pc ) { SamAccountName = Id };
 				PrincipalSearcher ps = new PrincipalSearcher(up);
 				var u = ps.FindOne();
-				if (u == null) return value;
-				else return u.Name;
+				if ( u == null )
+					return value;
+				else
+					return u.Name;
 			}
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		public object ConvertBack ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
@@ -491,19 +592,19 @@ namespace FetchalonConverters
 	public class ADGrpDistNameConverter : IValueConverter
 	{
 		/// <summary>Convert an AD-groups DistinguishedName to its name</summary>
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			DirectoryEntry de = new DirectoryEntry("LDAP://DC=domain,DC=test,DC=com");
-			DirectorySearcher adsSearcher = new DirectorySearcher(de)
+			DirectoryEntry de = new DirectoryEntry( "LDAP://%CodeConverterADContainer%" );
+			DirectorySearcher adsSearcher = new DirectorySearcher( de )
 			{
 				Filter = "(DistinguishedName=" + (string)value + ")"
 			};
 
-			var res = (adsSearcher.FindOne()).GetDirectoryEntry();
-			return res.Name.Split('=')[1];
+			var res = ( adsSearcher.FindOne() ).GetDirectoryEntry();
+			return res.Name.Split( '=' )[1];
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		public object ConvertBack ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
@@ -512,23 +613,23 @@ namespace FetchalonConverters
 	public class ADUserOtherTelephoneFormater : IValueConverter
 	{
 		/// <summary>Format items in an AD-users otherTelephone-collection</summary>
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			string[] outFormat;
-			if (Regex.IsMatch(((string)value), @"\+\d\d8"))
+			if ( Regex.IsMatch( ( ( string ) value ), @"\+\d\d8" ) )
 			{
-				outFormat = Regex.Split(((string)value), @"(\+\d\d)(\d)(\d\d\d)(\d\d)");
+				outFormat = Regex.Split( ( ( string ) value ), @"(\+\d\d)(\d)(\d\d\d)(\d\d)" );
 			}
 			else
 			{
-				outFormat = Regex.Split(((string)value), @"(\+\d\d)(\d\d)(\d\d\d)(\d\d)");
+				outFormat = Regex.Split( ( ( string ) value ), @"(\+\d\d)(\d\d)(\d\d\d)(\d\d)" );
 			}
-			string formated = ((string.Join(" ", outFormat)).Trim()).Insert(4, "0");
+			string formated = ( ( string.Join( " ", outFormat ) ).Trim() ).Insert( 4, "0" );
 
-			return (object)formated;
+			return ( object ) formated;
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		public object ConvertBack ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
@@ -537,12 +638,12 @@ namespace FetchalonConverters
 	public class StringDateToDate : IValueConverter
 	{
 		/// <summary>Convert string to DateTime</summary>
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			return (object)DateTime.Parse((string)value); ;
+			return ( object ) DateTime.Parse( ( string ) value );
 		}
 
-		public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+		public object ConvertBack ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
@@ -550,12 +651,12 @@ namespace FetchalonConverters
 
 	public class WidthLessThan : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			return double.Parse(value.ToString()) < int.Parse(parameter.ToString());
+			return double.Parse( value.ToString() ) < int.Parse( parameter.ToString() );
 		}
 
-		public object ConvertBack(object value, Type targetTypes, object parameter, CultureInfo culture)
+		public object ConvertBack ( object value, Type targetTypes, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
@@ -563,12 +664,12 @@ namespace FetchalonConverters
 
 	public class MiVisible : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			return double.Parse(value.ToString()) < int.Parse(parameter.ToString());
+			return double.Parse( value.ToString() ) < int.Parse( parameter.ToString() );
 		}
 
-		public object ConvertBack(object value, Type targetTypes, object parameter, CultureInfo culture)
+		public object ConvertBack ( object value, Type targetTypes, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
@@ -576,7 +677,7 @@ namespace FetchalonConverters
 
 	public class ValidComputer : IValueConverter
 	{
-		public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
 			if ( value == null )
 			{
@@ -584,18 +685,18 @@ namespace FetchalonConverters
 			}
 			else
 			{
-				DirectoryEntry de = new DirectoryEntry("LDAP://DC=domain,DC=test,DC=com");
-				DirectorySearcher adsSearcher = new DirectorySearcher(de)
+				DirectoryEntry de = new DirectoryEntry( "LDAP://%CodeConverterADContainer%" );
+				DirectorySearcher adsSearcher = new DirectorySearcher( de )
 				{
 					Filter = "(Name=" + (string)value + ")"
 				};
 
-				try { return null != (adsSearcher.FindOne()).GetDirectoryEntry(); }
+				try { return null != ( adsSearcher.FindOne() ).GetDirectoryEntry(); }
 				catch { return false ; }
 			}
 		}
 
-		public object ConvertBack(object value, Type targetTypes, object parameter, CultureInfo culture)
+		public object ConvertBack ( object value, Type targetTypes, object parameter, CultureInfo culture )
 		{
 			throw new NotImplementedException();
 		}
@@ -625,7 +726,7 @@ namespace FetchalonConverters
 				}
 				else if ( item.GetType() == typeof( String ) )
 				{
-					DirectoryEntry de = new DirectoryEntry("LDAP://DC=domain,DC=test,DC=com");
+					DirectoryEntry de = new DirectoryEntry( "LDAP://%CodeConverterADContainer%" );
 					DirectorySearcher adsSearcher = new DirectorySearcher( de )
 					{
 						Filter = "(DistinguishedName=" + ( string ) item + ")"
@@ -654,14 +755,17 @@ namespace FetchalonConverters
 		}
 	}
 }
-"@
+"@ -replace "%CodeConverterADDomainName%", $IntMsgTable.CodeConverterADDomainName -replace "%CodeConverterADContainer%", $IntMsgTable.CodeConverterADContainer
 
 if ( $LoadConverters ) { LoadConverters }
 
 $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
-Import-LocalizedData -BindingVariable IntmsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
+Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 $CallingScript = try { ( Get-Item $MyInvocation.PSCommandPath ) } catch { [pscustomobject]@{ BaseName = "NoScript" } }
-try { $Host.UI.RawUI.WindowTitle = "$( $IntmsgTable.ConsoleWinTitlePrefix ): $( ( ( Get-Item $MyInvocation.PSCommandPath ).FullName -split "Script" )[1] )" } catch {}
+try { $Host.UI.RawUI.WindowTitle = "$( $IntMsgTable.ConsoleWinTitlePrefix ): $( ( ( Get-Item $MyInvocation.PSCommandPath ).FullName -split "Script" )[1] )" } catch {}
 
-Export-ModuleMember -Function BindControls, CreateWindow, CreatePage, CreateWindowExt, Close-SplashScreen, Update-SplashProgress, Update-SplashText, ShowSplash
+Export-ModuleMember -Function BindControls, CreateWindow, CreatePage, CreateWindowExt,
+							Close-SplashScreen, Show-Splash, Update-SplashProgress, Update-SplashText,
+							Show-CustomMessageBox, ShowShow-MessageBox
+Export-ModuleMember -Variable Converters
