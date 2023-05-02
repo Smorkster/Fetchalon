@@ -97,18 +97,16 @@
                 </DataGridTextColumn>
             </DataGrid.Columns>
         </DataGrid>
-        <TextBlock Name="TbProgressInfo">
-            <TextBlock.Style>
-                <Style TargetType="TextBlock">
+        <ProgressBar Name="PbProgress">
+            <ProgressBar.Style>
+                <Style TargetType="ProgressBar">
                     <Setter Property="Grid.Row"
                             Value="1" />
                     <Setter Property="Margin"
                             Value="5" />
-                    <Setter Property="TextWrapping"
-                            Value="Wrap" />
                 </Style>
-            </TextBlock.Style>
-        </TextBlock>
+            </ProgressBar.Style>
+        </ProgressBar>
         <Grid>
             <Grid.Style>
                 <Style TargetType="Grid">
@@ -148,32 +146,54 @@
                         <Style TargetType="TextBox">
                             <Setter Property="Grid.Column"
                                     Value="2" />
+                            <Setter Property="IsEnabled"
+                                    Value="True" />
                             <Setter Property="Margin"
                                     Value="5" />
                             <Setter Property="VerticalContentAlignment"
                                     Value="Center" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=PbProgress, Path=Visibility}"
+                                             Value="Visible">
+                                    <Setter Property="IsEnabled"
+                                            Value="False" />
+                                </DataTrigger>
+                            </Style.Triggers>
                         </Style>
                     </TextBox.Style>
                 </TextBox>
             </Grid>
-            <ProgressBar Name="PbUninstallations">
-                <ProgressBar.Style>
-                    <Style TargetType="ProgressBar">
+            <TextBlock Name="TbProgressInfo">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
                         <Setter Property="Grid.Column"
                                 Value="1" />
                         <Setter Property="Margin"
                                 Value="5" />
+                        <Setter Property="TextWrapping"
+                                Value="Wrap" />
+                        <Setter Property="VerticalAlignment"
+                                Value="Center" />
                     </Style>
-                </ProgressBar.Style>
-            </ProgressBar>
+                </TextBlock.Style>
+            </TextBlock>
             <Button Name="BtnGetAppList">
                 <Button.Style>
                     <Style TargetType="Button"
                            BasedOn="{StaticResource BtnBaseStyle}">
                         <Setter Property="Content"
                                 Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnGetAppList}" />
+                        <Setter Property="IsEnabled"
+                                Value="True" />
                         <Setter Property="Grid.Row"
                                 Value="1" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=PbProgress, Path=Visibility}"
+                                         Value="Visible">
+                                <Setter Property="IsEnabled"
+                                        Value="False" />
+                            </DataTrigger>
+                        </Style.Triggers>
                     </Style>
                 </Button.Style>
             </Button>
@@ -192,6 +212,11 @@
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding ElementName=DgAppList, Path=SelectedItems.Count}"
                                          Value="0">
+                                <Setter Property="IsEnabled"
+                                        Value="False" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ElementName=PbProgress, Path=Visibility}"
+                                         Value="Visible">
                                 <Setter Property="IsEnabled"
                                         Value="False" />
                             </DataTrigger>
