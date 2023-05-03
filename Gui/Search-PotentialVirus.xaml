@@ -1,0 +1,1599 @@
+<Page Name="Window"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
+      xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+      Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+    <Page.Resources>
+        <sys:Double x:Key="CW">130</sys:Double>
+        <sys:Double x:Key="MCW">1000</sys:Double>
+        <Thickness x:Key="StdMargin">5</Thickness>
+        <sys:String x:Key="DoneText">X</sys:String>
+        <sys:String x:Key="WaitingText">X</sys:String>
+        <Visibility x:Key="V">Hidden</Visibility>
+        <CollectionViewSource x:Key="CvsAllFiles">
+            <CollectionViewSource.IsLiveGroupingRequested>True</CollectionViewSource.IsLiveGroupingRequested>
+            <CollectionViewSource.IsLiveSortingRequested>True</CollectionViewSource.IsLiveSortingRequested>
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="FileType" />
+            </CollectionViewSource.GroupDescriptions>
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription PropertyName="FileType" />
+                <componentmodel:SortDescription PropertyName="Name" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsFolderList">
+            <CollectionViewSource.IsLiveSortingRequested>True</CollectionViewSource.IsLiveSortingRequested>
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription PropertyName="Path" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <GroupStyle x:Key="Gs">
+            <GroupStyle.ContainerStyle>
+                <Style TargetType="GroupItem">
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate>
+                                <Expander>
+                                    <Expander.Style>
+                                        <Style TargetType="Expander">
+                                            <Setter Property="HorizontalAlignment"
+                                                    Value="Stretch" />
+                                            <Setter Property="HorizontalContentAlignment"
+                                                    Value="Stretch" />
+                                            <Setter Property="IsExpanded"
+                                                    Value="{Binding ElementName=CbExpandGroups, Path=IsChecked, Mode=OneWay}" />
+                                            <Setter Property="Width"
+                                                    Value="Auto" />
+                                        </Style>
+                                    </Expander.Style>
+                                    <Expander.Header>
+                                        <Border>
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0"
+                                                                     EndPoint="1,1">
+                                                    <LinearGradientBrush.GradientStops>
+                                                        <GradientStopCollection>
+                                                            <GradientStop Color="#FFE8E8E8"
+                                                                          Offset="0.0" />
+                                                            <GradientStop Color="White"
+                                                                          Offset="1.1" />
+                                                        </GradientStopCollection>
+                                                    </LinearGradientBrush.GradientStops>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition MinWidth="30"
+                                                                      Width="Auto" />
+                                                    <ColumnDefinition />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock FontSize="14"
+                                                           HorizontalAlignment="Right"
+                                                           Margin="5,2"
+                                                           VerticalAlignment="Center">
+                                                    <Run Text="[" />
+                                                    <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                    <Run Text="]" />
+                                                </TextBlock>
+                                                <TextBlock FontSize="14"
+                                                           Foreground="Black"
+                                                           Grid.Column="1"
+                                                           HorizontalAlignment="Stretch"
+                                                           Padding="3"
+                                                           Text="{Binding Path=Name}"
+                                                           Width="{StaticResource MCW}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Path=Name}"
+                                                                             Value="{x:Static sys:String.Empty}">
+                                                                    <Setter Property="Text"
+                                                                            Value="?" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Border>
+                                    </Expander.Header>
+                                    <ItemsPresenter />
+                                </Expander>
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding Path=Name}"
+                                     Value="Files matching filter">
+                            <Setter Property="Background"
+                                    Value="Red" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </GroupStyle.ContainerStyle>
+        </GroupStyle>
+        <Style TargetType="Border"
+               x:Key="BorderGroupStyle">
+            <Setter Property="BorderBrush"
+                    Value="Black" />
+            <Setter Property="BorderThickness"
+                    Value="2,0,0,0" />
+            <Setter Property="Grid.ColumnSpan"
+                    Value="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}" />
+        </Style>
+        <Style TargetType="Border"
+               x:Key="BrdInputStyle">
+            <Setter Property="BorderThickness"
+                    Value="2" />
+        </Style>
+        <Style TargetType="Button"
+               x:Key="BtnBaseStyle">
+            <Setter Property="Height"
+                    Value="30" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="5" />
+        </Style>
+        <Style TargetType="CheckBox"
+               x:Key="CbBaseStyle">
+            <Setter Property="IsThreeState"
+                    Value="False" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="DatePickerTextBox">
+            <Setter Property="IsReadOnly"
+                    Value="True" />
+        </Style>
+        <Style TargetType="Grid"
+               x:Key="GridBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="Label"
+               x:Key="LblBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="Label"
+               BasedOn="{StaticResource LblBaseStyle}"
+               x:Key="DoneLabel">
+            <Setter Property="Content"
+                    Value="{StaticResource DoneText}" />
+            <Setter Property="Foreground"
+                    Value="Green" />
+            <Setter Property="HorizontalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="Label"
+               BasedOn="{StaticResource LblBaseStyle}"
+               x:Key="WaitingLabel">
+            <Setter Property="Content"
+                    Value="{StaticResource WaitingText}" />
+            <Setter Property="Foreground"
+                    Value="Red" />
+        </Style>
+        <Style TargetType="ListView"
+               x:Key="LvBaseStyle">
+            <Setter Property="IsEnabled"
+                    Value="True" />
+            <Setter Property="ListView.View"
+                    Value="{DynamicResource View}" />
+            <Setter Property="SelectionMode"
+                    Value="Extended" />
+            <Setter Property="VirtualizingPanel.IsVirtualizingWhenGrouping"
+                    Value="True" />
+            <Setter Property="VirtualizingPanel.VirtualizationMode"
+                    Value="Recycling" />
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="ToolTip"
+                                Value="{Binding TT}" />
+                    </Style>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="HasItems"
+                         Value="False">
+                    <Setter Property="IsEnabled"
+                            Value="False" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="RadioButton"
+               x:Key="RbBaseStyle">
+            <Setter Property="GroupName"
+                    Value="RbGrpDate" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="StackPanel"
+               x:Key="SpBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="TabControl"
+               x:Key="TCtrlBaseStyle">
+            <Setter Property="Background"
+                    Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" />
+        </Style>
+        <Style TargetType="TextBlock"
+               x:Key="TblBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalAlignment"
+                    Value="Center" />
+        </Style>
+        <Style x:Key="TblRbTextStyle"
+               BasedOn="{StaticResource TblBaseStyle}"
+               TargetType="TextBlock">
+            <Setter Property="Grid.Column"
+                    Value="1" />
+        </Style>
+        <Style TargetType="TextBlock"
+               x:Key="TblTitleStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="TextBlock"
+               x:Key="TblGroupTitleStyle">
+            <Setter Property="FontSize"
+                    Value="15" />
+            <Setter Property="FontWeight"
+                    Value="Bold" />
+            <Setter Property="Margin"
+                    Value="10,0,0,0" />
+        </Style>
+        <Style TargetType="TextBox"
+               x:Key="TbBaseStyle">
+            <Setter Property="Width"
+                    Value="100" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+            <Setter Property="BorderBrush"
+                    Value="#FFABADB3" />
+            <Setter Property="BorderThickness"
+                    Value="1" />
+            <Setter Property="Grid.Column"
+                    Value="1" />
+            <Setter Property="IsEnabled"
+                    Value="True" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ElementName=BtnStartSearch, Path=IsEnabled}"
+                             Value="True">
+                    <Setter Property="IsEnabled"
+                            Value="False" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="TextBox"
+               x:Key="TbInputStyle">
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="ToolTip"
+               x:Key="TtBaseStyle">
+            <Setter Property="ToolTipService.InitialShowDelay"
+                    Value="0" />
+            <Setter Property="ToolTipService.BetweenShowDelay"
+                    Value="0" />
+        </Style>
+        <Window x:Key="StreamsList"
+                Name="StreamsList"
+                WindowStartupLocation="CenterScreen">
+            <Window.Style>
+                <Style TargetType="Window">
+                    <Setter Property="Height"
+                            Value="220" />
+                    <Setter Property="Width"
+                            Value="300" />
+                </Style>
+            </Window.Style>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock Name="TblStreamsListInfo">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblStreamsListInfo}" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Name="TblStreamsListFileName">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Grid.Row"
+                                    Value="1" />
+                            <Setter Property="Text"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblStreamsListFileName}" />
+                            <Setter Property="TextWrapping"
+                                    Value="Wrap" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <DataGrid Name="DgStreamsList">
+                    <DataGrid.Style>
+                        <Style TargetType="DataGrid">
+                            <Setter Property="AutoGenerateColumns"
+                                    Value="False" />
+                            <Setter Property="Grid.Row"
+                                    Value="2" />
+                            <Setter Property="HeadersVisibility"
+                                    Value="Column" />
+                            <Setter Property="Margin"
+                                    Value="0" />
+                        </Style>
+                    </DataGrid.Style>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding Stream}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Name="DgtcStreamsName">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text"
+                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgtcStreamsName}" />
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn TextBlock.TextAlignment="Right"
+                                            Binding="{Binding DataSize}">
+                            <DataGridTextColumn.Header>
+                                <TextBlock Name="DgtcStreamsDataSize">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Text"
+                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgtcStreamsDataSize}" />
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </DataGridTextColumn.Header>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <Button Name="BtnCloseStreamsList">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource BtnBaseStyle}">
+                            <Setter Property="Content"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCloseStreamsList}" />
+                            <Setter Property="Grid.Row"
+                                    Value="3" />
+                            <Setter Property="HorizontalAlignment"
+                                    Value="Right" />
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+        </Window>
+    </Page.Resources>
+    <Grid Name="GridMain">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"
+                           MaxHeight="200" />
+            <RowDefinition Height="1*" />
+        </Grid.RowDefinitions>
+        <Grid Name="GridTop">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition Height="20" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <Grid Name="GridSearch">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility"
+                                Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=GridWaitProgress, Path=Visibility}"
+                                         Value="Visible">
+                                <Setter Property="Visibility"
+                                        Value="Hidden" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <Grid Name="GridInput">
+                    <Grid.Style>
+                        <Style TargetType="Grid"
+                               BasedOn="{StaticResource GridBaseStyle}">
+                            <Setter Property="VerticalAlignment"
+                                    Value="Top" />
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource BorderGroupStyle}">
+                        <TextBlock Name="TblGroupInputTitle">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock"
+                                       BasedOn="{StaticResource TblGroupTitleStyle}">
+                                    <Setter Property="Grid.ColumnSpan"
+                                            Value="2" />
+                                    <Setter Property="Text"
+                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblGroupInputTitle}" />
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+                    <TextBlock Name="TblValuesTitle">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblTitleStyle}">
+                                <Setter Property="FontStyle"
+                                        Value="Italic" />
+                                <Setter Property="Grid.ColumnSpan"
+                                        Value="2" />
+                                <Setter Property="Grid.Row"
+                                        Value="1" />
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblValuesTitle}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <TextBlock Name="TblCaseNrTitle">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblTitleStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="2" />
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblCaseNrTitle}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Border Name="BrdCaseNr">
+                        <Border.Style>
+                            <Style TargetType="Border"
+                                   BasedOn="{StaticResource BrdInputStyle}">
+                                <Setter Property="Grid.Column"
+                                        Value="1" />
+                                <Setter Property="Grid.Row"
+                                        Value="2" />
+                            </Style>
+                        </Border.Style>
+                        <TextBox Name="TbCaseNr">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox"
+                                       BasedOn="{StaticResource TbInputStyle}" />
+                            </TextBox.Style>
+                        </TextBox>
+                    </Border>
+                    <TextBlock Name="TblIdTitle">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblTitleStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="3" />
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblIdTitle}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Border Name="BrdId">
+                        <Border.Style>
+                            <Style TargetType="Border"
+                                   BasedOn="{StaticResource BrdInputStyle}">
+                                <Setter Property="Grid.Column"
+                                        Value="1" />
+                                <Setter Property="Grid.Row"
+                                        Value="3" />
+                            </Style>
+                        </Border.Style>
+                        <TextBox Name="TbId">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox"
+                                       BasedOn="{StaticResource TbInputStyle}" />
+                            </TextBox.Style>
+                        </TextBox>
+                    </Border>
+                    <CheckBox Name="CbSetAccountDisabled">
+                        <CheckBox.Style>
+                            <Style TargetType="CheckBox"
+                                   BasedOn="{StaticResource CbBaseStyle}">
+                                <Setter Property="Content"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbSetAccountDisabled}" />
+                                <Setter Property="Grid.ColumnSpan"
+                                        Value="2" />
+                                <Setter Property="Grid.Row"
+                                        Value="4" />
+                            </Style>
+                        </CheckBox.Style>
+                    </CheckBox>
+                </Grid>
+                <Grid Name="GridSearchButtons">
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Grid.Row"
+                                    Value="1" />
+                            <Setter Property="Width"
+                                    Value="{Binding ElementName=GbSearch, Path=ActualWidth}" />
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Button Name="BtnPrep">
+                        <Button.Style>
+                            <Style TargetType="Button"
+                                   BasedOn="{StaticResource BtnBaseStyle}">
+                                <Setter Property="Content"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPrep}" />
+                                <Setter Property="IsEnabled"
+                                        Value="False" />
+                                <Style.Triggers>
+                                    <Trigger Property="Visibility"
+                                             Value="Hidden">
+                                        <Setter Property="IsEnabled"
+                                                Value="False" />
+                                    </Trigger>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding ElementName=TbId, Path=BorderBrush.Color}"
+                                                       Value="#FFABADB3" />
+                                            <Condition Binding="{Binding ElementName=TbCaseNr, Path=BorderBrush.Color}"
+                                                       Value="#FFABADB3" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="IsEnabled"
+                                                Value="True" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Name="BtnStartSearch">
+                        <Button.Style>
+                            <Style TargetType="Button"
+                                   BasedOn="{StaticResource BtnBaseStyle}">
+                                <Setter Property="Background"
+                                        Value="#FF00FF77" />
+                                <Setter Property="Content"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnStartSearch}" />
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Name="BtnReset">
+                        <Button.Style>
+                            <Style TargetType="Button"
+                                   BasedOn="{StaticResource BtnBaseStyle}">
+                                <Setter Property="Content"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnReset}" />
+                                <Setter Property="Background"
+                                        Value="#9900AAB8" />
+                                <Setter Property="Grid.Column"
+                                        Value="1" />
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </Grid>
+                <Grid Name="GridSearchSettings">
+                    <Grid.Style>
+                        <Style TargetType="Grid"
+                               BasedOn="{StaticResource GridBaseStyle}">
+                            <Setter Property="Grid.Column"
+                                    Value="1" />
+                            <Setter Property="Grid.RowSpan"
+                                    Value="2" />
+                            <Setter Property="VerticalAlignment"
+                                    Value="Top" />
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Border Style="{StaticResource BorderGroupStyle}">
+                        <TextBlock Name="TblGroupSearchSettingsTitle">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock"
+                                       BasedOn="{StaticResource TblGroupTitleStyle}">
+                                    <Setter Property="Text"
+                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblGroupSearchSettingsTitle}" />
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </Border>
+                    <RadioButton Name="RbLatest">
+                        <RadioButton.Style>
+                            <Style TargetType="RadioButton"
+                                   BasedOn="{StaticResource RbBaseStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="1" />
+                                <Setter Property="ToolTip"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbLatestToolTip}" />
+                            </Style>
+                        </RadioButton.Style>
+                    </RadioButton>
+                    <TextBlock Name="TblRbLatestText">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblRbTextStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="1" />
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblRbLatestText}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <RadioButton Name="RbPrevDate">
+                        <RadioButton.Style>
+                            <Style TargetType="RadioButton"
+                                   BasedOn="{StaticResource RbBaseStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="2" />
+                                <Setter Property="ToolTip"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbPrevDateToolTip}" />
+                                <Setter Property="VerticalAlignment"
+                                        Value="Top" />
+                            </Style>
+                        </RadioButton.Style>
+                    </RadioButton>
+                    <StackPanel>
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Grid.Column"
+                                        Value="1" />
+                                <Setter Property="Grid.Row"
+                                        Value="2" />
+                                <Setter Property="Margin"
+                                        Value="0" />
+                                <Setter Property="Width"
+                                        Value="Auto" />
+                            </Style>
+                        </StackPanel.Style>
+                        <TextBlock Name="TblPrevDateText">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock"
+                                       BasedOn="{StaticResource TblRbTextStyle}">
+                                    <Setter Property="Text"
+                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPrevDateText}" />
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <DatePicker Name="DatePickerStart">
+                            <DatePicker.Style>
+                                <Style TargetType="DatePicker">
+                                    <Setter Property="Margin"
+                                            Value="5" />
+                                    <Setter Property="Padding"
+                                            Value="0" />
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                    <Setter Property="Width"
+                                            Value="Auto" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=RbPrevDate, Path=IsChecked}"
+                                                     Value="False">
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DatePicker.Style>
+                            <DatePicker.Resources>
+                                <Style TargetType="DatePickerTextBox">
+                                    <Setter Property="HorizontalAlignment"
+                                            Value="Stretch" />
+                                    <Setter Property="Margin"
+                                            Value="0" />
+                                    <Setter Property="VerticalAlignment"
+                                            Value="Center" />
+                                </Style>
+                            </DatePicker.Resources>
+                        </DatePicker>
+                    </StackPanel>
+                    <RadioButton Name="RbAll">
+                        <RadioButton.Style>
+                            <Style TargetType="RadioButton"
+                                   BasedOn="{StaticResource RbBaseStyle}">
+                                <Setter Property="DataContext"
+                                        Value="{Binding ElementName=ScObjInfo, Path=DataContext}" />
+                                <Setter Property="Grid.Row"
+                                        Value="3" />
+                                <Setter Property="ToolTip"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbAllToolTip}" />
+                            </Style>
+                        </RadioButton.Style>
+                    </RadioButton>
+                    <TextBlock Name="TblRbAllText">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblRbTextStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="3" />
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblRbAllText}" />
+                                <Setter Property="Visibility"
+                                        Value="{Binding ElementName=RbAll, Path=Visibility}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <CheckBox Name="CbExpandGroups">
+                        <CheckBox.Style>
+                            <Style TargetType="CheckBox"
+                                   BasedOn="{StaticResource CbBaseStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="4" />
+                            </Style>
+                        </CheckBox.Style>
+                    </CheckBox>
+                    <TextBlock Name="TblCbExpandGroups">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblRbTextStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="4" />
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblCbExpandGroups}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <CheckBox Name="CbGroupExtensions">
+                        <CheckBox.Style>
+                            <Style TargetType="CheckBox"
+                                   BasedOn="{StaticResource CbBaseStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="5" />
+                            </Style>
+                        </CheckBox.Style>
+                    </CheckBox>
+                    <TextBlock Name="TblCbGroupExtensions">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblRbTextStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="5" />
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblCbGroupExtensions}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+            </Grid>
+            <Grid Name="GridWaitProgress">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Visibility"
+                                Value="Hidden" />
+                    </Style>
+                </Grid.Style>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="1*" />
+                </Grid.RowDefinitions>
+                <TextBlock Name="TblFolderListTitle">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource TblTitleStyle}">
+                            <Setter Property="Text"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFolderListTitle}" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <Button Name="BtnAbort">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource BtnBaseStyle}">
+                            <Setter Property="Content"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnAbort}" />
+                            <Setter Property="Grid.Column"
+                                    Value="1" />
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <DataGrid Name="DgFolderList">
+                    <DataGrid.Style>
+                        <Style TargetType="DataGrid">
+                            <Setter Property="AutoGenerateColumns"
+                                    Value="False" />
+                            <Setter Property="Grid.ColumnSpan"
+                                    Value="2" />
+                            <Setter Property="Grid.Row"
+                                    Value="1" />
+                            <Setter Property="HeadersVisibility"
+                                    Value="None" />
+                            <Setter Property="HorizontalScrollBarVisibility"
+                                    Value="Auto" />
+                            <Setter Property="IsReadOnly"
+                                    Value="True" />
+                            <Setter Property="ItemsSource"
+                                    Value="{Binding Source={StaticResource CvsFolderList}}" />
+                            <Setter Property="ScrollViewer.VerticalScrollBarVisibility"
+                                    Value="Auto" />
+                            <Setter Property="VerticalScrollBarVisibility"
+                                    Value="Auto" />
+                        </Style>
+                    </DataGrid.Style>
+                    <DataGrid.ItemContainerStyle>
+                        <Style TargetType="DataGridRow">
+                            <Setter Property="Visibility"
+                                    Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Path=Searched}"
+                                             Value="True">
+                                    <Setter Property="Visibility"
+                                            Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.ItemContainerStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Binding="{Binding Path}" />
+                        <DataGridTextColumn Binding="{Binding Name}" />
+                        <DataGridTextColumn Binding="{Binding Description}" />
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+            <Grid Name="GridInfo">
+                <Grid.Style>
+                    <Style TargetType="Grid"
+                           BasedOn="{StaticResource GridBaseStyle}">
+                        <Setter Property="Grid.Column"
+                                Value="2" />
+                        <Setter Property="VerticalAlignment"
+                                Value="Top" />
+                    </Style>
+                </Grid.Style>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Border Style="{StaticResource BorderGroupStyle}">
+                    <TextBlock Name="TblGroupSummaryTitle">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblGroupTitleStyle}">
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblGroupSummaryTitle}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Border>
+                <TextBlock Name="TblUserTitle">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource TblTitleStyle}">
+                            <Setter Property="Grid.Row"
+                                    Value="1" />
+                            <Setter Property="Text"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUserTitle}" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Name="TblUser">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource TblBaseStyle}">
+                            <Setter Property="Grid.Column"
+                                    Value="1" />
+                            <Setter Property="Grid.Row"
+                                    Value="1" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Name="TblFolderCountTitle">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource TblTitleStyle}">
+                            <Setter Property="Grid.Row"
+                                    Value="2" />
+                            <Setter Property="Text"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFolderCountTitle}" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Name="TblFolderCount">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource TblBaseStyle}">
+                            <Setter Property="Grid.Column"
+                                    Value="1" />
+                            <Setter Property="Grid.Row"
+                                    Value="2" />
+                            <Setter Property="Text"
+                                    Value="{Binding Source={StaticResource CvsFolderList}, Path=Count}" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Name="TblFileCountTitle">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource TblTitleStyle}">
+                            <Setter Property="Grid.Row"
+                                    Value="3" />
+                            <Setter Property="Text"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFileCountTitle}" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Name="TblFileCount">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource TblBaseStyle}">
+                            <Setter Property="Grid.Column"
+                                    Value="1" />
+                            <Setter Property="Grid.Row"
+                                    Value="3" />
+                            <Setter Property="Text"
+                                    Value="{Binding Source={StaticResource CvsAllFiles}, Path=Count}" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Name="TblSummaryTitle">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource TblTitleStyle}">
+                            <Setter Property="Grid.Row"
+                                    Value="4" />
+                            <Setter Property="Text"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblSummaryTitle}" />
+                            <Setter Property="Visibility"
+                                    Value="{Binding ElementName=TblSummary, Path=Visibility}" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Name="TblSummary">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock"
+                               BasedOn="{StaticResource TblBaseStyle}">
+                            <Setter Property="Grid.Column"
+                                    Value="4" />
+                            <Setter Property="Grid.Row"
+                                    Value="4" />
+                            <Setter Property="Visibility"
+                                    Value="Visible" />
+                            <Style.Triggers>
+                                <Trigger Property="Text"
+                                         Value="{x:Static sys:String.Empty}">
+                                    <Setter Property="Visibility"
+                                            Value="Hidden" />
+                                </Trigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <Button Name="BtnOpenSummary">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource BtnBaseStyle}">
+                            <Setter Property="Content"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnOpenSummary}" />
+                            <Setter Property="Grid.ColumnSpan"
+                                    Value="2" />
+                            <Setter Property="Grid.Row"
+                                    Value="5" />
+                            <Setter Property="Visibility"
+                                    Value="{Binding ElementName=TblSummary, Path=Visibility}" />
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+            <ProgressBar Name="TotalProgress">
+                <ProgressBar.Style>
+                    <Style TargetType="ProgressBar">
+                        <Setter Property="Grid.ColumnSpan"
+                                Value="2" />
+                        <Setter Property="Grid.Row"
+                                Value="1" />
+                        <Setter Property="Margin"
+                                Value="{StaticResource StdMargin}" />
+                    </Style>
+                </ProgressBar.Style>
+            </ProgressBar>
+            <Grid Name="GridActionButtons">
+                <Grid.Style>
+                    <Style TargetType="Grid"
+                           BasedOn="{StaticResource GridBaseStyle}">
+                        <Setter Property="Grid.Row"
+                                Value="2" />
+                    </Style>
+                </Grid.Style>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Button Name="BtnOpenFolder">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource BtnBaseStyle}">
+                            <Setter Property="Content"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnOpenFolder}" />
+                            <Setter Property="ToolTip"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnOpenFolderTT}" />
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Name="BtnSearchExt">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource BtnBaseStyle}">
+                            <Setter Property="Content"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSearchExt}" />
+                            <Setter Property="Grid.Column"
+                                    Value="1" />
+                            <Setter Property="ToolTip"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSearchExtTT}" />
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Name="BtnSearchFileName">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource BtnBaseStyle}">
+                            <Setter Property="Content"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSearchFileName}" />
+                            <Setter Property="Grid.Column"
+                                    Value="2" />
+                            <Setter Property="ToolTip"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSearchFileNameTT}" />
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Name="BtnRunVirusScan">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource BtnBaseStyle}">
+                            <Setter Property="Content"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnRunVirusScan}" />
+                            <Setter Property="Grid.Column"
+                                    Value="3" />
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <Button Name="BtnShowFileStreams">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource BtnBaseStyle}">
+                            <Setter Property="Content"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnShowFileStreams}" />
+                            <Setter Property="Grid.Column"
+                                    Value="4" />
+                            <Setter Property="IsEnabled"
+                                    Value="False" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=LvAllFiles, Path=SelectedItems.Count}"
+                                                   Value="1" >
+                                    <Setter Property="IsEnabled"
+                                            Value="True" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+            </Grid>
+        </Grid>
+        <TabControl Name="TcFileLists">
+            <TabControl.Style>
+                <Style TargetType="TabControl"
+                       BasedOn="{StaticResource TCtrlBaseStyle}">
+                    <Setter Property="Grid.Row"
+                            Value="1" />
+                </Style>
+            </TabControl.Style>
+            <TabItem Name="TiFiles">
+                <TabItem.Style>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Header"
+                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiFilesHeader}" />
+                    </Style>
+                </TabItem.Style>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock Name="TblFiles" />
+                    <ListView Name="LvAllFiles">
+                        <ListView.Style>
+                            <Style TargetType="ListView"
+                                   BasedOn="{StaticResource LvBaseStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="1" />
+                                <Setter Property="ItemsSource"
+                                        Value="{Binding Source={StaticResource CvsAllFiles}}" />
+                            </Style>
+                        </ListView.Style>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn>
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Name" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvAN">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLvColumnName}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                                <GridViewColumn>
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Size" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumn.Width>100</GridViewColumn.Width>
+                                    <GridViewColumnHeader Name="LvAS">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLvColumnSize}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding}"
+                                                       TextAlignment="Right" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                                <GridViewColumn Width="{StaticResource ResourceKey=CW}">
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding>
+                                            <Binding.Path>CreationTime</Binding.Path>
+                                            <Binding.StringFormat>yyyy-MM-dd HH:mm:ss</Binding.StringFormat>
+                                        </Binding>
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvAC">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLvColumnCreated}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                                <GridViewColumn DisplayMemberBinding="{Binding LastWriteTime, StringFormat='yyyy-MM-dd HH:mm:ss'}"
+                                                Width="{StaticResource ResourceKey=CW}">
+                                    <GridViewColumnHeader Name="LvAU">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLvColumnUpdated}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                                <GridViewColumn DisplayMemberBinding="{Binding Owner}"
+                                                Width="420">
+                                    <GridViewColumnHeader Name="LvAO">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLvColumnOwner}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                                <GridViewColumn Width="100">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border>
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="BorderBrush"
+                                                                Value="Red" />
+                                                        <Setter Property="BorderThickness"
+                                                                Value="1.5" />
+                                                        <Setter Property="Padding"
+                                                                Value="2" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Path=Streams.Count}"
+                                                                         Value="1">
+                                                                <Setter Property="BorderThickness"
+                                                                        Value="0" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Path=Streams.Count}"
+                                                                         Value="{x:Null}">
+                                                                <Setter Property="BorderThickness"
+                                                                        Value="0" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="FontWeight"
+                                                                    Value="Bold" />
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding Path=Streams.Count}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Path=Streams.Count}"
+                                                                             Value="{x:Null}">
+                                                                    <Setter Property="Text"
+                                                                            Value="1" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Border>
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                    <GridViewColumnHeader Name="LvAStr">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLvColumnStreams}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                        <ListView.GroupStyle>
+                            <StaticResource ResourceKey="Gs" />
+                        </ListView.GroupStyle>
+                    </ListView>
+                </Grid>
+            </TabItem>
+            <TabItem Name="TiMDH">
+                <TabItem.Style>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Header"
+                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiMDHHeader}" />
+                        <Setter Property="Visibility"
+                                Value="Collapsed" />
+                    </Style>
+                </TabItem.Style>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="30" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock Name="TblMDH">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMDH}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <ListView Name="LvMultiDotsH">
+                        <ListView.Style>
+                            <Style TargetType="ListView"
+                                   BasedOn="{StaticResource LvBaseStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="1" />
+                            </Style>
+                        </ListView.Style>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Width="{StaticResource ResourceKey=MCW}">
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Name" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvHN">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=LvAN, Path=Content}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                                <GridViewColumn Width="{StaticResource ResourceKey=CW}">
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Created" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvHC">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=LvAC, Path=Content}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                                <GridViewColumn Width="{StaticResource ResourceKey=CW}">
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Updated" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvHU">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=LvAU, Path=Content}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                        <ListView.GroupStyle>
+                            <StaticResource ResourceKey="Gs" />
+                        </ListView.GroupStyle>
+                    </ListView>
+                </Grid>
+            </TabItem>
+            <TabItem Name="TiFilterMatch">
+                <TabItem.Style>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Header"
+                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiFilterMatchHeader}" />
+                        <Setter Property="Visibility"
+                                Value="Collapsed" />
+                    </Style>
+                </TabItem.Style>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="30" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock Name="TblFilterMatch">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFilterMatch}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <ListView Name="LvFilterMatch">
+                        <ListView.Style>
+                            <Style TargetType="ListView"
+                                   BasedOn="{StaticResource LvBaseStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="1" />
+                            </Style>
+                        </ListView.Style>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Width="{StaticResource ResourceKey=MCW}">
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Name" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvFMN">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=LvAN, Path=Content}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                                <GridViewColumn Width="{StaticResource ResourceKey=CW}">
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Created" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvFMC">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=LvAC, Path=Content}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                                <GridViewColumn Width="{StaticResource ResourceKey=CW}">
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Updated" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvFMU">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=LvAU, Path=Content}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                        <ListView.GroupStyle>
+                            <StaticResource ResourceKey="Gs" />
+                        </ListView.GroupStyle>
+                    </ListView>
+                </Grid>
+            </TabItem>
+            <TabItem Name="TiMDG">
+                <TabItem.Style>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Header"
+                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiMDGHeader}" />
+                        <Setter Property="Visibility"
+                                Value="Collapsed" />
+                    </Style>
+                </TabItem.Style>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="30" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock Name="TblMDG">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMDG}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <ListView Name="LvMultiDotsG">
+                        <ListView.Style>
+                            <Style TargetType="ListView"
+                                   BasedOn="{StaticResource LvBaseStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="1" />
+                            </Style>
+                        </ListView.Style>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Width="{StaticResource ResourceKey=MCW}">
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Name" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvGN">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=LvAN, Path=Content}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                                <GridViewColumn Width="{StaticResource ResourceKey=CW}">
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Created" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvGC">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=LvAC, Path=Content}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                                <GridViewColumn Width="{StaticResource ResourceKey=CW}">
+                                    <GridViewColumn.DisplayMemberBinding>
+                                        <Binding Path="Created" />
+                                    </GridViewColumn.DisplayMemberBinding>
+                                    <GridViewColumnHeader Name="LvGU">
+                                        <GridViewColumnHeader.Style>
+                                            <Style TargetType="GridViewColumnHeader">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=LvAU, Path=Content}" />
+                                            </Style>
+                                        </GridViewColumnHeader.Style>
+                                    </GridViewColumnHeader>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                        <ListView.GroupStyle>
+                            <StaticResource ResourceKey="Gs" />
+                        </ListView.GroupStyle>
+                    </ListView>
+                </Grid>
+            </TabItem>
+            <TabItem Name="TiO">
+                <TabItem.Style>
+                    <Style TargetType="TabItem">
+                        <Setter Property="Header"
+                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiOHeader}" />
+                        <Setter Property="Visibility"
+                                Value="Collapsed" />
+                    </Style>
+                </TabItem.Style>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="30" />
+                        <RowDefinition Height="40" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="IsEnabled"
+                                    Value="True" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=TotalProgress, Path=Visibility}"
+                                             Value="Visible">
+                                    <Setter Property="IsEnabled"
+                                            Value="False" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <TextBlock Name="TblO">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblO}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <Button Name="BtnCreateQuestion">
+                        <Button.Style>
+                            <Style TargetType="Button"
+                                   BasedOn="{StaticResource BtnBaseStyle}">
+                                <Setter Property="Content"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCreateQuestion}" />
+                                <Setter Property="Grid.Row"
+                                        Value="1" />
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <TextBox Name="TbQuestion">
+                        <TextBox.Style>
+                            <Style TargetType="TextBox"
+                                   BasedOn="{StaticResource TbBaseStyle}">
+                                <Setter Property="AcceptsReturn"
+                                        Value="True" />
+                                <Setter Property="Grid.Row"
+                                        Value="2" />
+                                <Setter Property="VerticalContentAlignment"
+                                        Value="Top" />
+                                <Setter Property="Width"
+                                        Value="Auto" />
+                            </Style>
+                        </TextBox.Style>
+                    </TextBox>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</Page>
