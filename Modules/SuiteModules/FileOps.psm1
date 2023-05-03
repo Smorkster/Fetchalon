@@ -33,7 +33,6 @@ class ErrorLog
 	[ValidateNotNullOrEmpty()] [string] $ErrorMessage
 	[ValidateNotNullOrEmpty()] [string] $UserInput
 	[ValidateNotNullOrEmpty()] [ErrorSeverity] $Severity
-	[string] $ComputerName
 	[string] $LogDate
 	[string] $Operator
 
@@ -58,7 +57,6 @@ class ErrorLog
 		$this.Severity = $o.Severity
 		$this.LogDate = $o.LogDate
 		$this.Operator = $o.Operator
-		$this.ComputerName = $o.ComputerName
 	}
 
 	[string] ToJson()
@@ -67,6 +65,22 @@ class ErrorLog
 		$this.Operator = $env:USERNAME
 		return $this | ConvertTo-Json -Compress
 	}
+}
+
+class ErrorLogExt : ErrorLog
+{
+	[string] $ComputerName
+
+	ErrorLogExt ( [pscustomobject] $o )
+	{
+		$this.ErrorMessage = $o.ErrorMessage
+		$this.UserInput = $o.UserInput
+		$this.Severity = $o.Severity
+		$this.LogDate = $o.LogDate
+		$this.Operator = $o.Operator
+		$this.ComputerName = $o.ComputerName
+	}
+
 }
 
 class Log
@@ -81,7 +95,6 @@ class Log
 	[array] $ErrorLogDate
 	[string] $ErrorLogFile
 	[array] $OutputFile
-	[string] $ComputerName
 	[string] $LogDate
 	[string] $Operator
 
@@ -108,7 +121,6 @@ class Log
 		$this.ErrorLogDate = $o.ErrorLogDate
 		$this.OutputFile = $o.OutputFile
 		$this.Operator = $o.Operator
-		$this.ComputerName = $o.ComputerName
 	}
 
 	[string] ToJson()
@@ -116,6 +128,24 @@ class Log
 		$this.LogDate = ( Get-Date -Format "yyyy-MM-dd HH:mm:ss" )
 		$this.Operator = $env:USERNAME
 		return $this | ConvertTo-Json -Compress
+	}
+}
+
+class LogExt : Log
+{
+	[string] $ComputerName
+
+	LogExt ( [pscustomobject] $o )
+	{
+		$this.LogDate = $o.LogDate
+		$this.LogText = $o.LogText
+		$this.UserInput = $o.UserInput
+		$this.Success = $o.Success
+		$this.ErrorLogFile = $o.ErrorLogFile
+		$this.ErrorLogDate = $o.ErrorLogDate
+		$this.OutputFile = $o.OutputFile
+		$this.Operator = $o.Operator
+		$this.ComputerName = $o.ComputerName
 	}
 }
 
@@ -235,7 +265,7 @@ function GetScriptInfo
 	.State
 		Prod
 	.Author
-		Carl Franzén (6g1w)
+		Smorkster (smorkster)
 	#>
 
 	param (
@@ -417,35 +447,6 @@ function NewSurvey
 	{ return [Survey]::new() }
 }
 
-function ShowMessageBox
-{
-	<#
-	.Synopsis
-		Display a messagebox with given text
-	.Description
-		Display a messagebox with given text, and, if defined, title, icon and button/-s
-	.Parameter Text
-		The text to display in the messagebox
-	.Parameter Title
-		A string to display in the title of the messagebox
-	.Parameter Button
-		What buttons are to be used/visible in the messagebox
-	.Parameter Icon
-		What icon is to be displayed in the messagebox
-	.Outputs
-		Returns which button in the messagebox was clicked
-	#>
-
-	param (
-		[string] $Text,
-		[string] $Title = "",
-		[string] $Button = "OK",
-		[string] $Icon = "Info"
-	)
-
-	return [System.Windows.MessageBox]::Show( "$Text", "$Title", "$Button", "$Icon" )
-}
-
 function WriteErrorlog
 {
 	<#
@@ -469,17 +470,45 @@ function WriteErrorlog
 	[Parameter(Mandatory = $true)]
 		[string] $LogText,
 	[Parameter(Mandatory = $true)]
+	[AllowEmptyString()]
 		[string] $UserInput,
 	[Parameter(Mandatory = $true)][ValidateScript( { [ErrorSeverity].GetEnumNames() -contains $_ } )]
 		[ErrorSeverity] $Severity,
 		[string] $ComputerName
 	)
 
-	$mtx = [System.Threading.Mutex]::new( $false, "WriteErrorLog $( $CallingScript.Name )" )
+	$ScriptName = ( $MyInvocation.PSCommandPath -split "\\" )[-1]
+	$mtx = [System.Threading.Mutex]::new( $false, "WriteErrorLog $( $ScriptName )" )
+
+	if ( $MyInvocation.PSCommandPath -notmatch "Tools" )
+	{
+		$Function = ( Get-PSCallStack )[1].FunctionName
+		if ( $Function -notmatch "\<ScriptBlock\>" )
+		{
+			$LogText = "$( $Function )`n$LogText"
+		}
+	}
+
 	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
-	$ErrorLogFilePath = Get-LogFilePath -TopFolder "ErrorLogs" -FileName "$( $CallingScript.BaseName ) - Errorlog.json"
+	if ( $ScriptName )
+	{
+		$ErrorLogFilePath = Get-LogFilePath -TopFolder "ErrorLogs" -FileName "$ScriptName - Errorlog.json"
+	}
+	else
+	{
+		$ErrorLogFilePath = Get-LogFilePath -TopFolder "ErrorLogs" -FileName "$( $CallingScript.BaseName ) - Errorlog.json"
+	}
+
+	if ( [string]::IsNullOrEmpty( $UserInput ) )
+	{
+		$UserInput = "NULL"
+	}
 	$el = [ErrorLog]::new( $LogText, $UserInput.Trim(), $Severity )
-	if ( $ComputerName ) { $el.ComputerName = $ComputerName }
+
+	if ( $ComputerName )
+	{
+		$el.ComputerName = $ComputerName
+	}
 	$mtx.WaitOne()
 	Add-Content -Path $ErrorLogFilePath -Value $el.ToJson()
 	$mtx.ReleaseMutex()
@@ -527,7 +556,10 @@ function WriteLog
 	if ( $MyInvocation.PSCommandPath -notmatch "Tools" )
 	{
 		$Function = ( Get-PSCallStack )[1].FunctionName
-		$Text = "$Function`n$Text"
+		if ( $Function -notmatch "\<ScriptBlock\>" )
+		{
+			$Text = "$( $Function )`n$Text"
+		}
 	}
 	$log = [Log]::new( $Text, $UserInput.Trim(), [Success][int]$Success )
 
@@ -657,7 +689,11 @@ catch
 
 $CallingScript = try { Get-Item $MyInvocation.PSCommandPath } catch { [pscustomobject]@{ BaseName = "NoScript"; Name = "NoScript" } }
 
-Import-LocalizedData -BindingVariable IntmsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
+try
+{
+	Import-LocalizedData -BindingVariable IntmsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization" -ErrorAction Stop
+}
+catch {}
 
 try
 {
@@ -668,5 +704,5 @@ catch
 	[System.Windows.MessageBox]::Show( $_ )
 }
 
-Export-ModuleMember -Function EndScript, GetUserInput, ShowMessageBox, WriteErrorlog, WriteLog, WriteOutput, WriteLogTest, WriteErrorlogTest, WriteSurvey, New*, GetScriptInfo
+Export-ModuleMember -Function EndScript, GetUserInput, ShowMessageBox, WriteErrorlog, WriteLog, WriteOutput, WriteLogTest, WriteErrorlogTest, WriteSurvey, New*, GetScriptInfo, Get-LogFilePath
 Export-ModuleMember -Variable msgTable
