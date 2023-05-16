@@ -4,16 +4,73 @@
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Page.Resources>
+        <Brush x:Key="DefaultFontColor">#FF444444</Brush>
         <Thickness x:Key="StdMargin">5</Thickness>
         <sys:String x:Key="CompTypeNotFound">N/A</sys:String>
         <sys:String x:Key="CompTypeOtherType">N/A</sys:String>
         <sys:String x:Key="CompTypeError">N/A</sys:String>
         <Style TargetType="Button"
-               x:Key="ButtonBaseStyle">
-            <Setter Property="Margin"
-                    Value="{StaticResource StdMargin}" />
-            <Setter Property="Padding"
-                    Value="10,4" />
+               x:Key="BtnBaseStyle">
+            <Setter Property="Foreground"
+                    Value="{StaticResource DefaultFontColor}" />
+            <Setter Property="OverridesDefaultStyle"
+                    Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Name="BtnBrd"
+                                Background="#FFDDDDDD"
+                                BorderBrush="#FF555555"
+                                BorderThickness="1"
+                                Margin="4,0"
+                                Padding="5">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsEnabled}"
+                                         Value="False">
+                                <Setter Property="Foreground"
+                                        Value="LightGray" />
+                                <Setter Property="BorderBrush"
+                                        TargetName="BtnBrd"
+                                        Value="LightGray" />
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard Name="StoryBtnEnterHover">
+                                        <Storyboard>
+                                            <ColorAnimation AutoReverse="True"
+                                                            Duration="0:0:0.5"
+                                                            Storyboard.TargetName="BtnBrd"
+                                                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                            To="White" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                            </Trigger>
+                            <!--#region Button got focus -->
+                            <EventTrigger RoutedEvent="Keyboard.PreviewGotKeyboardFocus">
+                                <BeginStoryboard Name="BtnFocusStory">
+                                    <Storyboard>
+                                        <ColorAnimation AutoReverse="True"
+                                                        Duration="0:0:1"
+                                                        RepeatBehavior="Forever"
+                                                        Storyboard.TargetName="BtnBrd"
+                                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="PowderBlue" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="Keyboard.PreviewLostKeyboardFocus">
+                                <StopStoryboard BeginStoryboardName="BtnFocusStory" />
+                            </EventTrigger>
+                            <!--#endregion Button got focus -->
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="DatePicker"
                x:Key="DatePickerBaseStyle">
@@ -77,7 +134,7 @@
     </Page.Resources>
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="1*" />
+            <RowDefinition />
             <RowDefinition Height="40" />
         </Grid.RowDefinitions>
         <Grid Grid.Row="0">
@@ -168,7 +225,7 @@
             <Button Name="BtnStartDate">
                 <Button.Style>
                     <Style TargetType="Button"
-                           BasedOn="{StaticResource ButtonBaseStyle}" />
+                           BasedOn="{StaticResource BtnBaseStyle}" />
                 </Button.Style>
             </Button>
             <DatePicker Name="DatePickerStart">
@@ -183,7 +240,7 @@
             <Button Name="BtnEndDate">
                 <Button.Style>
                     <Style TargetType="Button"
-                           BasedOn="{StaticResource ButtonBaseStyle}">
+                           BasedOn="{StaticResource BtnBaseStyle}">
                         <Setter Property="Grid.Column"
                                 Value="1" />
                     </Style>
@@ -201,7 +258,7 @@
             <Button Name="BtnStart">
                 <Button.Style>
                     <Style TargetType="Button"
-                           BasedOn="{StaticResource ButtonBaseStyle}">
+                           BasedOn="{StaticResource BtnBaseStyle}">
                         <Setter Property="Grid.Column"
                                 Value="2" />
                         <Setter Property="IsEnabled"
@@ -222,7 +279,7 @@
             <Button Name="BtnExport">
                 <Button.Style>
                     <Style TargetType="Button"
-                           BasedOn="{StaticResource ButtonBaseStyle}">
+                           BasedOn="{StaticResource BtnBaseStyle}">
                         <Setter Property="Grid.Column"
                                 Value="4" />
                         <Setter Property="IsEnabled"

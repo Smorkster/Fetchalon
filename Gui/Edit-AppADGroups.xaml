@@ -4,18 +4,74 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Page.Resources>
+        <Brush x:Key="DefaultFontColor">#FF444444</Brush>
         <GridLength x:Key="LabelHeight">40</GridLength>
-        <sys:String x:Key="StrAddedUsersTitle">x</sys:String>
         <sys:String x:Key="StrErrorUsersTitle">x</sys:String>
         <sys:String x:Key="StrGroupsTitle">x</sys:String>
         <sys:String x:Key="StrRemovedUsersTitle">x</sys:String>
         <Thickness x:Key="StdMargin">5</Thickness>
         <Style TargetType="Button"
                x:Key="BtnBaseStyle">
-            <Setter Property="Margin"
-                    Value="0,5,0,0" />
-            <Setter Property="Padding"
-                    Value="10" />
+            <Setter Property="Foreground"
+                    Value="{StaticResource DefaultFontColor}" />
+            <Setter Property="OverridesDefaultStyle"
+                    Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Name="BtnBrd"
+                                Background="#FFDDDDDD"
+                                BorderBrush="#FF555555"
+                                BorderThickness="1"
+                                Margin="4,0"
+                                Padding="5">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsEnabled}"
+                                         Value="False">
+                                <Setter Property="Foreground"
+                                        Value="LightGray" />
+                                <Setter Property="BorderBrush"
+                                        TargetName="BtnBrd"
+                                        Value="LightGray" />
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard Name="StoryBtnEnterHover">
+                                        <Storyboard>
+                                            <ColorAnimation AutoReverse="True"
+                                                            Duration="0:0:0.5"
+                                                            Storyboard.TargetName="BtnBrd"
+                                                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                            To="White" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                            </Trigger>
+                            <!--#region Button got focus -->
+                            <EventTrigger RoutedEvent="Keyboard.PreviewGotKeyboardFocus">
+                                <BeginStoryboard Name="BtnFocusStory">
+                                    <Storyboard>
+                                        <ColorAnimation AutoReverse="True"
+                                                        Duration="0:0:1"
+                                                        RepeatBehavior="Forever"
+                                                        Storyboard.TargetName="BtnBrd"
+                                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="PowderBlue" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="Keyboard.PreviewLostKeyboardFocus">
+                                <StopStoryboard BeginStoryboardName="BtnFocusStory" />
+                            </EventTrigger>
+                            <!--#endregion Button got focus -->
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="Grid"
                x:Key="GridBaseStyle">
@@ -457,8 +513,6 @@
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock"
                                                        BasedOn="{StaticResource TblLogStyle}">
-                                                    <!--<Setter Property="Text"
-                                                            Value="{DynamicResource StrGroupsTitle}" />-->
                                                     <Setter Property="Text"
                                                             Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrGroupsTitle}" />
                                                 </Style>
@@ -580,8 +634,6 @@
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock"
                                                        BasedOn="{StaticResource TblLogStyle}">
-                                                    <!--<Setter Property="Text"
-                                                            Value="{DynamicResource StrRemovedUsersTitle}" />-->
                                                     <Setter Property="Text"
                                                             Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrRemovedUsersTitle}" />
                                                     <Style.Triggers>
@@ -649,8 +701,6 @@
                                                 <TextBlock.Style>
                                                     <Style TargetType="TextBlock"
                                                            BasedOn="{StaticResource TblLogStyle}">
-                                                        <!--<Setter Property="Text"
-                                                                Value="{DynamicResource StrErrorUsersTitle}" />-->
                                                         <Setter Property="Text"
                                                                 Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrErrorUsersTitle}" />
                                                     </Style>
