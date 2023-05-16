@@ -6,6 +6,7 @@
       xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
       Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Page.Resources>
+        <Brush x:Key="DefaultFontColor">#FF444444</Brush>
         <CollectionViewSource x:Key="CvsCbLogsScriptNames">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
@@ -107,10 +108,66 @@
         </Style>
         <Style TargetType="Button"
                x:Key="BtnBaseStyle">
-            <Setter Property="Margin"
-                    Value="{StaticResource StdMargin}" />
-            <Setter Property="Padding"
-                    Value="5" />
+            <Setter Property="Foreground"
+                    Value="{StaticResource DefaultFontColor}" />
+            <Setter Property="OverridesDefaultStyle"
+                    Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Name="BtnBrd"
+                                Background="#FFDDDDDD"
+                                BorderBrush="#FF555555"
+                                BorderThickness="1"
+                                Margin="4,0"
+                                Padding="5">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsEnabled}"
+                                         Value="False">
+                                <Setter Property="Foreground"
+                                        Value="LightGray" />
+                                <Setter Property="BorderBrush"
+                                        TargetName="BtnBrd"
+                                        Value="LightGray" />
+                            </DataTrigger>
+                            <Trigger Property="IsMouseOver"
+                                     Value="True">
+                                <Trigger.EnterActions>
+                                    <BeginStoryboard Name="StoryBtnEnterHover">
+                                        <Storyboard>
+                                            <ColorAnimation AutoReverse="True"
+                                                            Duration="0:0:0.5"
+                                                            Storyboard.TargetName="BtnBrd"
+                                                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                            To="White" />
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </Trigger.EnterActions>
+                            </Trigger>
+                            <!--#region Button got focus -->
+                            <EventTrigger RoutedEvent="Keyboard.PreviewGotKeyboardFocus">
+                                <BeginStoryboard Name="BtnFocusStory">
+                                    <Storyboard>
+                                        <ColorAnimation AutoReverse="True"
+                                                        Duration="0:0:1"
+                                                        RepeatBehavior="Forever"
+                                                        Storyboard.TargetName="BtnBrd"
+                                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
+                                                        To="PowderBlue" />
+                                    </Storyboard>
+                                </BeginStoryboard>
+                            </EventTrigger>
+                            <EventTrigger RoutedEvent="Keyboard.PreviewLostKeyboardFocus">
+                                <StopStoryboard BeginStoryboardName="BtnFocusStory" />
+                            </EventTrigger>
+                            <!--#endregion Button got focus -->
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="Button"
                x:Key="BtnDiffStyle"
@@ -966,6 +1023,9 @@
                                                         Value="6" />
                                             </Style>
                                         </TextBlock.Style>
+                                        <Run Text="{Binding ElementName=DgUpdates, Path=ItemsSource.Count, Mode=OneWay}" />
+                                        <Run Text=" " />
+                                        <Run Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrUpdates}" />
                                     </TextBlock>
                                     <TextBlock Name="TbDevCount">
                                         <TextBlock.Style>
