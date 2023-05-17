@@ -114,7 +114,6 @@ LogFailedUpdatesName = Scriptname
 LogFailedUpdatesTestResults = Testresult:
 LogOpenDiffWindow = Checks diff
 LogUpdatedIntro = Updated
-StrCheckingFilesInProd = Checks files in production
 StrCheckingUpdatesCheckFiles = Checks updates
 StrCheckingUpdatesGetFiles = Get files
 StrDiffRowAdded = < Row added >
