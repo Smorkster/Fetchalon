@@ -61,7 +61,7 @@
                             <Setter Property="Background"
                                     Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" />
                             <Setter Property="BorderBrush"
-                                    Value="Black" />
+                                    Value="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=BorderBrush}" />
                             <Setter Property="BorderThickness"
                                     Value="4,0,4,4" />
                         </Style>
@@ -165,6 +165,7 @@
                          Color="#888" />
         <sys:DateTime x:Key="DateTime" />
         <sys:Double x:Key="BrdMaxHeight">300</sys:Double>
+        <Brush x:Key="DefaultFontColor">#FF444444</Brush>
         <sys:String x:Key="StrCompressedDateTimeFormat">x</sys:String>
         <sys:String x:Key="StrDateFormat">x</sys:String>
         <sys:String x:Key="StrFullDateTimeFormat">x</sys:String>
@@ -183,9 +184,11 @@
             <TranslateTransform X="0"
                                 Y="0" />
         </TransformGroup>
+        <Visibility x:Key="ToolIsLoading">Collapsed</Visibility>
         <Visibility x:Key="MenuTextVisibility">Visible</Visibility>
         <x:Array x:Key="ContentNoMembersOfList"
                  Type="sys:String" />
+        <sys:Boolean x:Key="UseConverters">True</sys:Boolean>
         <c:ADUserConverter x:Key="UserConverter" />
         <c:ADGrpDistNameConverter x:Key="GroupConverter" />
         <c:ADUserOtherTelephoneFormater x:Key="PhonenumberFormater" />
@@ -199,6 +202,15 @@
                     Value="{StaticResource StdMargin}" />
             <Setter Property="Stroke"
                     Value="Black" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=IsEnabled}"
+                             Value="False">
+                    <Setter Property="Fill"
+                            Value="LightGray" />
+                    <Setter Property="Stroke"
+                            Value="LightGray" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
         <Style TargetType="Path"
                x:Key="PathObjectMenuIconStyle"
@@ -305,6 +317,8 @@
         </Style>
         <Style TargetType="Button"
                x:Key="BtnBaseStyle">
+            <Setter Property="Foreground"
+                    Value="{StaticResource DefaultFontColor}" />
             <Setter Property="OverridesDefaultStyle"
                     Value="True" />
             <Setter Property="Template">
@@ -320,6 +334,14 @@
                                               VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsEnabled}"
+                                         Value="False">
+                                <Setter Property="Foreground"
+                                        Value="LightGray" />
+                                <Setter Property="BorderBrush"
+                                        TargetName="BtnBrd"
+                                        Value="LightGray" />
+                            </DataTrigger>
                             <Trigger Property="IsMouseOver"
                                      Value="True">
                                 <Trigger.EnterActions>
@@ -731,29 +753,49 @@
                     Value="Bold" />
             <Setter Property="FontSize"
                     Value="14" />
+            <Setter Property="Foreground"
+                    Value="{StaticResource DefaultFontColor}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ElementName=PbSearchProgress, Path=Visibility}"
+                             Value="Visible">
+                    <Setter Property="IsEnabled"
+                            Value="False" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ElementName=GridProgress, Path=Visibility}"
+                             Value="Visible">
+                    <Setter Property="IsEnabled"
+                            Value="False" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsEnabled}"
+                             Value="False">
+                    <Setter Property="Foreground"
+                            Value="LightGray" />
+                </DataTrigger>
+            </Style.Triggers>
         </Style>
         <Style TargetType="RepeatButton"
                x:Key="ScrollBarLineButton">
-            <Setter Property="SnapsToDevicePixels"
-                    Value="True" />
-            <Setter Property="OverridesDefaultStyle"
-                    Value="True" />
             <Setter Property="Focusable"
                     Value="False" />
+            <Setter Property="Foreground"
+                    Value="{StaticResource DefaultFontColor}" />
+            <Setter Property="OverridesDefaultStyle"
+                    Value="True" />
+            <Setter Property="SnapsToDevicePixels"
+                    Value="True" />
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="{x:Type RepeatButton}">
                         <Border Name="Border"
-                                Margin="0"
-                                CornerRadius="0"
                                 Background="{StaticResource NormalBrush}"
                                 BorderBrush="{StaticResource NormalBorderBrush}"
-                                BorderThickness="1">
-                            <Path HorizontalAlignment="Center"
-                                  VerticalAlignment="Center"
+                                BorderThickness="1"
+                                CornerRadius="0"
+                                Margin="0">
+                            <Path Data="{Binding Path=Content, RelativeSource={RelativeSource TemplatedParent}}"
                                   Fill="{StaticResource GlyphBrush}"
-                                  Data="{Binding Path=Content,
-                RelativeSource={RelativeSource TemplatedParent}}" />
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsPressed"
@@ -1077,7 +1119,7 @@
         <Style TargetType="TextBlock"
                x:Key="TblObjectMenuStyle">
             <Setter Property="Foreground"
-                    Value="Black" />
+                    Value="{StaticResource DefaultFontColor}" />
             <Setter Property="Grid.Column"
                     Value="1" />
             <Setter Property="VerticalAlignment"
@@ -2510,7 +2552,7 @@
                                                             <Style TargetType="TextBlock"
                                                                    BasedOn="{StaticResource TblFunctionMenuStyle}">
                                                                 <Setter Property="Foreground"
-                                                                        Value="Black" />
+                                                                        Value="{StaticResource DefaultFontColor}" />
                                                                 <Setter Property="Text"
                                                                         Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiHideOutputView}" />
                                                                 <Style.Triggers>
@@ -2687,18 +2729,6 @@
                                BasedOn="{StaticResource MenuBaseStyle}">
                             <Setter Property="Grid.Row"
                                     Value="3" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding ElementName=PbSearchProgress, Path=Visibility}"
-                                             Value="Visible">
-                                    <Setter Property="IsEnabled"
-                                            Value="False" />
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding ElementName=GridProgress, Path=Visibility}"
-                                             Value="Visible">
-                                    <Setter Property="IsEnabled"
-                                            Value="False" />
-                                </DataTrigger>
-                            </Style.Triggers>
                         </Style>
                     </Menu.Style>
                     <MenuItem Name="MiUserFunctions">
@@ -3054,6 +3084,18 @@
                                                 <ColumnDefinition />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
+                                            <ProgressBar>
+                                                <ProgressBar.Style>
+                                                    <Style TargetType="ProgressBar">
+                                                        <Setter Property="Grid.ColumnSpan"
+                                                                Value="2" />
+                                                        <Setter Property="IsIndeterminate"
+                                                                Value="True" />
+                                                        <Setter Property="Visibility"
+                                                                Value="{DynamicResource ToolIsLoading}" />
+                                                    </Style>
+                                                </ProgressBar.Style>
+                                            </ProgressBar>
                                             <Path>
                                                 <Path.Style>
                                                     <Style TargetType="Path"
@@ -3075,8 +3117,22 @@
                                         </Grid>
                                     </Setter.Value>
                                 </Setter>
+                                <Setter Property="IsEnabled"
+                                        Value="True" />
                                 <Setter Property="ItemsSource"
                                         Value="{Binding Source={StaticResource CvsMiTools}}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=PbSearchProgress, Path=Visibility}"
+                                                 Value="Visible">
+                                        <Setter Property="IsEnabled"
+                                                Value="True" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ElementName=GridProgress, Path=Visibility}"
+                                                 Value="Visible">
+                                        <Setter Property="IsEnabled"
+                                                Value="True" />
+                                    </DataTrigger>
+                                </Style.Triggers>
                             </Style>
                         </MenuItem.Style>
                         <MenuItem.ItemContainerStyle>
@@ -3118,6 +3174,18 @@
                                 </Setter>
                                 <Setter Property="ItemsSource"
                                         Value="{Binding Source={StaticResource CvsMiAbout}}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=PbSearchProgress, Path=Visibility}"
+                                                 Value="Visible">
+                                        <Setter Property="IsEnabled"
+                                                Value="True" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ElementName=GridProgress, Path=Visibility}"
+                                                 Value="Visible">
+                                        <Setter Property="IsEnabled"
+                                                Value="True" />
+                                    </DataTrigger>
+                                </Style.Triggers>
                             </Style>
                         </MenuItem.Style>
                         <MenuItem.ItemContainerStyle>
@@ -3467,8 +3535,6 @@
                         <Grid Name="GridO365Status">
                             <Grid.Style>
                                 <Style TargetType="Grid">
-                                    <Setter Property="DataContext"
-                                            Value="{Binding ElementName=Window, Path=DataContext.O365AccountStatus}" />
                                     <Setter Property="Visibility"
                                             Value="Collapsed" />
                                     <Style.Triggers>
@@ -4222,6 +4288,7 @@
                                                                                                                 <PriorityBinding>
                                                                                                                     <Binding Path="."
                                                                                                                              Converter="{StaticResource UserConverter}"
+                                                                                                                             ConverterParameter="{StaticResource UseConverters}"
                                                                                                                              IsAsync="True"
                                                                                                                              Mode="OneTime" />
                                                                                                                     <Binding Path="." />

@@ -244,11 +244,13 @@ function OpenTool
 
 	param ( $SenderObject )
 
+	$syncHash.Window.Resources['ToolIsLoading'] = [System.Windows.Visibility]::Visible
 	$SenderObject.DataContext.Process = [pscustomobject]@{ RunspaceH = $null ; RunspaceP = $null ; EventListenerPsInitializer = $null ; EventListenerToolProcess = $null ; PObj = $null ; MainWindowHandle = $null }
 
 	$SenderObject.DataContext.Process.RunspaceP = [powershell]::Create()
 	[void] $SenderObject.DataContext.Process.RunspaceP.AddScript( {
 		param ( $Script, $BaseDir, $Modules )
+
 		Import-Module $Modules
 		Start-Process powershell -ArgumentList $Script, $BaseDir -WindowStyle Hidden -PassThru
 	} )
@@ -257,17 +259,20 @@ function OpenTool
 	[void] $SenderObject.DataContext.Process.RunspaceP.AddArgument( ( Get-Module ) )
 	$SenderObject.DataContext.Process.RunspaceH = $SenderObject.DataContext.Process.RunspaceP.BeginInvoke()
 
-	$SenderObject.DataContext.Process.EventListenerPsInitializer = Register-ObjectEvent -InputObject $SenderObject.DataContext.Process.RunspaceP -EventName InvocationStateChanged -MessageData $SenderObject -Action {
+	$SenderObject.DataContext.Process.EventListenerPsInitializer = Register-ObjectEvent -InputObject $SenderObject.DataContext.Process.RunspaceP -EventName InvocationStateChanged -MessageData @( $SenderObject, $syncHash ) -Action {
+		$Event.MessageData[1].Window.Resources['ToolIsLoading'] = [System.Windows.Visibility]::Collapsed
+		$Event.MessageData[1].MiTools.Header.UpdateLayout()
 		if ( $EventArgs.InvocationStateInfo.State -in 'Completed', 'Failed' )
 		{
-			$Event.MessageData.DataContext.Process.PObj = ( $Event.MessageData.DataContext.Process.RunspaceP.EndInvoke( $Event.MessageData.DataContext.Process.RunspaceH ) )[0]
-			$Event.MessageData.DataContext.Process.MainWindowHandle = $Event.MessageData.DataContext.Process.PObj.MainWindowHandle
-			$Event.MessageData.DataContext.Process.EventListenerToolProcess = Register-ObjectEvent -InputObject $Event.MessageData.DataContext.Process.PObj -EventName Exited -MessageData $Event.MessageData -Action {
+			$Event.MessageData[0].DataContext.Process.PObj = ( $Event.MessageData[0].DataContext.Process.RunspaceP.EndInvoke( $Event.MessageData[0].DataContext.Process.RunspaceH ) )[0]
+			$Event.MessageData[0].DataContext.Process.MainWindowHandle = $Event.MessageData[0].DataContext.Process.PObj.MainWindowHandle
+			$Event.MessageData[0].DataContext.Process.EventListenerToolProcess = Register-ObjectEvent -InputObject $Event.MessageData[0].DataContext.Process.PObj -EventName Exited -MessageData $Event.MessageData[0] -Action {
 				$p = $Event.MessageData.DataContext.Process.EventListenerPsInitializer
 				$r = $Event.MessageData.DataContext.Process.EventListenerToolProcess
 				$Event.MessageData.Dispatcher.Invoke( [action] { $Event.MessageData.DataContext.Process = $null }, [System.Windows.Threading.DispatcherPriority]::DataBind )
 				Unregister-Event $p
 				Unregister-Event $r
+				[GC]::Collect()
 			}
 			[GC]::Collect()
 		}
@@ -428,6 +433,22 @@ function RunScriptNoRunspace
 	{
 		$Info.Error = $_
 	}
+
+	# Log activity
+	if ( $null -ne $syncHash.Data.SearchedItem )
+	{
+		$LogText = "Function: $( $ScriptObject.Name )`r`n$( $syncHash.Data.msgTable.LogStrSearchItemTitle ): $( $syncHash.Data.SearchedItem.Name )"
+	}
+	else
+	{
+		$LogText = "Function: $( $ScriptObject.Name )"
+	}
+
+	if ( $Info.Error )
+	{
+		$eh = WriteErrorlog -LogText $LogText -UserInput $null -Severity -1
+	}
+	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $EnteredInput | ConvertTo-Json -Compress ) -ErrorLogHash $eh | Out-Null
 
 	$syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $Info )
 	$syncHash.GridFunctionOp.DataContext = $null
@@ -628,11 +649,19 @@ function StartSearch
 		else
 		{
 			$Id = $syncHash.DC.TbSearch[0].Trim()
+			$LDAPSearches = [System.Collections.ArrayList]::new()
 
-			"(&(ObjectClass=user)(SamAccountName=$Id))",
-			"(&(ObjectClass=computer)(SamAccountName=$Id*))",
-			"(&(ObjectClass=group)(|(Name=$Id)($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id)))",
-			"(&(ObjectClass=printQueue)(Name=$Id*))" | `
+			$LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null
+			$LDAPSearches.Add( "(&(ObjectClass=computer)(SamAccountName=$Id*))" ) | Out-Null
+			$LDAPSearches.Add( "(&(ObjectClass=group)(|(Name=$Id)($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id)))" ) | Out-Null
+			$LDAPSearches.Add( "(&(ObjectClass=printQueue)(Name=$Id*))" ) | Out-Null
+
+			if ( $Id -match "(?i)[aiuoyåäöeÀ-ÿ ]" )
+			{
+				$LDAPSearches.Add( "(&(ObjectClass=user)(Name=$Id*))" ) | Out-Null
+			}
+
+			$LDAPSearches | `
 				ForEach-Object {
 					$P = $_
 					Get-ADObject -LDAPFilter $_ -Properties * } |`
@@ -679,14 +708,18 @@ $culture = "sv-SE"
 $BaseDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName UIAutomationClient
-"ExchangeOnlineManagement", "ActiveDirectory", ( Get-ChildItem -Path "$BaseDir\Modules\SuiteModules\*" -File ).FullName | Import-Module -Force -ArgumentList $culture
-ShowSplash -Text "" -SelfAdmin
+
+"ExchangeOnlineManagement", "ActiveDirectory", ( Get-ChildItem -Path "$BaseDir\Modules\SuiteModules\*" -File ).FullName | `
+	ForEach-Object {
+		Import-Module -Name $_ -Force -ArgumentList $culture, $true
+	}
+Show-Splash -Text "" -SelfAdmin
 
 $controls = [System.Collections.ArrayList]::new()
 [void] $controls.Add( @{ CName = "BtnEnterFunctionInput" ; Props = @( @{ PropName = "Content" ; PropVal = $msgTable.ContentBtnEnterFunctionInput } ) } )
 [void] $controls.Add( @{ CName = "BtnSearch" ; Props = @( @{ PropName = "IsEnabled" ; PropVal = $false } ) } )
 [void] $controls.Add( @{ CName = "DgSearchResults" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[object]]::new() } ) } )
-[void] $controls.Add( @{ CName = "GridProgress" ; Props = @( @{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
+[void] $controls.Add( @{ CName = "GridProgress" ; Props = @( @{ PropName = "Visibility"; PropVal = ( [System.Windows.Visibility]::Collapsed ) } ) } )
 [void] $controls.Add( @{ CName = "IcOutputObjects" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[object]]::new() } ) } )
 [void] $controls.Add( @{ CName = "PbSearchProgress" ; Props = @( @{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
 [void] $controls.Add( @{ CName = "TbSearch" ; Props = @( @{ PropName = "Text"; PropVal = "" } ) } )
@@ -1002,7 +1035,6 @@ $syncHash.Code.ListItem =
 			Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name Identity -Value $syncHash.Data.SearchedItem."$( $syncHash.Data.msgTable.StrIdPropName )" -Force
 		}
 
-		$syncHash.Window.DataContext.SearchedItem = $syncHash.Data.SearchedItem
 		Invoke-Command $syncHash.Code.ListProperties -ArgumentList $false
 
 		if ( $syncHash.Data.SearchedItem.ObjectClass -notin "group", "DirectoryInfo", "FileInfo" )
@@ -1218,7 +1250,7 @@ $syncHash.Code.ListProperties =
 				}
 }
 
-Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximum 10 )"
+Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximum @( $syncHash.Data.msgTable.Keys.Where( { $_ -match "Joke" } ).Count ) )"
 
 # Eventhandler to copy function output
 [System.Windows.RoutedEventHandler] $syncHash.Code.CopyOutputData =
@@ -1308,7 +1340,7 @@ $(
 	param ( $SenderObject, $e )
 
 	Set-Clipboard -Value $SenderObject.Parent.DataContext.Value
-	ShowSplash -Text $syncHash.Data.msgTable.StrPropertyCopied -NoTitle -NoProgressBar
+	Show-Splash -Text $syncHash.Data.msgTable.StrPropertyCopied -NoTitle -NoProgressBar
 }
 
 # Open a hyperlink
@@ -1339,6 +1371,7 @@ $(
 	# Menuitem represents a tool
 	if ( ( $SenderObject.DataContext | Get-Member -MemberType NoteProperty ).Name -match "^PS$" )
 	{
+		$syncHash.Window.Resources['ToolIsLoading'] = [System.Windows.Visibility]::Visible
 		# The tool has Xaml to be shown in main window
 		if ( $SenderObject.DataContext.Separate -eq $false )
 		{
@@ -1375,15 +1408,16 @@ $(
 				{
 					if ( "NotPage" -eq $_.Exception.Message )
 					{
-						ShowMessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
+						Show-MessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
 					}
 					else
 					{
-						ShowMessageBox -Text $_
+						Show-MessageBox -Text $_
 					}
 				}
 			}
 
+			# Copy SearchedItem to page resource
 			if ( $SenderObject.DataContext.ObjectOperations -eq $syncHash.Data.SearchedItem.ObjectClass )
 			{
 				$syncHash.Window.Resources[$name].Resources['SearchedItem'] = $syncHash.Data.SearchedItem
@@ -1392,8 +1426,9 @@ $(
 			$syncHash.GridObj.Visibility = [System.Windows.Visibility]::Collapsed
 			$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Visible
 			$syncHash.FrameTool.Navigate( $syncHash.Window.Resources[$name] )
+			$syncHash.Window.Resources['ToolIsLoading'] = [System.Windows.Visibility]::Collapsed
 		}
-		# The tool is handling its GUI in separate window
+		# The tool is handling its GUI by itself, in separate window
 		else
 		{
 			try
@@ -1436,11 +1471,7 @@ $(
 			$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
 		}
 
-# TODO Test
-#		if ( -not $SenderObject.DataContext.NoRunspace )
-#		{
-			PrepareToRunScript $SenderObject.DataContext
-#		}
+		PrepareToRunScript $SenderObject.DataContext
 	}
 }
 
@@ -1645,6 +1676,10 @@ $syncHash.Code.SBlockExecuteFunction = {
 		else
 		{ $Info.OutputType = "String" }
 
+		if ( $Error.Count -gt 0 )
+		{
+			$Info.Error = $Error
+		}
 	}
 	catch
 	{
@@ -1661,8 +1696,12 @@ $syncHash.Code.SBlockExecuteFunction = {
 	{
 		$LogText = "Function: $( $ScriptObject.Name )"
 	}
-	
-	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $InputData | ConvertTo-Json -Compress )
+
+	if ( $Info.Error )
+	{
+		$eh = WriteErrorlog -LogText $LogText -UserInput $null -Severity -1
+	}
+	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $InputData | ConvertTo-Json -Compress ) -ErrorLogHash $eh
 
 	$syncHash.Window.Dispatcher.Invoke( [action] {
 		# Send result to GUI
@@ -1861,6 +1900,9 @@ $syncHash.DgSearchResults.Add_LoadingRow( {
 
 # A doubleclick was made, load the item
 $syncHash.DgSearchResults.Add_MouseDoubleClick( {
+	param ( [System.Object] $sender, [System.Windows.Input.MouseButtonEventArgs] $e )
+
+	$e.Handled = $true
 	Invoke-Command -ScriptBlock $syncHash.Code.ListItem -ArgumentList $syncHash.DgSearchResults.SelectedItem -NoNewScope
 } )
 
@@ -1868,9 +1910,15 @@ $syncHash.DgSearchResults.Add_MouseDoubleClick( {
 $syncHash.IcOutputObjects.ItemsSource.Add_CollectionChanged( {
 	if ( $this.Count -gt 0 )
 	{
-		# TODO Verify
-		#$syncHash.Jobs.ExecuteFunction.P.Close()
-		#$syncHash.Jobs.ExecuteFunction.P.Dispose()
+		try
+		{
+			$syncHash.Jobs.ExecuteFunction.P.Close()
+			$syncHash.Jobs.ExecuteFunction.P.Dispose()
+		}
+		catch
+		{
+			$syncHash.Jobs.JobErrors.Add( $_ ) | Out-Null
+		}
 	}
 } )
 
@@ -1894,14 +1942,16 @@ $syncHash.MiCopyObj.Add_Click( {
 		""
 		""
 	} | Set-Clipboard
+
+	Show-Splash -Text $syncHash.Data.msgTable.StrPropertyCopied -NoTitle -NoProgressBar
 } )
 
 $syncHash.MiO365Connect.Add_Click( {
 	try
 	{
 		#throw "Error"
-		Connect-AzureAD
-		Connect-ExchangeOnline -UserPrincipalName ( Get-AzureADCurrentSessionInfo ).account.id
+		Connect-AzureAD -ErrorAction Stop
+		Connect-ExchangeOnline -UserPrincipalName ( Get-AzureADCurrentSessionInfo ).account.id  -ErrorAction Stop
 		$syncHash.Window.DataContext.O365Connected = $true
 		$this.Visibility = [System.Windows.Visibility]::Collapsed
 		$syncHash.PathMiO365Connect.Stroke = "Black"
@@ -2031,6 +2081,15 @@ $syncHash.Window.Add_Loaded( {
 	$this.Resources.GetEnumerator() | Where-Object { $_.Name -match "^Cvs" } | ForEach-Object { $_.Value.View.Refresh() }
 	$this.Resources['MenuTextVisibility'] = [System.Windows.Visibility]::Parse( [System.Windows.Visibility], $syncHash.Data.UserSettings.MenuTextVisible )
 	$this.Resources['MainOutput'].Title = $syncHash.Data.msgTable.StrDefaultMainTitle
+	if ( $PSCommandPath -match "Development" )
+	{
+		$this.BorderBrush = "Red"
+	}
+	else
+	{
+		$this.BorderBrush = "Black"
+	}
+
 	Update-SplashText -Text $syncHash.Data.msgTable.StrSplashFinished
 	Close-SplashScreen
 } )
@@ -2042,11 +2101,14 @@ $syncHash.Window.Add_ContentRendered( {
 
 	try
 	{
-		[Microsoft.Open.Azure.AD.CommonLibrary.AzureSession]::AccessTokens | Out-Null
-		$syncHash.Window.DataContext.O365Connected = $true
-		$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Collapsed
+		if ( @( Get-PSSession | Where-Object { $_.Name -match "ExchangeOnline" } ).Count -gt 0 )
+		{
+			$syncHash.Window.DataContext.O365Connected = $true
+			$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Collapsed
+		}
 	} catch {}
 
+	$syncHash.Window.Resources['UseConverters'] = $true
 	$this.Activate()
 } )
 
