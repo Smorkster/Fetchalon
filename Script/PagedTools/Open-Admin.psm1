@@ -112,7 +112,6 @@ function CheckForUpdates
 			-End { try { Remove-Variable DFile, PFile, File, DevMD5, ProdMD5 -ErrorAction Stop } catch {} }
 
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-			$syncHash.DC.TbUpdatesSummary[0] = "{0} {1}" -f $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Count, $syncHash.Data.msgTable.StrUpdates
 			$syncHash.DC.TbDevCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Dev" } ).Count
 			$syncHash.DC.TbTestCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Test" } ).Count
 			$syncHash.DC.TbProdCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Prod" } ).Count
@@ -344,47 +343,45 @@ function PrepParsing
 	$syncHash.Jobs.PParseLogs.AddArgument( ( Get-Module ) )
 
 	$syncHash.Jobs.PParseRollbacks = [powershell]::Create( [initialsessionstate]::CreateDefault() )
-	$syncHash.Jobs.PParseRollbacks.AddScript( { param ( $syncHash, $Modules )
+	$syncHash.Jobs.PParseRollbacks.AddScript( {
+		param ( $syncHash, $Modules )
 		Import-Module $Modules
 
-		[array] $syncHash.Data.RollbackFiles = Get-ChildItem $syncHash.Data.RollbackRoot -Recurse -File
+		$syncHash.Data.RollbackData.Clear()
+		$syncHash.Data.RollbackFiles.Clear()
+
+		Get-ChildItem $syncHash.Data.RollbackRoot -Recurse -File | Sort-Object Name | ForEach-Object { $syncHash.Data.RollbackFiles.Add( $_ ) | Out-Null }
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
 			$syncHash.Controls.PbListingRollbacks.Visibility = [System.Windows.Visibility]::Visible
 			$syncHash.Controls.Window.Resources['CvsLvRollbackFileNames'].Source.Clear()
 		} )
 
-		$syncHash.Data.RollBackData.Clear()
-
 		foreach ( $File in $syncHash.Data.RollbackFiles )
 		{
-			$FileName, $Info = $File.BaseName -split " \("
-			$Info = $Info -replace "\)" -split " "
-			if ( [string]::IsNullOrWhiteSpace( $Info[3] ) ) { $Info += $syncHash.Data.msgTable.StrNoUpdaterSpecified }
+			$File.BaseName -match "^(?<Name>.*)\.\w* \(\w* (?<Date>.* .*), (?<Updater>\w*)\)" | Out-Null
 			$FileData = [pscustomobject]@{
 				File = $File
-				Script = ( $FileName -split "\." )[0]
-				Updated = Get-Date "$( $Info[1] ) $( $Info[2] -replace "\.", ":" )"
-				UpdatedBy = $Info[3]
+				FileName = $Matches.Name
+				Updated = Get-Date "$( $Matches.Date -replace "\.", ":" )"
+				UpdatedBy = $Matches.Updater
 				Type = $File.Extension -replace "\."
 			}
 
-			if ( $syncHash.Data.RollBackData.Script -notcontains $FileData.Script )
+			if ( $syncHash.Data.RollbackData.FileName -notcontains $FileData.FileName )
 			{
 				$TempArray = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 				$TempArray.Add( $FileData )
-				[void] $syncHash.Data.RollBackData.Add( [pscustomobject]@{ Script = $FileData.Script ; FileLogs = $TempArray } )
+				[void] $syncHash.Data.RollbackData.Add( [pscustomobject]@{ FileName = $FileData.FileName ; FileLogs = $TempArray } )
 			}
 			else
 			{
-				( $syncHash.Data.RollBackData.Where( { $_.Script -eq $FileData.Script } ) )[0].FileLogs.Add( $FileData )
+				( $syncHash.Data.RollbackData.Where( { $_.FileName -eq $FileData.FileName } ) )[0].FileLogs.Add( $FileData )
 			}
 		}
 
-		$syncHash.Data.RollBackData | ForEach-Object { [System.Collections.ObjectModel.ObservableCollection[object]] $_.FileLogs = $_.FileLogs | Sort-Object Updated -Descending }
-		[System.Collections.ObjectModel.ObservableCollection[object]] $syncHash.Data.RollBackData = $syncHash.Data.RollBackData | Sort-Object Script
-		$syncHash.Data.RollBackData | ForEach-Object { $syncHash.Controls.Window.Resources['CvsLvRollbackFileNames'].Source.Add( $_ ) }
-
+		$syncHash.Data.RollbackData | ForEach-Object { [System.Collections.ObjectModel.ObservableCollection[object]] $_.FileLogs = $_.FileLogs | Sort-Object Updated -Descending }
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsLvRollbackFileNames'].Source = $syncHash.Data.RollbackData
 			$syncHash.Controls.PbListingRollbacks.Visibility = [System.Windows.Visibility]::Collapsed
 		} )
 	} )
@@ -718,8 +715,7 @@ $controls = [System.Collections.ArrayList]::new( @(
 @{ CName = "TblUpdateInfo" ; Props = @( @{ PropName = "Text"; PropVal = "" } ) },
 @{ CName = "TblUpdatesProgress" ; Props = @( @{ PropName = "Text"; PropVal = "" } ) },
 @{ CName = "TbProdCount" ; Props = @( @{ PropName = "Text"; PropVal = "-" } ) },
-@{ CName = "TbTestCount" ; Props = @( @{ PropName = "Text"; PropVal = "-" } ) },
-@{ CName = "TbUpdatesSummary" ; Props = @( @{ PropName = "Text"; PropVal = "" } ) }
+@{ CName = "TbTestCount" ; Props = @( @{ PropName = "Text"; PropVal = "-" } ) }
 ) )
 
 BindControls $syncHash $controls
@@ -742,7 +738,8 @@ SetLocalizations
 $syncHash.Data.ParsedLogs = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 $syncHash.Data.ParsedLogsRecent = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 $syncHash.Data.ParsedErrorLogs = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
-$syncHash.Data.RollBackData = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+$syncHash.Data.RollbackData = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+$syncHash.Data.RollbackFiles = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 
 $syncHash.Data.CultureInfo = [pscustomobject]@{
 	CurrentCulture = Get-Culture
@@ -811,7 +808,7 @@ $( $syncHash.Data.msgTable.StrLogInfoCopyLogText ): $( $syncHash.Controls.DgLogs
 $syncHash.Controls.BtnCopyRollbackInfo.Add_Click( {
 	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 $a = @"
-$( $syncHash.Data.msgTable.StrRollbackInfoCopyTitle ) '$( $syncHash.Controls.LvRollbackFileNames.SelectedItem.Script )'
+$( $syncHash.Data.msgTable.StrRollbackInfoCopyTitle ) '$( $syncHash.Controls.LvRollbackFileNames.SelectedItem.FileName )'
 
 $( $syncHash.Data.msgTable.StrRollbackInfoCopyFileLogs ):
 $( $OFS = "`r`n"; $syncHash.Controls.LvRollbackFileNames.SelectedItem.FileLogs | ForEach-Object { "$( $_.File.Name )`n$( $syncHash.Data.msgTable.StrRollbackInfoCopyUpdated )`t$( ( Get-Date $_.Updated -Format "yyyy-mm-dd HH:mm:ss" ) )`n$( $syncHash.Data.msgTable.StrRollbackInfoCopyUpdater )`t$( try { ( Get-ADUser -Identity $_.UpdatedBy ).Name } catch { $syncHash.Data.msgTable.StrNoUpdaterSpecified } )`n" } )
@@ -854,7 +851,9 @@ $syncHash.Controls.BtnDiffCancel.Add_Click( {
 
 # Rollback a file to selected version
 $syncHash.Controls.BtnDoRollback.Add_Click( {
-	if ( $null -eq ( $ProdFile = Get-ChildItem -Path "$( $syncHash.Data.ProdRoot )\Script" -Filter ( "{0}.{1}" -f $syncHash.Controls.DgRollbacks.SelectedItem.Script, $syncHash.Controls.DgRollbacks.SelectedItem.Type ) -Recurse -File ) )
+	$ProdFile = Get-ChildItem -Directory -Path $syncHash.Data.ProdRoot -Exclude "UpdateRollback", "Log", "ErrorLogs", "Output", "Development" | ForEach-Object { Get-ChildItem -Path $_.FullName -Filter "$( $syncHash.Controls.DgRollbacks.SelectedItem.FileName ).$( $syncHash.Controls.DgRollbacks.SelectedItem.Type )" -Recurse -File } | Select-Object -First 1
+
+	if ( $null -eq $ProdFile )
 	{
 		$text = $syncHash.Data.msgTable.StrRollbackPathNotFound
 		$icon = [System.Windows.MessageBoxImage]::Warning
@@ -911,7 +910,7 @@ $syncHash.Controls.BtnOpenOutputFile.Add_Click( { OpenFile $syncHash.Controls.Cb
 $syncHash.Controls.BtnOpenPopupCopyLogInfo.Add_Click( { $syncHash.Controls.PopupCopyLogInfo.IsOpen = -not $syncHash.Controls.PopupCopyLogInfo.IsOpen } )
 
 # Open the selected previous version
-$syncHash.Controls.BtnOpenRollbackFile.Add_Click( { OpenFile $syncHash.Controls.DgRollbacks.SelectedItem.FullName } )
+$syncHash.Controls.BtnOpenRollbackFile.Add_Click( { OpenFile $syncHash.Controls.DgRollbacks.SelectedItem.File.FullName } )
 
 # Parse errorlogs and load the data
 $syncHash.Controls.BtnReadErrorLogs.Add_Click( { ParseErrorlogs } )
@@ -1016,8 +1015,17 @@ $syncHash.Controls.DgUpdatedInProd.Add_MouseRightButtonUp( {
 # When a script/file is selected, clear listed rollbacks and set filteroptions according to data for the selected file
 $syncHash.Controls.LvRollbackFileNames.Add_SelectionChanged( {
 	# Hide checkboxes for fileextensions not present in list
-	$syncHash.Controls.GetEnumerator() | Where-Object { $_.Key -match "CbRollbackFilterType" } | ForEach-Object { $syncHash.Controls."$( $_.Key )".Visibility = [System.Windows.Visibility]::Collapsed }
-	$syncHash.Controls.DgRollbacks.ItemsSource.Type | Select-Object -Unique | ForEach-Object { $syncHash.Controls."CbRollbackFilterType$_".Visibility = [System.Windows.Visibility]::Visible }
+	$syncHash.Controls.GetEnumerator() | `
+		Where-Object { $_.Key -match "CbRollbackFilterType" } | `
+		ForEach-Object {
+			$syncHash.Controls."$( $_.Key )".Visibility = [System.Windows.Visibility]::Collapsed
+		}
+	$syncHash.Controls.DgRollbacks.ItemsSource.Type | `
+		Select-Object -Unique | `
+		ForEach-Object {
+			$syncHash.Controls."CbRollbackFilterType$_".Visibility = [System.Windows.Visibility]::Visible
+			$syncHash.Controls."CbRollbackFilterType$_".IsChecked = $true
+		}
 } )
 
 # Set binding to all logs
