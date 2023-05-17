@@ -53,7 +53,7 @@
         <CollectionViewSource x:Key="CvsLvRollbackFileNames">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="Name" />
+                                                PropertyName="FileName" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <c:ADUserConverter x:Key="Converter" />
@@ -3065,7 +3065,7 @@
                             <Style TargetType="ListView"
                                    BasedOn="{StaticResource ListViewBaseStyle}">
                                 <Setter Property="DisplayMemberPath"
-                                        Value="Script" />
+                                        Value="FileName" />
                                 <Setter Property="Grid.RowSpan"
                                         Value="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=RowDefinitions.Count}" />
                                 <Setter Property="ItemsSource"
@@ -3290,10 +3290,18 @@
                                         Value="2" />
                                 <Setter Property="Grid.RowSpan"
                                         Value="2" />
+                                <Setter Property="IsManipulationEnabled"
+                                        Value="False" />
+                                <Setter Property="IsReadOnly"
+                                        Value="True" />
                                 <Setter Property="ItemsSource"
                                         Value="{Binding ElementName=LvRollbackFileNames, Path=SelectedItem.FileLogs}" />
                                 <Setter Property="RowStyle"
                                         Value="{StaticResource DgRollbackRowStyle}" />
+                                <Setter Property="SelectionMode"
+                                        Value="Single" />
+                                <Setter Property="VirtualizingPanel.VirtualizationMode"
+                                        Value="Recycling" />
                             </Style>
                         </DataGrid.Style>
                         <DataGrid.Columns>
