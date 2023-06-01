@@ -1,8 +1,14 @@
 ﻿<#
-.Synopsis A collection of functions to run for a user object
-.Description A collection of functions to run for a user object
-.ObjectClass User
-.State Dev
+.Synopsis
+	A collection of functions to run for a user object
+.Description
+	A collection of functions to run for a user object
+.ObjectClass
+	User
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
@@ -10,12 +16,18 @@ param ( $culture = "sv-SE" )
 function Get-FolderMembership
 {
 	<#
-	.Synopsis List folders with permissions
-	.Description List all folders the user have permissions for, and what type of permission
-	.MenuItem Folder permissions
-	.SearchedItemRequest Required
-	.OutputType ObjectList
-	.Author Smorkster
+	.Synopsis
+		List folders with permissions
+	.Description
+		List all folders the user have permissions for, and what type of permission
+	.MenuItem
+		Folder permissions
+	.SearchedItemRequest
+		Required
+	.OutputType
+		ObjectList
+	.Author
+	Smorkster (smorkster)
 	#>
 
 	param ( $Item )
@@ -37,12 +49,18 @@ function Get-FolderMembership
 function Get-FolderOwnership
 {
 	<#
-	.Synopsis List folder ownership
-	.Description List all folders the user have ownership for
-	.MenuItem Folder ownership
-	.SearchedItemRequest Required
-	.OutputType List
-	.Author Smorkster
+	.Synopsis
+		List folder ownership
+	.Description
+		List all folders the user have ownership for
+	.MenuItem
+		Folder ownership
+	.SearchedItemRequest
+		Required
+	.OutputType
+		List
+	.Author
+		Smorkster (smorkster)
 	#>
 
 	param ( $Item )
@@ -63,19 +81,26 @@ function Get-FolderOwnership
 function Compare-UserGroups
 {
 	<#
-	.Synopsis Compare permission groups
-	.Description Compare permission groups between users
-	.MenuItem Compare permission groups
-	.SearchedItemRequest Allowed
-	.OutputType ObjectList
-	.InputData Users List of users, separated by spaces
+	.Synopsis
+		Compare permission groups
+	.Description
+		Compare permission groups between users
+	.MenuItem
+		Compare permission groups
+	.SearchedItemRequest
+		Allowed
+	.OutputType
+		ObjectList
+	.InputData
+		Users List of users, separated by spaces
 	.NoRunspace
-	.Author Smorkster
+	.Author
+		Smorkster (smorkster)
 	#>
 
 	param ( $Item, $InputData )
 
-	$UsersIn = $InputData.Användare -split "\s" | Where-Object { $_ }
+	$UsersIn = @( $InputData.Användare -split "\s" | Where-Object { $_ } )
 	if ( $Item )
 	{
 		$UsersIn += $Item.SamAccountName
@@ -147,12 +172,18 @@ function Compare-UserGroups
 function Open-SysManGroups
 {
 	<#
-	.Synopsis SysMan handle groups
-	.Description Opens SysMan to handle groups for user
-	.MenuItem SysMan handle groups
-	.SearchedItemRequest Required
-	.OutputType None
-	.Author Smorkster
+	.Synopsis
+		SysMan handle groups
+	.Description
+		Opens SysMan to handle groups for user
+	.MenuItem
+		SysMan handle groups
+	.SearchedItemRequest
+		Required
+	.OutputType
+		None
+	.Author
+		Smorkster
 	#>
 
 	param ( $Item )
@@ -163,12 +194,18 @@ function Open-SysManGroups
 function Open-SysManMobileDevices
 {
 	<#
-	.Synopsis SysMan handle mobile devices
-	.Description Opens SysMan to handle module devices for user
-	.MenuItem SysMan handle module devices
-	.SearchedItemRequest Required
-	.OutputType None
-	.Author Smorkster
+	.Synopsis
+		SysMan handle mobile devices
+	.Description
+		Opens SysMan to handle module devices for user
+	.MenuItem
+		SysMan handle module devices
+	.SearchedItemRequest
+		Required
+	.OutputType
+		None
+	.Author
+		Smorkster (smorkster)
 	#>
 
 	param ( $Item )
@@ -176,8 +213,90 @@ function Open-SysManMobileDevices
 	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/MobileDevice/EditForUser#userName=$( $Item.SamAccountName )" )
 }
 
+function Remove-ProfileVK
+{
+	<#
+	.Synopsis
+		Clear vKlient profile, alternatively open the profile folder
+	.Description
+		Removes vClient profile for specified user. If no user is specified, the folder for profiles is opened
+	.MenuItem
+		Clear vClient profile
+	.SearchedItemRequest
+		Allowed
+	.OutputType
+		String
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	if ( $null -eq $Item )
+	{
+		switch ( ( Show-CustomMessageBox -Text $IntMsgTable.RemoveProfileVKQuestion -Title $IntMsgTable.RemoveProfileVKQuestionTitle -ButtonStrings "Org1","Org2","Or3" ) )
+		{
+			"Org1" { $Path = "\\dfs.test.com\c$\org1" }
+			"Org2" { $Path = "\\dfs.test.com\c$\org2" }
+			"Org3" { $Path = "\\dfs.test.com\c$\org3" }
+		}
+
+		explorer $Path
+		return $IntMsgTable.RemoveProfileVKQuestionReturn
+	}
+	else
+	{
+		$Canonical = ( $Item.CanonicalName -split "/" )[2]
+		if ( ( $Org = $Item.MemberOf | Where-Object { $_ -match "CN=((Org1)|(Org2)|(Org3))_Org_(\d)_Users" } ) )
+		{
+			$Org | `
+				ForEach-Object {
+					$_ -match "CN=(?<Org>(Org1)|(Org2)|(Org3))_Org_(\d)_Users" | Out-Null
+					Remove-Item -Path "\\dfs.test.com\c$\$( $Matches.Org.ToLower() )\$( $Item.SamAccountName )" -Recurse -Force
+				}
+
+			return $IntMsgTable.RemoveProfileVKProfileRemoved
+		}
+		else
+		{
+			return $IntMsgTable.RemoveProfileVKNotValidOrg
+		}
+	}
+}
+
+function Remove-ProfileAria
+{
+	<#
+	.Synopsis
+		Clear Aria profile, alternatively open the profiles folder
+	.Description
+		Deletes Aria profile for specified user. If no user is specified, the folder for profiles is opened
+	.MenuItem
+		Deletes Aria-profile
+	.SearchedItemRequest
+		Allowed
+	.OutputType
+		String
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	if ( $null -eq $Item )
+	{
+		explorer "\\dfs.test.com\c$\aria"
+	}
+	else
+	{
+		Remove-Item "\\dfs.test.com\c$\aria\$( $Item.SamAccountName )" -Recurse -Force
+	}
+}
+
 $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Get-FolderMembership, Get-FolderOwnership, Compare-UserGroups, Open-SysManGroups, Open-SysManMobileDevices
+Export-ModuleMember -Function Get-FolderMembership, Get-FolderOwnership, Compare-UserGroups
+Export-ModuleMember -Function Open-SysManGroups, Open-SysManMobileDevices
+Export-ModuleMember -Function Remove-ProfileAria, Remove-ProfileVK

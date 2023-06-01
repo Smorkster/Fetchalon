@@ -1,8 +1,14 @@
 ﻿<#
-.Synopsis A collection of functions to run for a printQueue-object
-.Description A collection of functions to run for a printQueue-object
-.ObjectClass printQueue
-.State Dev
+.Synopsis
+	A collection of functions to run for a printQueue-object
+.Description
+	A collection of functions to run for a printQueue-object
+.ObjectClass
+	printQueue
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
@@ -10,14 +16,22 @@ param ( $culture = "sv-SE" )
 function Install-SysManPrinter
 {
 	<#
-	.Synopsis Install printer/-s on compter/-s via SysMan
-	.Description Install one or more printers on one or more computer via SysMan
-	.MenuItem Install printer on computer
-	.SearchedItemRequest Allowed
-	.OutputType String
-	.InputData Printers Printernames, separated by spaces
-	.InputData Computers Computernames, separate by spaces
-	.Author Smorkster
+	.Synopsis
+		Install printer/-s on compter/-s via SysMan
+	.Description
+		Install one or more printers on one or more computer via SysMan
+	.MenuItem
+		Install printer on computer
+	.SearchedItemRequest
+		Allowed
+	.OutputType
+		String
+	.InputData
+		Printers Printernames, separated by spaces
+	.InputData
+		Computers Computernames, separate by spaces
+	.Author
+		Smorkster (smorkster)
 	#>
 
 	param ( $Item, $InputData )
@@ -72,15 +86,19 @@ function Install-SysManPrinter
 				$OFS = ", "
 				Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/printer/Install" -Method Post -UseDefaultCredentials -ContentType "application/json" -Body $b -ErrorAction Stop | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccess ) | Out-Null
+				$OpMessage.AppendLine() | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccessPrintersTitle ) | Out-Null
 				$OpMessage.AppendLine( $FoundPrinters.result.Name ) | Out-Null
+				$OpMessage.AppendLine() | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccessComputerTitle ) | Out-Null
 				$OpMessage.AppendLine( $FoundComputers.result.Name ) | Out-Null
+				$OpMessage.AppendLine() | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccessEnding ) | Out-Null
 
 				if ( $FailedComputers.Count -gt 0 -or $FailedPrinters.Count -gt 0 )
 				{
 					$OpMessage.AppendLine() | Out-Null
+					$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccessFailedNames ) | Out-Null
 					if ( $FailedComputers.Count -gt 0 )
 					{
 						$OpMessage.AppendLine( $FailedComputers ) | Out-Null
