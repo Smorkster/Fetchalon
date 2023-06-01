@@ -1,10 +1,16 @@
 ﻿<#
-.Synopsis Add or remove folder permissions
-.Description Add or remove folder permissions for one or many users
-.MenuItem Add/remove folder permissions
-.State Prod
-.ObjectOperations None
-.Author Smorkster
+.Synopsis
+	Add or remove folder permissions
+.Description
+	Add or remove folder permissions for one or many users
+.MenuItem
+	Add/remove folder permissions
+.State
+	Prod
+.ObjectOperations
+	None
+.Author
+	Smorkster (smorkster)
 #>
 
 Add-Type -AssemblyName PresentationFramework
@@ -519,11 +525,11 @@ function PerformPermissions
 
 	if ( $syncHash.Data.Duplicates )
 	{
-		ShowMessageBox -Text "$( $syncHash.Data.msgTable.StrConfirmDups )`n$( $syncHash.Data.Duplicates | Select-Object -Unique )" -Title $syncHash.Data.msgTable.StrConfirmDupsTitle -Icon "Stop"
+		Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrConfirmDups )`n$( $syncHash.Data.Duplicates | Select-Object -Unique )" -Title $syncHash.Data.msgTable.StrConfirmDupsTitle -Icon "Stop"
 	}
 	else
 	{
-		$Continue = ShowMessageBox -Text "$( $syncHash.Data.msgTable.StrConfirm1 ) $( @( $syncHash.Data.ADGroups ).Count ) $( $syncHash.Data.msgTable.StrConfirm2) $( @( $syncHash.Data.WriteUsers ).Count + @( $syncHash.Data.ReadUsers ).Count + @( $syncHash.Data.RemoveUsers ).Count ) $( $syncHash.Data.msgTable.StrConfirm3 )?$( if ( $syncHash.Data.ErrorGroups -or $syncHash.Data.ErrorUsers ) { "`n$( $syncHash.Data.msgTable.StrConfirmErr )" } )" -Title $syncHash.Data.msgTable.StrConfirmTitle -Button "OKCancel"
+		$Continue = Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrConfirm1 ) $( @( $syncHash.Data.ADGroups ).Count ) $( $syncHash.Data.msgTable.StrConfirm2) $( @( $syncHash.Data.WriteUsers ).Count + @( $syncHash.Data.ReadUsers ).Count + @( $syncHash.Data.RemoveUsers ).Count ) $( $syncHash.Data.msgTable.StrConfirm3 )?$( if ( $syncHash.Data.ErrorGroups -or $syncHash.Data.ErrorUsers ) { "`n$( $syncHash.Data.msgTable.StrConfirmErr )" } )" -Title $syncHash.Data.msgTable.StrConfirmTitle -Button "OKCancel"
 		if ( $Continue -eq "OK" )
 		{
 			$loopCounter = 0
@@ -571,7 +577,7 @@ function PerformPermissions
 			WriteToLogbox
 			WriteToLogFile
 			CreateMessage
-			ShowMessageBox -Text "$( @( $syncHash.Data.ADGroups ).Count * ( @( $syncHash.Data.WriteUsers ).Count + @( $syncHash.Data.ReadUsers ).Count + @( $syncHash.Data.RemoveUsers ).Count ) ) $( $syncHash.Data.msgTable.StrFinished1 ).`n$( $syncHash.Data.msgTable.StrFinished2 )" -Title "Klar"
+			Show-MessageBox -Text "$( @( $syncHash.Data.ADGroups ).Count * ( @( $syncHash.Data.WriteUsers ).Count + @( $syncHash.Data.ReadUsers ).Count + @( $syncHash.Data.RemoveUsers ).Count ) ) $( $syncHash.Data.msgTable.StrFinished1 ).`n$( $syncHash.Data.msgTable.StrFinished2 )" -Title "Klar"
 			UndoInput
 			SetWinTitle -Text $syncHash.Data.msgTable.StrTitle
 		}
@@ -649,7 +655,7 @@ function SetUserSettings
 	}
 	catch
 	{
-		ShowMessageBox -Text "$( $syncHash.Data.msgTable.StrNoPerm )`n$( $_.Exception.Message )" -Title $syncHash.Data.msgTable.StrNoPermTitle -Icon "Stop"
+		Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrNoPerm )`n$( $_.Exception.Message )" -Title $syncHash.Data.msgTable.StrNoPermTitle -Icon "Stop"
 		WriteErrorLogTest -LogText "SetUserSettings:`n$_" -UserInput $env:USERNAME -Severity -1 | Out-Null
 	}
 }
@@ -813,7 +819,7 @@ function WriteToLogFile
 	if ( $syncHash.Controls.TxtUsersForRemovePermission.Text.Length -gt 0 ) { $UserInput += "$( $syncHash.Data.msgTable.LogInputRemove ): $( $syncHash.Controls.TxtUsersForRemovePermission.Text -split "\W" )`n" }
 	$UserInput += "$( $syncHash.Data.msgTable.LogInputGroups ): $( [string]$syncHash.DC.LbFoldersChosen[0] )"
 
-	WriteLogTest -Text $LogText -UserInput $UserInput -Success ( $syncHash.Data.ErrorLogHashes.Count -eq 0 ) -ErrorLogHash $syncHash.Data.ErrorLogHashes | Out-Null
+	WriteLog -Text $LogText -UserInput $UserInput -Success ( $syncHash.Data.ErrorLogHashes.Count -eq 0 ) -ErrorLogHash $syncHash.Data.ErrorLogHashes | Out-Null
 }
 
 ######################################### Script start

@@ -1,11 +1,19 @@
 ﻿<#
-.Synopsis Edit permissions in AD-groups for applications
-.MenuItem Edit AD-groups for applications
-.RequiredAdGroups Rol_Servicedesk_Backoffice
-.Description Add or remove permissions to applications through their respective AD-groups
-.ObjectOperations None
-.State Prod
-.Author Smorkster
+.Synopsis
+	Edit permissions in AD-groups for applications
+.MenuItem
+	Edit AD-groups for applications
+.RequiredAdGroups
+	Rol_Servicedesk_Backoffice
+.Description
+	Add or remove permissions to applications through their respective AD-groups.
+	Once the changes have been made, a solution message is copied to the clipboard.
+.ObjectOperations
+	None
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 Add-Type -AssemblyName PresentationFramework
@@ -313,11 +321,11 @@ function PerformPermissions
 
 	if ( $syncHash.Duplicates )
 	{
-		ShowMessageBox -Text "$( $syncHash.Data.msgTable.StrDuplicates ):`n$( $syncHash.Duplicates | Select-Object -Unique )" -Title $syncHash.Data.msgTable.StrDuplicatesTitle -Icon "Stop"
+		Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrDuplicates ):`n$( $syncHash.Duplicates | Select-Object -Unique )" -Title $syncHash.Data.msgTable.StrDuplicatesTitle -Icon "Stop"
 	}
 	else
 	{
-		$Continue = ShowMessageBox -Text "$( $syncHash.Data.msgTable.QCont1 ) $( $syncHash.DC.LbGroupsChosen[1].Count ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType ) $( $syncHash.Data.msgTable.QCont2 ) $( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) $( $syncHash.Data.msgTable.QCont3 ) ?$( if ( $syncHash.ErrorUsers ) { "`n$( $syncHash.Data.msgTable.QContErr )." } )" -Title "$( $syncHash.Data.msgTable.QContTitle )?" -Button "OKCancel"
+		$Continue = Show-MessageBox -Text "$( $syncHash.Data.msgTable.QCont1 ) $( $syncHash.DC.LbGroupsChosen[1].Count ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType ) $( $syncHash.Data.msgTable.QCont2 ) $( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) $( $syncHash.Data.msgTable.QCont3 ) ?$( if ( $syncHash.ErrorUsers ) { "`n$( $syncHash.Data.msgTable.QContErr )." } )" -Title "$( $syncHash.Data.msgTable.QContTitle )?" -Button "OKCancel"
 		if ( $Continue -eq "OK" )
 		{
 			$loopCounter = 0
@@ -383,7 +391,7 @@ function PerformPermissions
 			CreateLogText
 			CreateMessage
 			WriteToLogFile
-			ShowMessageBox -Text "$( $syncHash.DC.LbGroupsChosen[1].Count * ( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) ) $( $syncHash.Data.msgTable.StrFinishMessage )" -Title "$( $syncHash.Data.msgTable.StrFinishMessageTitle )"
+			Show-MessageBox -Text "$( $syncHash.DC.LbGroupsChosen[1].Count * ( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) ) $( $syncHash.Data.msgTable.StrFinishMessage )" -Title "$( $syncHash.Data.msgTable.StrFinishMessageTitle )"
 
 			UndoInput
 			ResetVariables
@@ -452,7 +460,7 @@ function SetUserSettings
 	catch
 	{
 		WriteErrorLog -LogText $_ -UserInput $syncHash.Data.msgTable.ErrMessageSetSettings -Severity "PermissionFail"
-		ShowMessageBox -Text $syncHash.Data.msgTable.ErrScriptPermissions -Icon "Stop"
+		Show-MessageBox -Text $syncHash.Data.msgTable.ErrScriptPermissions -Icon "Stop"
 		Exit
 	}
 }
@@ -465,7 +473,7 @@ function UpdateAppList
 	#>
 
 	$apps = @()
-	if ( $msgTable.StrBORoleGrp -in ( ( ( Get-ADUser $env:USERNAME -Properties MemberOf ).MemberOf | Get-ADGroup ).Name ) )
+	if ( $syncHash.Data.msgTable.StrBORoleGrp -in ( ( Get-ADUser $env:USERNAME -Properties MemberOf ).MemberOf | Get-ADGroup | Select-Object -ExpandProperty Name ) )
 	{
 		$apps += [pscustomobject]@{ Text = "App 1"
 			Tag = @{ AppFilter = "(|(Name=App_1*)(Name=App1*))"
@@ -533,6 +541,7 @@ function UndoInput
 
 	$syncHash.Controls.TxtUsersAddPermission.Text = ""
 	$syncHash.Controls.TxtUsersRemovePermission.Text = ""
+	$syncHash.Controls.TbComputer.Text = ""
 	UpdateAppGroupList
 }
 
@@ -605,9 +614,17 @@ $syncHash.Controls.TxtUsersAddPermission.Add_TextChanged( { CheckReady } )
 $syncHash.Controls.TxtUsersRemovePermission.Add_TextChanged( { CheckReady } )
 
 $syncHash.Controls.Window.Add_Loaded( {
-	$this.Title = $syncHash.Data.msgTable.StrPreparing
-	UpdateAppList
-	if ( $syncHash.DC.CbApp[0].Count -eq 1 ) { UpdateAppGroupList }
+	if ( $syncHash.DC.CbApp[0].Count -eq 0 )
+	{
+		$this.Title = $syncHash.Data.msgTable.StrPreparing
+		UpdateAppList
+	}
+
+	if ( $syncHash.DC.CbApp[0].Count -eq 1 )
+	{
+		UpdateAppGroupList
+	}
+
 	$this.Title = $syncHash.Data.msgTable.ContentWindowTitle
 	$syncHash.Controls.CbApp.Add_SelectionChanged( { if ( $null -ne $syncHash.Controls.CbApp.SelectedItem ) { UpdateAppGroupList } } )
 } )

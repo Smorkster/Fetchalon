@@ -1,11 +1,18 @@
 ﻿<#
-.Synopsis Show applications
-.MenuItem Show applications
-.Description Show and uninstall applications on computer
-.Depends WinRM
-.State Prod
-.ObjectOperations computer
-.Author Smorkster (smorkster)
+.Synopsis
+	Show applications
+.MenuItem
+	Show applications
+.Description
+	Show and uninstall applications on computer
+.Depends
+	WinRM
+.State
+	Prod
+.ObjectOperations
+	computer
+.Author
+	Smorkster (smorkster)
 #>
 
 Add-Type -AssemblyName PresentationFramework

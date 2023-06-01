@@ -1,12 +1,20 @@
 ﻿<#
-.Synopsis Delete one or more profiles
-.Description Delete one or more user profiles on the specified computer.
-.MenuItem Delete one or more profiles
-.AllowedUsers sys1, sys2
-.Depends WinRM
-.State Test
-.ObjectOperations computer
-.Author Smorkster
+.Synopsis
+	Delete one or more profiles
+.Description
+	Delete one or more user profiles on the specified computer.
+.MenuItem
+	Delete one or more profiles
+.AllowedUsers
+	sys1, sys2
+.Depends
+	WinRM
+.State
+	Test
+.ObjectOperations
+	computer
+.Author
+	Smorkster
 #>
 
 Add-Type -AssemblyName PresentationFramework
