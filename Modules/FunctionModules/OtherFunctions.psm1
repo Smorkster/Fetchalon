@@ -1,7 +1,12 @@
 ﻿<#
-.Synopsis A collection of functions to run for a user object
-.Description A collection of functions to run for a user object
-.State Prod
+.Synopsis
+	A collection of functions to run for a user object
+.Description
+	A collection of functions to run for a user object
+.State
+	Prod
+.Author
+	Smorkser (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
@@ -10,11 +15,11 @@ function Clear-FileDownloads
 {
 	<#
 	.Synopsis
-		Clear downloads
+			Clear downloads
 	.Description
 		Remove all files older than one week
 	.State
-		Prod
+	Prod
 	.RequiredAdGroups
 		Role_Servicedesk_BO
 	.SearchedItemRequest
@@ -24,9 +29,11 @@ function Clear-FileDownloads
 		Smorkster (smorkster)
 	#>
 
-	$files = Get-ChildItem $IntMsgTable.StrClearFileDownloadsCodeDirPath -File -Recurse -Force
+	$Files = Get-ChildItem $IntMsgTable.StrClearFileDownloadsCodeDirPath -File -Recurse -Force
+	$Removed = [System.Collections.ArrayList]::new()
+	$ReturnText = [System.Text.StringBuilder]::new()
 
-	$filesToRemove = $files | `
+	$filesToRemove = $Files | `
 		Where-Object { $_.CreationTime -lt ( Get-Date ).AddDays( -7 ) }
 	if ( 0 -lt $filesToRemove.Count )
 	{
@@ -36,10 +43,11 @@ function Clear-FileDownloads
 					$FaultyRemovals = [System.Collections.ArrayList]::new()
 				} `
 				-Process {
-					$File = $_
+					$File = $_ | Select-Object *
 					try
 					{
 						Remove-Item $File.FullName -Force -ErrorAction Stop
+						$Removed.Add( $File ) | Out-Null
 					}
 					catch
 					{
@@ -49,59 +57,75 @@ function Clear-FileDownloads
 				-End {
 					if ( $FaultyRemovals.Count -gt 0 )
 					{
-						WriteErrorlog -LogText $IntMsgTable.StrClearFileDownloadsFilePermissions -UserInput "$( $FaultyRemovals.FullName | ForEach-Object { "$( $_ -split "\\" | Select-Object -Last 2 )" } )" -Severity 3 | Out-Null					}
+						WriteErrorlog -LogText $IntMsgTable.StrClearFileDownloadsFilePermissions -UserInput "$( $FaultyRemovals.FullName | ForEach-Object { "$( $_ -split "\\" | Select-Object -Last 2 )" } )" -Severity 3 | Out-Null
+					}
 				}
 
-		$percentage = [Math]::Round( ( $filesToRemove.Count / $files.Count ) * 100, 2 )
-		$t = "$( $filesToRemove.Count ) $( $IntMsgTable.StrClearFileDownloadsOld ) ($percentage %)"
+		$percentage = [Math]::Round( ( $filesToRemove.Count / $Files.Count ) * 100, 2 )
+		$ReturnText.AppendLine( "$( $filesToRemove.Count ) $( $IntMsgTable.StrClearFileDownloadsOld ) ($percentage %)" ) | Out-Null
+		if ( $FaultyRemovals.Count -gt 0 )
+		{
+			$ReturnText.AppendLine( $IntMsgTable.StrClearFileDownloadsFaultyFiles ) | Out-Null
+			$OFS = "`n"
+			$ReturnText.AppendLine( ( $FaultyRemovals | ForEach-Object { "$( $_.Directory.Name )\$( $_.Name )" } ) ) | Out-Null
+		}
+
+		if ( $Removed.Count -gt 0 )
+		{
+			$ReturnText.Append( $IntMsgTable.StrClearFileDownloadsRemovedSize )
+			$ReturnText.AppendLine( ( $Removed | ForEach-Object -Begin { $l = 0 } -Process { $l += $_.Length } -End { [System.Math]::Round( $l / 1MB , 2 ) } ) ) | Out-Null
+		}
 	}
 	else
 	{
-		$t = $IntMsgTable.StrClearFileDownloadsNoFiles
+		$ReturnText.AppendLine( $IntMsgTable.StrClearFileDownloadsNoFiles ) | Out-Null
 	}
 
 	Send-MailMessage -From ( Get-ADUser $env:USERNAME.Substring( ( $env:USERNAME.Length - 4 ), 4 ) -Properties EmailAddress ).EmailAddress`
 		-To $IntMsgTable.StrClearFileDownloadsBotAddress `
-		-Body $IntMsgTable.StrClearFileDownloadsDone `
+		-Body $ReturnText.ToString() `
 		-Encoding bigendianunicode `
 		-SmtpServer $IntMsgTable.StrSMTP `
 		-Subject "BotFlow1" `
 		-BodyAsHtml
-	return $t
+	return $ReturnText.ToString()
 }
 
-function Get-TemaDagar
+function Get-PollenRapport
 {
 	<#
 	.Synopsis
-		Get todays theme days
+		Download today's pollen report
 	.Description
-		Get todays theme days from TemaDagar.se
+		Download today's theme days from Pollenrapporten.se
 	.MenuItem
-		Get the theme days for today
+		Dagens pollenrapport
 	.SearchedItemRequest
 		None
+	.NoRunspace
 	.OutputType
-		List
+		ObjectList
 	.Author
-		Smorkster
+		Smorkster (smorkster)
 	#>
 
-	$List = [System.Collections.ArrayList]::new()
-	$BaseUri = "https://temadagar.se/$( Get-Date -Format "d-MMMM" )/"
-	$req = Invoke-WebRequest -Method Get -Uri $BaseUri
+	Add-Type -AssemblyName System.Web
+	$Result = Invoke-WebRequest -Uri https://pollenrapporten.se
 
-	$e = $req.ParsedHtml.getElementById( "content" )
-	$l = $e.getElementsByTagName( "p" ) | Select-Object -First 1
-	$l.getElementsByTagName( "a" ) | `
-		ForEach-Object { $List.Add( ( [pscustomobject]@{ Address = $_.Href; Text = $_.InnerText ; Type = "Hyperlink" } ) ) | Out-Null }
+	( $Result.RawContent -replace "`n" ) -match "data-location=""Stockholm(?<LocationData>.*?)pp_pollentext pp_pollentext_liten c3823" | Out-Null
+	$PList = [System.Collections.ArrayList]::new()
+	$LocationData = $Matches.LocationData
 
-	if ( 0 -eq $List.Count )
-	{
-		return $IntMsgTable.GetTemaDagarNoThemeDays
-	}
+	[regex]::Matches( $LocationData , "(<element>(?<p>.*?)<.*?value(?<pn>\d))" ) | `
+		ForEach-Object {
+			$PR = [pscustomobject]@{
+				"$( $IntMsgTable.GetPollenRapportTitle1 )" = [System.Web.HttpUtility]::HtmlDecode( ( $_.Groups['p'].Value.Trim() ) )
+				"$( $IntMsgTable.GetPollenRapportTitle2 )" = "$( $_.Groups['pn'].Value ) / 7"
+			}
+			$PList.Add( $PR ) | Out-Null
+		}
 
-	return $List
+	return $PList
 }
 
 function Get-SomeFiles
@@ -118,7 +142,7 @@ function Get-SomeFiles
 	.OutputType
 		ObjectList
 	.Author
-		Smorkster
+		Smorkster (smorkster)
 	#>
 
 	param ( $Item )
@@ -144,16 +168,16 @@ function Get-String
 	<#
 	.Synopsis
 		Get string
-	.Description
-		Get string. Used to show how output is displayed
 	.MenuItem
 		Get string
 	.SearchedItemRequest
 		None
 	.OutputType
 		String
+	.Description
+		Get string. Used to show how output is displayed
 	.Author
-		Smorkster
+		Smorkster (smorkster)
 	#>
 
 	WriteLog -Text "Test" -Success $true | Out-Null
@@ -166,16 +190,16 @@ function Get-StringList
 	<#
 	.Synopsis
 		Get stringlist
-	.Description
-		Get stringlist. Used to show how output is displayed
 	.MenuItem
 		Get stringlist
 	.SearchedItemRequest
 		None
 	.OutputType
 		List
+	.Description
+		Get stringlist. Used to show how output is displayed
 	.Author
-		Smorkster
+		Smorkster (smorkster)
 	#>
 
 	$s = [system.collections.arraylist]::new()
@@ -183,6 +207,40 @@ function Get-StringList
 	0..50 | ForEach-Object { [void] $s.Add( "A string" ) }
 
 	return $s
+}
+
+function Get-TemaDagar
+{
+	<#
+	.Synopsis
+		Get todays theme days
+	.Description
+		Get todays theme days from TemaDagar.se
+	.MenuItem
+		Get the theme days for today
+	.SearchedItemRequest
+		None
+	.OutputType
+		List
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	$List = [System.Collections.ArrayList]::new()
+	$BaseUri = "https://temadagar.se/$( Get-Date -Format "d-MMMM" )/"
+	$req = Invoke-WebRequest -Method Get -Uri $BaseUri
+
+	$e = $req.ParsedHtml.getElementById( "content" )
+	$l = $e.getElementsByTagName( "p" ) | Select-Object -First 1
+	$l.getElementsByTagName( "a" ) | `
+		ForEach-Object { $List.Add( ( [pscustomobject]@{ Address = $_.Href; Text = $_.InnerText ; Type = "Hyperlink" } ) ) | Out-Null }
+
+	if ( 0 -eq $List.Count )
+	{
+		return $IntMsgTable.GetTemaDagarNoThemeDays
+	}
+
+	return $List
 }
 
 function Test-Error
@@ -199,7 +257,7 @@ function Test-Error
 	.Description
 		Test for how errors are displayed
 	.Author
-		Smorkster
+		Smorkster (smorkster)
 	#>
 
 	throw "An error"
@@ -219,7 +277,7 @@ function Test-WriteError
 	.Description
 		Test for using function to write to errorlog
 	.Author
-		Smorkster
+		Smorkster (smorkster)
 	#>
 
 	return ( WriteErrorlog -LogText "Test" -UserInput "" -Severity 1 ).ErrorLogFile
@@ -230,18 +288,18 @@ function Write-String
 	<#
 	.Synopsis
 		Write string as input
-	.Description
-		Write string as input. Used to show how output is displayed
 	.MenuItem
 		Write string
 	.SearchedItemRequest
 		None
 	.OutputType
 		String
+	.Description
+		Write string as input. Used to show how output is displayed
 	.InputData
 		String String to write
 	.Author
-		Smorkster
+		Smorkster (smorkster)
 	#>
 
 	param ( $InputData )

@@ -2,7 +2,8 @@
 .Synopsis A collection of functions to run for a group object
 .Description A collection of functions to run for a group object
 .ObjectClass Group
-.State Dev
+.State Prod
+.Author Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )

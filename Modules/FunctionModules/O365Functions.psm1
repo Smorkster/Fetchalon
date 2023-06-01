@@ -1,7 +1,10 @@
-<#
-.Synopsis A collection of functions to operate with Office365-services
-.Description A collection of functions to operate with Office365-services
-.State Prod
+﻿<#
+.Synopsis
+	A collection of functions to operate with Office365-services
+.Description
+	A collection of functions to operate with Office365-services
+.State
+	Prod
 #>
 
 param ( $culture = "sv-SE" )
