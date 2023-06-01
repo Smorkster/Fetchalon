@@ -90,6 +90,7 @@
         <Geometry x:Key="OtherIcon">M11 15H6L13 1V9H18L11 23V15Z</Geometry>
         <Geometry x:Key="OutputIcon">M23,12L19,8V11H10V13H19V16M1,18V6C1,4.89 1.9,4 3,4H15A2,2 0 0,1 17,6V9H15V6H3V18H15V15H17V18A2,2 0 0,1 15,20H3A2,2 0 0,1 1,18Z</Geometry>
         <Geometry x:Key="PrinterIcon">M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z</Geometry>
+        <Geometry x:Key="SeparateToolsIcon">M16,20H20V16H16M16,14H20V10H16M10,8H14V4H10M16,8H20V4H16M10,14H14V10H10M4,14H8V10H4M4,20H8V16H4M10,20H14V16H10M4,8H8V4H4V8Z</Geometry>
         <Geometry x:Key="ToolsIcon">M21.71 20.29L20.29 21.71A1 1 0 0 1 18.88 21.71L7 9.85A3.81 3.81 0 0 1 6 10A4 4 0 0 1 2.22 4.7L4.76 7.24L5.29 6.71L6.71 5.29L7.24 4.76L4.7 2.22A4 4 0 0 1 10 6A3.81 3.81 0 0 1 9.85 7L21.71 18.88A1 1 0 0 1 21.71 20.29M2.29 18.88A1 1 0 0 0 2.29 20.29L3.71 21.71A1 1 0 0 0 5.12 21.71L10.59 16.25L7.76 13.42M20 2L16 4V6L13.83 8.17L15.83 10.17L18 8H20L22 4Z</Geometry>
         <Geometry x:Key="UserIcon">M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z</Geometry>
         <GridLength x:Key="GridDetailedColWidth">260</GridLength>
@@ -184,7 +185,6 @@
             <TranslateTransform X="0"
                                 Y="0" />
         </TransformGroup>
-        <Visibility x:Key="ToolIsLoading">Collapsed</Visibility>
         <Visibility x:Key="MenuTextVisibility">Visible</Visibility>
         <x:Array x:Key="ContentNoMembersOfList"
                  Type="sys:String" />
@@ -899,6 +899,14 @@
         </CollectionViewSource>
         <CollectionViewSource x:Key="CvsMiPrintQueueFunctions">
             <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="MenuItem" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMiSeparateToolsFunctions">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Descending"
+                                                PropertyName="Separate" />
                 <componentmodel:SortDescription Direction="Ascending"
                                                 PropertyName="MenuItem" />
             </CollectionViewSource.SortDescriptions>
@@ -1866,6 +1874,30 @@
                     </Style>
                 </Button.Style>
             </Button>
+            <Border Name="BrdAsterixWarning">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="BorderBrush"
+                                Value="Red" />
+                        <Setter Property="BorderThickness"
+                                Value="5,0,5,5" />
+                        <Setter Property="Grid.ColumnSpan"
+                                Value="2" />
+                        <Setter Property="Grid.Row"
+                                Value="2" />
+                    </Style>
+                </Border.Style>
+                <TextBlock Name="TblAsterixWarning">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontSize"
+                                    Value="18" />
+                            <Setter Property="FontWeight"
+                                    Value="Bold" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Border>
         </Grid>
         <Popup Name="PopupMenu">
             <Popup.Style>
@@ -3084,18 +3116,6 @@
                                                 <ColumnDefinition />
                                                 <ColumnDefinition Width="Auto" />
                                             </Grid.ColumnDefinitions>
-                                            <ProgressBar>
-                                                <ProgressBar.Style>
-                                                    <Style TargetType="ProgressBar">
-                                                        <Setter Property="Grid.ColumnSpan"
-                                                                Value="2" />
-                                                        <Setter Property="IsIndeterminate"
-                                                                Value="True" />
-                                                        <Setter Property="Visibility"
-                                                                Value="{DynamicResource ToolIsLoading}" />
-                                                    </Style>
-                                                </ProgressBar.Style>
-                                            </ProgressBar>
                                             <Path>
                                                 <Path.Style>
                                                     <Style TargetType="Path"
@@ -3121,6 +3141,61 @@
                                         Value="True" />
                                 <Setter Property="ItemsSource"
                                         Value="{Binding Source={StaticResource CvsMiTools}}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=PbSearchProgress, Path=Visibility}"
+                                                 Value="Visible">
+                                        <Setter Property="IsEnabled"
+                                                Value="True" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ElementName=GridProgress, Path=Visibility}"
+                                                 Value="Visible">
+                                        <Setter Property="IsEnabled"
+                                                Value="True" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </MenuItem.Style>
+                        <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem"
+                                   BasedOn="{StaticResource MiSubLevelToolStyle}" />
+                        </MenuItem.ItemContainerStyle>
+                    </MenuItem>
+                    <MenuItem Name="MiSeparateToolsFunctions">
+                        <MenuItem.Style>
+                            <Style TargetType="MenuItem"
+                                   BasedOn="{StaticResource MiTopLevelStyle}">
+                                <Setter Property="Header">
+                                    <Setter.Value>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Path>
+                                                <Path.Style>
+                                                    <Style TargetType="Path"
+                                                           BasedOn="{StaticResource PathMenuIconStyle}">
+                                                        <Setter Property="Data"
+                                                                Value="{StaticResource SeparateToolsIcon}" />
+                                                    </Style>
+                                                </Path.Style>
+                                            </Path>
+                                            <TextBlock>
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock"
+                                                           BasedOn="{StaticResource TblFunctionMenuStyle}">
+                                                        <Setter Property="Text"
+                                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiSeparateToolsText}" />
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="IsEnabled"
+                                        Value="True" />
+                                <Setter Property="ItemsSource"
+                                        Value="{Binding Source={StaticResource CvsMiSeparateToolsFunctions}}" />
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding ElementName=PbSearchProgress, Path=Visibility}"
                                                  Value="Visible">
@@ -3977,7 +4052,7 @@
                                                         <Setter Property="MaxHeight"
                                                                 Value="60" />
                                                         <Setter Property="Text"
-                                                                Value="{Binding Path=HandlerDescription, Mode=OneWay}" />
+                                                                Value="{Binding Path=Handler.Description, Mode=OneWay}" />
                                                         <Setter Property="VerticalScrollBarVisibility"
                                                                 Value="Auto" />
                                                         <Setter Property="Visibility"
@@ -4084,7 +4159,7 @@
                                                     <Style TargetType="Button"
                                                            BasedOn="{StaticResource BtnRunPropStyle}">
                                                         <Setter Property="Content"
-                                                                Value="{Binding Path=HandlerTitle}" />
+                                                                Value="{Binding Path=Handler.Title}" />
                                                         <Setter Property="Grid.Column"
                                                                 Value="3" />
                                                         <Setter Property="Padding"
@@ -4119,19 +4194,24 @@
                                                         <Setter Property="IsIndeterminate"
                                                                 Value="False" />
                                                         <Setter Property="Maximum"
-                                                                Value="{Binding Path=HandlerProgressMax}" />
+                                                                Value="{Binding Path=Handler.ProgressMax}" />
                                                         <Setter Property="Visibility"
                                                                 Value="Visible" />
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Path=HandlerProgress}"
+                                                            <DataTrigger Binding="{Binding Path=Handler.Progress}"
                                                                          Value="-1">
                                                                 <Setter Property="IsIndeterminate"
                                                                         Value="True" />
                                                                 <Setter Property="Visibility"
                                                                         Value="Visible" />
                                                             </DataTrigger>
-                                                            <DataTrigger Binding="{Binding Path=HandlerProgress}"
+                                                            <DataTrigger Binding="{Binding Path=Handler.Progress}"
                                                                          Value="0">
+                                                                <Setter Property="Visibility"
+                                                                        Value="Collapsed" />
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Path=Handler.Progress}"
+                                                                         Value="{x:Null}">
                                                                 <Setter Property="Visibility"
                                                                         Value="Collapsed" />
                                                             </DataTrigger>
@@ -4287,8 +4367,6 @@
                                                                                                             <Setter.Value>
                                                                                                                 <PriorityBinding>
                                                                                                                     <Binding Path="."
-                                                                                                                             Converter="{StaticResource UserConverter}"
-                                                                                                                             ConverterParameter="{StaticResource UseConverters}"
                                                                                                                              IsAsync="True"
                                                                                                                              Mode="OneTime" />
                                                                                                                     <Binding Path="." />
