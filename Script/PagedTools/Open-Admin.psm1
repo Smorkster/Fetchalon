@@ -1,11 +1,18 @@
 ﻿<#
-.Syneopsis Administration of scripts, logs, etc.
-.MeenuItem Administration of scripts, logs, etc.
-.Description Performs administration of updates, logs, reports, etc.
-.State Prod
-.RequiredAdGroups Rol_Servicedesk_Backoffice
-.AllowedUsers smorkster
-.Author Smorkster (smorkster)
+.Syneopsis
+	Administration of scripts, logs, etc.
+.MeenuItem
+	Administration of scripts, logs, etc.
+.Description
+	Performs administration of updates, logs, reports, etc.
+.State
+	Prod
+.RequiredAdGroups
+	Rol_Servicedesk_Backoffice
+.AllowedUsers
+	smorkster
+.Author
+	Smorkster (smorkster)
 #>
 
 Add-Type -AssemblyName PresentationFramework
@@ -22,180 +29,8 @@ function CheckForUpdates
 	$syncHash.Controls.Window.Resources['CvsDgUpdatedInProd'].Source.Clear()
 	$syncHash.Controls.Window.Resources['CvsDgFailedUpdates'].Source.Clear()
 	$syncHash.Controls.TbUpdated.SelectedIndex = 0
-	$syncHash.Jobs.PParseUpdates = [powershell]::Create()
-	$syncHash.Jobs.PParseUpdates.AddScript( {
-		param ( $syncHash, $Modules )
-		Import-Module $Modules
 
-		$ProdFiles = [System.Collections.ArrayList]::new()
-		$DevFiles = [System.Collections.ArrayList]::new()
-
-		$syncHash.DC.TblUpdatesProgress[0] = $syncHash.Data.msgTable.StrCheckingUpdatesGetFiles
-		Get-ChildItem $syncHash.Data.ProdRoot -Directory -Exclude ErrorLogs, Logs, Output, Development | `
-			ForEach-Object {
-				Get-ChildItem -Path $_ -Recurse -File | ForEach-Object { $ProdFiles.Add( $_ ) | Out-Null }
-			}
-
-		Get-ChildItem $syncHash.Data.DevRoot -Directory -Exclude ErrorLogs, Logs, Output, Tests | `
-			ForEach-Object {
-				Get-ChildItem -Path $_ -Recurse -File | ForEach-Object { $DevFiles.Add( $_ ) | Out-Null }
-			}
-
-		$syncHash.DC.PbParseUpdates[1] = [double] $DevFiles.Count
-
-		$DevFiles | `
-			ForEach-Object `
-				-Begin {
-					$syncHash.DC.TblUpdatesProgress[0] = "$( $syncHash.Data.msgTable.StrCheckingUpdatesCheckFiles ) 0 %"
-					$MD5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
-				} `
-				-Process {
-					try { Remove-Variable DFile, PFile, File, DevMD5, ProdMD5 -ErrorAction Stop } catch {}
-					$DFile = $_
-
-					$PFile = $ProdFiles | Where-Object { $_.Name -eq $DFile.Name } | Select-Object -First 1
-					$DevMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $DFile.FullName ) ) )
-					try { $ProdMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $PFile.FullName ) ) ) } catch {}
-
-					if ( $DevMD5 -ne $ProdMD5 )
-					{
-						$File = [pscustomobject]@{
-							DevFile = $DFile | Select-Object *
-							New = $false
-							ProdFile = $null
-							ScriptInfo = $null
-							ToolTip = ""
-						}
-
-						if ( $DFile.Extension -match "psm*1" )
-						{
-							$File.ScriptInfo = GetScriptInfo -FilePath $DFile.FullName
-							$File.ToolTip = ""
-						}
-						else
-						{
-							try
-							{
-								$File.ScriptInfo = GetScriptInfo -FilePath ( ( Get-ChildItem -Path "$( $syncHash.Data.DevRoot )" -Recurse -Filter "$( $DFile.BaseName )*" | Where-Object { $_.Extension -match "psm*1" } | Select-Object -First 1 ).FullName )
-								$File.ToolTip = "$( $syncHash.Data.msgTable.StrScriptState ) $( $File.ScriptInfo.State )"
-							}
-							catch
-							{
-								try
-								{
-									$File.ScriptInfo = GetScriptInfo -Function ( Get-Command $DFile.BaseName )
-									$File.ToolTip = "$( $syncHash.Data.msgTable.StrFunctionState ) $( $File.ScriptInfo.State )"
-								}
-								catch
-								{
-									$File.ToolTip = $syncHash.Data.msgTable.StrNoScriptfile
-								}
-							}
-						}
-
-						if ( $null -ne $PFile )
-						{
-							$File.ProdFile = $PFile | Select-Object *
-						}
-						else
-						{
-							$File.New = $true
-						}
-
-						$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-							$syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Add( $File ) | Out-Null
-						}, [System.Windows.Threading.DispatcherPriority]::Send )
-					}
-					$syncHash.DC.PbParseUpdates[0] += 1
-					$syncHash.DC.TblUpdatesProgress[0] = "$( $syncHash.Data.msgTable.StrCheckingUpdatesCheckFiles ) $( [System.Math]::Round( ( $syncHash.DC.PbParseUpdates[0] / $syncHash.DC.PbParseUpdates[1] ) * 100 , 2 ) ) %"
-				} `
-			-End { try { Remove-Variable DFile, PFile, File, DevMD5, ProdMD5 -ErrorAction Stop } catch {} }
-
-		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-			$syncHash.DC.TbDevCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Dev" } ).Count
-			$syncHash.DC.TbTestCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Test" } ).Count
-			$syncHash.DC.TbProdCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Prod" } ).Count
-			$syncHash.DC.TblInfo[0] = [System.Windows.Visibility]::Visible
-			$syncHash.DC.TblUpdateInfo[0] = $syncHash.Data.msgTable.StrNoUpdates
-		} , [System.Windows.Threading.DispatcherPriority]::Send )
-		$syncHash.DC.PbParseUpdates[0] = 0.0
-	} )
-	$syncHash.Jobs.PParseUpdates.AddArgument( $syncHash )
-	$syncHash.Jobs.PParseUpdates.AddArgument( ( Get-Module ) )
 	$syncHash.Jobs.HParseUpdates = $syncHash.Jobs.PParseUpdates.BeginInvoke()
-}
-
-function FindOrphandLocalizations
-{
-	<#
-	.Synopsis
-		Find localizations that are not used
-	.Description
-		Check if there are any localizationvariables in the localizationfile that are not used in the script and if there are any calls for localizationvariables in the script that does not exist
-	.Parameter FileName
-		Name of scriptfile. This is also used as template for the datafile
-	.Outputs
-		Array with any localizationvariables that are not used, and variables that is not mentioned in the localizationfile
-	#>
-
-	param ( $File )
-
-	$OrphandLocs = [System.Collections.ArrayList]::new()
-	$InvalidLocs = [System.Collections.ArrayList]::new()
-
-	Import-LocalizedData -BindingVariable LocalizationData -UICulture $syncHash.Data.CultureInfo.CurrentCulture.Name -BaseDirectory "$( $syncHash.Data.DevRoot )\Localization\" -FileName $File.DevFile.BaseName
-
-	if ( $File.DevFile.Extension -match "(psm*1)|(xaml)" )
-	{
-		Get-Item $File.DevFile.FullName | `
-			Select-String "[Mm]sgTable\.\w+(?<!Keys)\b" | `
-			ForEach-Object {
-				$LineMatch = $_
-				[regex]::Matches( $_.Line , "[Mm]sgTable\.(?<LocVar>\w+)\b" ) | `
-				ForEach-Object {
-					if ( $LocalizationData.Keys -notcontains $_.Groups['LocVar'].Value )
-					{
-						$InvalidLocs.Add( [pscustomobject]@{ ScVar = $_.Groups['LocVar'].Value ; ScLine = $LineMatch.Line ; ScLineNr = $LineMatch.linenumber } ) | Out-Null
-					}
-				}
-			}
-	}
-	if ( $File.DevFile.Extension -eq ".psd1" )
-	{
-		$ScriptFile = Get-ChildItem -Path $syncHash.Data.BaseDir -Exclude "Rollback", "Logs", "ErrorLogs", "Output", "Tests" | ForEach-Object { Get-ChildItem -Path $_.FullName -Filter "$( $File.DevFile.BaseName )*" -Recurse | Where-Object { $_.Extension -match "psm*1" } }
-		$XamlFile = Get-ChildItem -Path $syncHash.Data.BaseDir -Exclude "Rollback", "Logs", "ErrorLogs", "Output", "Tests" | ForEach-Object { Get-ChildItem -Path $_.FullName -Filter "$( $File.DevFile.BaseName ).xaml" -Recurse }
-
-		# Check that if any key in localization-file is not present in the scriptfile or Xaml-file
-		foreach ( $Key in $LocalizationData.Keys )
-		{
-			try { Remove-Variable UsedInScript, UsedInXaml -ErrorAction SilentlyContinue } catch {}
-			$UsedInScript = $false
-			$UsedInXaml = $false
-
-			try
-			{
-				if ( $null -ne ( $ScriptFile | Select-String "\.$Key\b" ) )
-				{
-					$UsedInScript = $true
-				}
-			} catch {}
-
-			try
-			{
-				if ( $null -ne ( $XamlFile | Select-String "\.$Key\b" ) )
-				{
-					$UsedInXaml = $true
-				}
-			} catch {}
-
-			if ( ( -not $UsedInScript ) -and ( -not $UsedInXaml ) )
-			{
-				$OrphandLocs.Add( $Key ) | Out-Null
-			}
-		}
-	}
-
-	return $OrphandLocs, $InvalidLocs
 }
 
 function OpenFile
@@ -247,6 +82,11 @@ function ParseRollbacks
 
 function PrepParsing
 {
+	<#
+	.Synopsis
+		Create powershell-objects and scripts for parsing
+	#>
+
 	$syncHash.Jobs.PParseErrorLogs = [powershell]::Create( [initialsessionstate]::CreateDefault() )
 	$syncHash.Jobs.PParseErrorLogs.AddScript( {
 		param ( $syncHash, $Modules )
@@ -388,6 +228,93 @@ function PrepParsing
 	$syncHash.Jobs.PParseRollbacks.AddArgument( $syncHash )
 	$syncHash.Jobs.PParseRollbacks.AddArgument( ( Get-Module ) )
 
+	$syncHash.Jobs.PParseUpdates = [powershell]::Create()
+	$syncHash.Jobs.PParseUpdates.AddScript( {
+		param ( $syncHash, $Modules )
+		Import-Module $Modules
+
+		$ProdFiles = [System.Collections.ArrayList]::new()
+		$DevFiles = [System.Collections.ArrayList]::new()
+
+		$syncHash.DC.TblUpdatesProgress[0] = $syncHash.Data.msgTable.StrCheckingUpdatesGetFiles
+		Get-ChildItem $syncHash.Data.ProdRoot -Directory -Exclude ErrorLogs, Logs, Output, Development | `
+			ForEach-Object {
+				Get-ChildItem -Path $_ -Recurse -File | ForEach-Object { $ProdFiles.Add( $_ ) | Out-Null }
+			}
+
+		Get-ChildItem $syncHash.Data.DevRoot -Directory -Exclude ErrorLogs, Logs, Output, Tests | `
+			ForEach-Object {
+				Get-ChildItem -Path $_ -Recurse -File | ForEach-Object { $DevFiles.Add( $_ ) | Out-Null }
+			}
+
+		$syncHash.DC.PbParseUpdates[1] = [double] $DevFiles.Count
+
+		$DevFiles | `
+			ForEach-Object `
+				-Begin {
+					$syncHash.DC.TblUpdatesProgress[0] = "$( $syncHash.Data.msgTable.StrCheckingUpdatesCheckFiles ) 0 %"
+					$MD5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
+				} `
+				-Process {
+					try { Remove-Variable DFile, PFile, File, DevMD5, ProdMD5 -ErrorAction Stop } catch {}
+					$DFile = $_
+
+					$PFile = $ProdFiles | Where-Object { $_.Name -eq $DFile.Name } | Select-Object -First 1
+					$DevMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $DFile.FullName ) ) )
+					try { $ProdMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $PFile.FullName ) ) ) } catch {}
+
+					if ( $DevMD5 -ne $ProdMD5 )
+					{
+						$File = [pscustomobject]@{
+							DevFile = $DFile | Select-Object *
+							New = $false
+							ProdFile = $null
+							ScriptInfo = $null
+							ToolTip = ""
+						}
+						if ( $DFile.Extension -notmatch "psm*1" )
+						{
+							Add-Member -InputObject $File -MemberType NoteProperty -Name "SFile" -Value ( Get-ChildItem -Path "$( $syncHash.Data.DevRoot )" -Recurse -File -ErrorAction Stop | Where-Object { $_.BaseName -eq $DFile.BaseName -and $_.Extension -match "psm*1" } | Select-Object -First 1 -ExpandProperty FullName )
+						}
+
+						if ( $null -ne $PFile )
+						{
+							$File.ProdFile = $PFile | Select-Object *
+						}
+						else
+						{
+							$File.New = $true
+						}
+						$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+							$syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Add( $File ) | Out-Null
+						}, [System.Windows.Threading.DispatcherPriority]::Send )
+					}
+
+					$syncHash.DC.PbParseUpdates[0] += 1
+					$syncHash.DC.TblUpdatesProgress[0] = "$( $syncHash.Data.msgTable.StrCheckingUpdatesCheckFiles ) $( [System.Math]::Round( ( $syncHash.DC.PbParseUpdates[0] / $syncHash.DC.PbParseUpdates[1] ) * 100 , 2 ) ) %"
+				} `
+			-End {
+				try
+				{
+					Remove-Variable DFile, PFile, File, DevMD5, ProdMD5 -ErrorAction Stop
+				} catch {}
+
+				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+					$syncHash.Controls.Window.Resources['CvsDgUpdates'].View.Refresh()
+				}, [System.Windows.Threading.DispatcherPriority]::Send )
+			}
+
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.DC.TbDevCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Dev" } ).Count
+			$syncHash.DC.TbTestCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Test" } ).Count
+			$syncHash.DC.TbProdCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Prod" } ).Count
+			$syncHash.DC.TblInfo[0] = [System.Windows.Visibility]::Visible
+			$syncHash.DC.TblUpdateInfo[0] = $syncHash.Data.msgTable.StrNoUpdates
+		} , [System.Windows.Threading.DispatcherPriority]::Send )
+		$syncHash.DC.PbParseUpdates[0] = 0.0
+	} )
+	$syncHash.Jobs.PParseUpdates.AddArgument( $syncHash )
+	$syncHash.Jobs.PParseUpdates.AddArgument( ( Get-Module ) )
 }
 
 function SetLocalizations
@@ -438,6 +365,12 @@ function SetLocalizations
 	$syncHash.Controls.DgFailedUpdates.Columns[5].Header = $syncHash.Data.msgTable.ContentDgFailedUpdatesColInvalidLocalizations
 	$syncHash.Controls.DgFailedUpdates.Columns[6].Header = $syncHash.Data.msgTable.ContentDgFailedUpdatesColOrphandLocalizations
 	$syncHash.Controls.DgFailedUpdates.Columns[7].Header = $syncHash.Data.msgTable.ContentDgFailedUpdatesColTODOs
+
+	# Eventhandler to open file that failed to update
+	$syncHash.Controls.Window.Resources['BtnOpenFailedUpdatedFile'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.OpenFailedUpdatedFile
+
+	# Button to open file that failed to update
+	$syncHash.Controls.DgFailedUpdates.Resources['BtnOpenFailedContent'] = $syncHash.Data.msgTable.ContentBtnOpenFailed
 
 	# DatagridTextColumn headers for datagrids in dgFailedUpdates-cells
 	$syncHash.Controls.DgFailedUpdates.Resources['DgOFColHeaderFunctionName'] = $syncHash.Data.msgTable.ContentDgObsoleteFunctionsColFunctionName
@@ -490,6 +423,106 @@ function ShowDiffWindow
 	$syncHash.Controls.DiffWindow.DataContext.DiffInfo = [pscustomobject]@{ DiffList = $syncHash.DiffList ; DevPath = $LvItem.DevPath ; ProdPath = $LvItem.ProdPath }
 	$syncHash.Controls.DiffWindow.Visibility = [System.Windows.Visibility]::Visible
 	WriteLog -Text $syncHash.Data.msgTable.LogOpenDiffWindow -UserInput ( [string]( $LvItem.DevPath, $LvItem.ProdPath ) ) -Success $true
+}
+
+function TestLocalizations
+{
+	<#
+	.Synopsis
+		Find localizations that are not used
+	.Description
+		Check if there are any localizationvariables in the localizationfile that are not used in the script and if there are any calls for localizationvariables in the script that does not exist
+	.Parameter FileName
+		Name of scriptfile. This is also used as template for the datafile
+	.Outputs
+		Array with any localizationvariables that are not used, and variables that is not mentioned in the localizationfile
+	#>
+
+	param ( $File )
+
+	$OrphandLocs = [System.Collections.ArrayList]::new()
+	$InvalidLocs = [System.Collections.ArrayList]::new()
+
+	Import-LocalizedData -BindingVariable LocalizationData -UICulture $syncHash.Data.CultureInfo.CurrentCulture.Name -BaseDirectory "$( $syncHash.Data.DevRoot )\Localization\" -FileName $File.DevFile.BaseName
+	Import-LocalizedData -BindingVariable MainScriptLocalizationData -UICulture $syncHash.Data.CultureInfo.CurrentCulture.Name -BaseDirectory "$( $syncHash.Data.DevRoot )\Localization\" -FileName "Fetchalon"
+
+	if ( $File.DevFile.Extension -match "(psm*1)|(xaml)" )
+	{
+		if ( $File.DevFile.BaseName -match "PropHandlers" )
+		{
+			Import-LocalizedData -BindingVariable MainScriptLocalizationData -UICulture $syncHash.Data.CultureInfo.CurrentCulture.Name -BaseDirectory "$( $syncHash.Data.DevRoot )\Localization\" -FileName "Fetchalon"
+
+			[regex]::Matches( ( Get-Content $File.DevFile.FullName ), "(?m)\s*\[pscustomobject\].*?Code = '(?<Code>.*?)'\s*?Title" ) | `
+				ForEach-Object {
+					[regex]::Matches( $_.Groups['Code'].Value, "\.[Mm]sgTable\.(?<Key>\w+(?<!Keys))\b" ) | `
+						ForEach-Object {
+							if ( $MainScriptLocalizationData.Keys -notcontains $_.Groups['Key'].Value )
+							{
+								$InvalidLocs.Add( $_.Groups['Key'].Value ) | Out-Null
+							}
+						}
+				}
+
+			[regex]::Matches( ( Get-Content $File.DevFile.FullName ), "Int[Mm]sgTable\.(?<Key>\w+(?<!Keys))\b" ) | `
+				ForEach-Object {
+					if ( $LocalizationData.Keys -notcontains $_.Groups['Key'].Value )
+					{
+						$InvalidLocs.Add( $_.Groups['Key'].Value ) | Out-Null
+					}
+				}
+		}
+		else
+		{
+			Get-Item $File.DevFile.FullName | `
+				Select-String "[Mm]sgTable\.\w+(?<!Keys)\b" | `
+				ForEach-Object {
+					$LineMatch = $_
+					[regex]::Matches( $_.Line , "[Mm]sgTable\.(?<LocVar>\w+)\b" ) | `
+					ForEach-Object {
+						if ( $LocalizationData.Keys -notcontains $_.Groups['LocVar'].Value )
+						{
+							$InvalidLocs.Add( [pscustomobject]@{ ScVar = $_.Groups['LocVar'].Value ; ScLine = $LineMatch.Line ; ScLineNr = $LineMatch.linenumber } ) | Out-Null
+						}
+					}
+				}
+		}
+	}
+	if ( $File.DevFile.Extension -eq ".psd1" )
+	{
+		$ScriptFile = Get-ChildItem -Path $syncHash.Data.BaseDir -Exclude "Rollback", "Logs", "ErrorLogs", "Output", "Tests" | ForEach-Object { Get-ChildItem -Path $_.FullName -Filter "$( $File.DevFile.BaseName )*" -Recurse | Where-Object { $_.Extension -match "psm*1" } }
+		$XamlFile = Get-ChildItem -Path $syncHash.Data.BaseDir -Exclude "Rollback", "Logs", "ErrorLogs", "Output", "Tests" | ForEach-Object { Get-ChildItem -Path $_.FullName -Filter "$( $File.DevFile.BaseName ).xaml" -Recurse }
+
+		# Check that if any key in localization-file is not present in the scriptfile or Xaml-file
+		foreach ( $Key in $LocalizationData.Keys )
+		{
+			try { Remove-Variable UsedInScript, UsedInXaml -ErrorAction SilentlyContinue } catch {}
+			$UsedInScript = $false
+			$UsedInXaml = $false
+
+			try
+			{
+				if ( $null -ne ( $ScriptFile | Select-String "\.$Key\b" ) )
+				{
+					$UsedInScript = $true
+				}
+			} catch {}
+
+			try
+			{
+				if ( $null -ne ( $XamlFile | Select-String "\.$Key\b" ) )
+				{
+					$UsedInXaml = $true
+				}
+			} catch {}
+
+			if ( ( -not $UsedInScript ) -and ( -not $UsedInXaml ) )
+			{
+				$OrphandLocs.Add( $Key ) | Out-Null
+			}
+		}
+	}
+
+	return $OrphandLocs, $InvalidLocs
 }
 
 function TestScript
@@ -547,7 +580,7 @@ function TestScript
 	# Test if there are any localizationvariables that are not used or are being used but does not exist
 	if ( $null -ne ( Get-ChildItem -Path $syncHash.Data.BaseDir -Filter "$( $File.DevFile.BaseName )*.psd1" -Recurse ) )
 	{
-		$Test.OrphandLocalizations, $Test.InvalidLocalizations = FindOrphandLocalizations $File
+		$Test.OrphandLocalizations, $Test.InvalidLocalizations = TestLocalizations $File
 	}
 
 	# Test if script contains necessary script information
@@ -732,6 +765,12 @@ else
 	$syncHash.Data.ProdRoot = $syncHash.Data.BaseDir
 }
 
+[System.Windows.RoutedEventHandler] $syncHash.Code.OpenFailedUpdatedFile =
+{
+	$syncHash.Data.Test = $args
+	OpenFile $args[0].DataContext.File.DevFile.FullName
+}
+
 PrepParsing
 SetLocalizations
 
@@ -762,7 +801,7 @@ $syncHash.Controls.BtnCopyErrorInfo.Add_Click( {
 	$syncHash.Controls.GridErrorInfo.DataContext | Clip
 } )
 
-# TODO Fyll I
+# Copy log entry to clipboard
 $syncHash.Controls.BtnCopyLogInfo.Add_Click( {
 	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 	$OFS = "`n"
@@ -993,11 +1032,37 @@ $syncHash.Controls.DgErrorLogs.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1
 $syncHash.Controls.DgLogs.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
 $syncHash.Controls.DgRollbacks.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
 
-$syncHash.Controls.DgUpdates.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
-$syncHash.Controls.DgUpdatedInProd.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
+$syncHash.Controls.DgUpdates.Add_LoadingRow( {
+	if ( $args[1].Row.DataContext.DevFile.Extension -match "psm*1" )
+	{
+		$args[1].Row.DataContext.ScriptInfo = GetScriptInfo -FilePath $args[1].Row.DataContext.DevFile.FullName
+		$args[1].Row.DataContext.ToolTip = ""
+	}
+	else
+	{
+		try
+		{
+			$args[1].Row.DataContext.ScriptInfo = GetScriptInfo -FilePath $args[1].Row.DataContext.SFile -ErrorAction Stop
+			$args[1].Row.DataContext.ToolTip = "$( $syncHash.Data.msgTable.StrScriptState ) $( $args[1].Row.DataContext.ScriptInfo.State )"
+		}
+		catch
+		{
+			# TODO Remove
+			$syncHash.Data.TestError = [pscustomobject]@{ E = $_ ; P = $syncHash.Data.DevRoot ; F = $f ; BN = $args[1].Row.DataContext.DevFile.BaseName }
+			try
+			{
+				$args[1].Row.DataContext.ScriptInfo = GetScriptInfo -Function ( Get-Command $args[1].Row.DataContext.DevFile.BaseName -ErrorAction Stop )
+				$args[1].Row.DataContext.ToolTip = "$( $syncHash.Data.msgTable.StrFunctionState ) $( $args[1].Row.DataContext.ScriptInfo.State )"
+			}
+			catch
+			{
+				$args[1].Row.DataContext.ToolTip = $syncHash.Data.msgTable.StrNoScriptfile
+			}
+		}
+	}
+} )
 
-# Activate button to update files, if any item is selected
-$syncHash.Controls.DgRollbacks.Add_SelectionChanged( { $syncHash.DC.BtnOpenRollbackFile[0] = $syncHash.DC.BtnDoRollback[0] = $this.SelectedItem -ne $null } )
+$syncHash.Controls.DgUpdates.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
 
 # If rightclick is used, open the file from dev and prod
 $syncHash.Controls.DgUpdates.Add_MouseRightButtonUp( {
@@ -1006,6 +1071,11 @@ $syncHash.Controls.DgUpdates.Add_MouseRightButtonUp( {
 		OpenFile ( $this.CurrentItem.psobject.Properties | Where-Object { $_.name -match "^[^R].+Path$" } | Select-Object -ExpandProperty Value )
 	}
 } )
+
+# Activate button to update files, if any item is selected
+$syncHash.Controls.DgRollbacks.Add_SelectionChanged( { $syncHash.DC.BtnOpenRollbackFile[0] = $syncHash.DC.BtnDoRollback[0] = $this.SelectedItem -ne $null } )
+
+$syncHash.Controls.DgUpdatedInProd.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
 
 # If rightclick is used, open the file from dev and prod
 $syncHash.Controls.DgUpdatedInProd.Add_MouseRightButtonUp( {
