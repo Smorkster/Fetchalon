@@ -175,6 +175,11 @@
             <Setter Property="Grid.Row"
                     Value="1" />
         </Style>
+        <Style TargetType="Button"
+               x:Key="BtnOpenFailedUpdatedFile"
+               BasedOn="{StaticResource BtnBaseStyle}">
+            <EventSetter Event="Click" />
+        </Style>
         <Style TargetType="CheckBox"
                x:Key="ChbBaseStyle">
             <Style.Resources>
@@ -336,8 +341,11 @@
             <Style.Triggers>
                 <DataTrigger Binding="{Binding Path=ToolTip}"
                              Value="{x:Static sys:String.Empty}">
-                    <Setter Property="ToolTipService.ToolTip"
-                            Value="Red" />
+                    <Setter Property="ToolTip">
+                        <Setter.Value>
+                            <ToolTip Visibility="Collapsed" />
+                        </Setter.Value>
+                    </Setter>
                 </DataTrigger>
                 <DataTrigger Binding="{Binding Path=ScriptInfo.State}"
                              Value="Dev">
@@ -369,8 +377,6 @@
                              Value="False">
                     <Setter Property="FontStyle"
                             Value="Italic" />
-                    <Setter Property="IsEnabled"
-                            Value="False" />
                     <Setter Property="ToolTip"
                             Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrNotAllowedAnyway}" />
                     <Setter Property="ToolTipService.ShowOnDisabled"
@@ -1253,6 +1259,10 @@
                                             </DataGridCheckBoxColumn.ElementStyle>
                                             <DataGridCheckBoxColumn.CellStyle>
                                                 <Style TargetType="DataGridCell">
+                                                    <Setter Property="Focusable"
+                                                            Value="False" />
+                                                    <Setter Property="IsHitTestVisible"
+                                                            Value="False" />
                                                     <Style.Resources>
                                                         <Style TargetType="CheckBox"
                                                                BasedOn="{StaticResource ChbBaseStyle}">
@@ -1331,6 +1341,7 @@
                                 </DataGrid.Style>
                                 <DataGrid.Resources>
                                     <DataGridLength x:Key="ColListWidth">1*</DataGridLength>
+                                    <sys:String x:Key="BtnOpenFailedContent">x</sys:String>
                                     <sys:String x:Key="DgOFColHeaderFunctionName">1</sys:String>
                                     <sys:String x:Key="DgOFColHeaderHelpMessage">2</sys:String>
                                     <sys:String x:Key="DgOFColHeaderLineNumbers">3</sys:String>
@@ -1357,6 +1368,10 @@
                                                                 <Setter.Value>
                                                                     <DataTemplate>
                                                                         <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition />
+                                                                                <ColumnDefinition />
+                                                                            </Grid.ColumnDefinitions>
                                                                             <Grid.RowDefinitions>
                                                                                 <RowDefinition />
                                                                                 <RowDefinition />
@@ -1368,6 +1383,8 @@
                                                                                            BasedOn="{StaticResource NameLabel}">
                                                                                         <Setter Property="Content"
                                                                                                 Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.File.DevFile.Name}" />
+                                                                                        <Setter Property="Grid.ColumnSpan"
+                                                                                                Value="2" />
                                                                                     </Style>
                                                                                 </Label.Style>
                                                                             </Label>
@@ -1383,6 +1400,21 @@
                                                                                 <Run Text="&#x0a;" />
                                                                                 <Run Text="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.FailedTestCount}" />
                                                                             </TextBlock>
+                                                                            <Button>
+                                                                                <Button.Style>
+                                                                                    <Style TargetType="Button"
+                                                                                           BasedOn="{StaticResource BtnOpenFailedUpdatedFile}">
+                                                                                        <Setter Property="Content"
+                                                                                                Value="{DynamicResource BtnOpenFailedContent}" />
+                                                                                        <Setter Property="DataContext"
+                                                                                                Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item}" />
+                                                                                        <Setter Property="Grid.Column"
+                                                                                                Value="1" />
+                                                                                        <Setter Property="Grid.Row"
+                                                                                                Value="1" />
+                                                                                    </Style>
+                                                                                </Button.Style>
+                                                                            </Button>
                                                                         </Grid>
                                                                     </DataTemplate>
                                                                 </Setter.Value>
@@ -1401,6 +1433,13 @@
                                                         Value="Center" />
                                                 <Setter Property="VerticalAlignment"
                                                         Value="Center" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=DataContext.AllowUpdateAnyway}"
+                                                                 Value="False">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="False" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
                                             </Style>
                                         </DataGridCheckBoxColumn.ElementStyle>
                                     </DataGridCheckBoxColumn>
@@ -1709,16 +1748,7 @@
                                                                                 </Style>
                                                                             </DataGrid.Style>
                                                                             <DataGrid.Columns>
-                                                                                <DataGridTextColumn Binding="{Binding Path=LocVar}">
-                                                                                    <DataGridTextColumn.Header>
-                                                                                        <TextBlock Text="{DynamicResource DgOLColHeaderTextLVar}" />
-                                                                                    </DataGridTextColumn.Header>
-                                                                                </DataGridTextColumn>
-                                                                                <DataGridTextColumn Binding="{Binding Path=LocVal}">
-                                                                                    <DataGridTextColumn.Header>
-                                                                                        <TextBlock Text="{DynamicResource DgOLColHeaderTextLVal}" />
-                                                                                    </DataGridTextColumn.Header>
-                                                                                </DataGridTextColumn>
+                                                                                <DataGridTextColumn Binding="{Binding Path=.}" />
                                                                             </DataGrid.Columns>
                                                                         </DataGrid>
                                                                     </DataTemplate>
