@@ -1,9 +1,14 @@
 ﻿<#
-.Synopsis Generate passwords with different demants
-.Description Generate passwords with different lengths
-.MenuItem Generate passwords
-.State Prod
-.Author Smorkster
+.Synopsis
+	Generate passwords with different demants
+.Description
+	Generate passwords with different lengths
+.MenuItem
+	Generate passwords
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 Add-Type -AssemblyName PresentationFramework

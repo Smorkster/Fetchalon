@@ -1,9 +1,14 @@
 ﻿<#
-.Synopsis Match text against RegEx
-.Description Matches text against RegEx-string. If the matches can be identified as AD-objects, specified property can be copied for AD-objects identified by the matches
-.MenuItem Match to RegEx
-.State Prod
-.Author Smorkster
+.Synopsis
+	Match text against RegEx
+.Description
+	Matches text against RegEx-string. If the matches can be identified as AD-objects, specified property can be copied for AD-objects identified by the matches
+.MenuItem
+	Match to RegEx
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 Add-Type -AssemblyName PresentationFramework

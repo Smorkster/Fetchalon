@@ -1,9 +1,14 @@
 ﻿<#
-.Synopsis Send feedback about function/tool
-.Description Send feedback to backoffice about any of the available functions or tools
-.MenuItem Send feedback
-.State Prod
-.Author Smorkster
+.Synopsis
+	Send feedback about function/tool
+.Description
+	Send feedback to backoffice about any of the available functions or tools
+.MenuItem
+	Send feedback
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 Add-Type -AssemblyName PresentationFramework

@@ -1,11 +1,18 @@
 ﻿<#
-.Synopsis Leta efter potentiella virus
-.Description Listar alla filer under en användares H: och gemensamma mappar den har behörighet till. Filerna listas sedan per lokalitet samt efter viss filtrering av filnamn.
-.MenuItem Leta efter potentiella virus
-.State Prod
-.Author Smorkster (smorkster)
-.ObjectOperations user
-.RequiredAdGroups Rol_Servicedesk_Backoffice
+.Synopsis
+	Check for potential viruses
+.Description
+	Lists all files under a user's H: and shared folders it has permission to. The files are then listed by location and after some filtering of file names.
+.MenuItem
+	Check for potential viruses
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
+.ObjectOperations
+	user
+.RequiredAdGroups
+	Rol_Servicedesk_Backoffice
 #>
 
 Add-Type -AssemblyName PresentationFramework
@@ -505,7 +512,7 @@ $syncHash.Controls.BtnCloseStreamsList.Add_Click( {
 $syncHash.Controls.BtnCreateQuestion.Add_Click( {
 	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $false, $false ).psobject.BaseObject
 	$syncHash.DC.TbQuestion[0] | clip
-	ShowMessageBox $syncHash.Data.msgTable.StrQuestionCopied
+	Show-MessageBox $syncHash.Data.msgTable.StrQuestionCopied
 	WriteLogTest -Text "$( $syncHash.Data.msgTable.StrLogQuestionCopied )`n**************`n$( $syncHash.DC.TbQuestion[0] )`n**************" -UserInput $syncHash.DC.GridInput[1] | Out-Null
 } )
 
@@ -537,7 +544,7 @@ $syncHash.Controls.BtnPrep.Add_Click( {
 $syncHash.Controls.BtnReset.Add_Click( {
 	if ( -not $syncHash.User.Enabled )
 	{
-		if ( ( ShowMessageBox -Text $syncHash.Data.msgTable.StrEnableUser -Button ( [System.Windows.MessageBoxButton]::YesNo ) ) -eq "Yes" )
+		if ( ( Show-MessageBox -Text $syncHash.Data.msgTable.StrEnableUser -Button ( [System.Windows.MessageBoxButton]::YesNo ) ) -eq "Yes" )
 		{
 			Set-ADUser -Identity $syncHash.User.SamAccountName -Enabled $true
 		}
@@ -556,7 +563,7 @@ $syncHash.Controls.BtnRunVirusScan.Add_Click( {
 	if ( $syncHash.ActiveListView.SelectedItems.Count -gt 0 )
 	{
 		if ( $syncHash.ActiveListView.SelectedItems.Count -gt 2 )
-		{ ShowMessageBox -Text $syncHash.Data.msgTable.StrMultiFileVirusSearch }
+		{ Show-MessageBox -Text $syncHash.Data.msgTable.StrMultiFileVirusSearch }
 
 		foreach ( $File in $syncHash.ActiveListView.SelectedItems )
 		{
@@ -567,7 +574,7 @@ $syncHash.Controls.BtnRunVirusScan.Add_Click( {
 			$PathToScan = Get-Item $path
 
 			if ( $PathToScan.FullName -match "\`$Recycle Bin" )
-			{ ShowMessageBox -Text "$( $PathToScan.FullName )`n$( $syncHash.Data.msgTable.MsgRecycleBin )" }
+			{ Show-MessageBox -Text "$( $PathToScan.FullName )`n$( $syncHash.Data.msgTable.MsgRecycleBin )" }
 			else
 			{
 				$Shell = New-Object -Com Shell.Application

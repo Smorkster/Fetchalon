@@ -1,10 +1,16 @@
 ﻿<#
-.Synopsis List reinstallations
-.Description Lists who performed the most reinstalls for specified dates. The information is taken from SysMan.
-.MenuItem Shows the number of reinstalls per month per technician
-.State Prod
-.ObjectOperations None
-.Author Smorkster
+.Synopsis
+	List reinstallations
+.Description
+	Lists who performed the most reinstalls for specified dates. The information is taken from SysMan.
+.MenuItem
+	Shows the number of reinstalls per month per technician
+.State
+	Prod
+.ObjectOperations
+	None
+.Author
+	Smorkster (smorkster)
 #>
 
 Add-Type -AssemblyName PresentationFramework
@@ -140,7 +146,7 @@ $syncHash.Controls.BtnStart.Add_Click( {
 
 		if ( $logs.Count -eq 0 )
 		{
-			ShowMessageBox $syncHash.Data.msgTable.StrNoInstallations
+			Show-MessageBox $syncHash.Data.msgTable.StrNoInstallations
 			$syncHash.DC.Window[0] = $syncHash.Data.msgTable.StrWinTitle
 		}
 		else
@@ -222,7 +228,7 @@ $syncHash.Controls.BtnExport.Add_Click( {
 	$output = $syncHash.Data.Installations | Sort-Object Installations -Descending | ForEach-Object { [pscustomobject]@{ User = $_.User; OS_Installations = $_.Installations } } | ConvertTo-Csv -NoTypeInformation -Delimiter ";"
 	$outputFile = WriteOutput -Output $output -FileExtension "csv" -Scoreboard
 	WriteLogTest -Text $syncHash.Data.msgTable.LogExport -OutputPath $outputFile -Success $true | Out-Null
-	ShowMessageBox "$( $syncHash.Data.msgTable.StrExportPathMessage )`n$outputFile"
+	Show-MessageBox "$( $syncHash.Data.msgTable.StrExportPathMessage )`n$outputFile"
 	$this.IsEnabled = $false
 } )
 

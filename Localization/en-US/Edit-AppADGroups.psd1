@@ -1,5 +1,4 @@
 ﻿ConvertFrom-StringData @'
-CodeSysManUrl = https://sysman.test.com/
 ContentBtnPerform = Run
 ContentBtnRefetchGroups = Reload groups
 ContentBtnRefetchGroupsTT = Load the groups again
