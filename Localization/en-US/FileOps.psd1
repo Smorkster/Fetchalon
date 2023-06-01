@@ -1,5 +1,7 @@
 ﻿ConvertFrom-StringData @'
+ErrGetFunctionInfoNotScriptInfo = Specified function contains no script info
 ErrGetScriptInfoNotScriptInfo = Specified text/file contains no script info
+ErrGetTextInfoNotScriptInfo = Specified text contain no script info
 FileOpsEndScript = Press Enter to exit
 StrAdmPrefix = sys
 StrMailAddress = backoffice@test.com

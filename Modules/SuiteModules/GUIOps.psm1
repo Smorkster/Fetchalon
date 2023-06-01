@@ -1,7 +1,12 @@
 ﻿<#
-.Synopsis A module for functions creating and working with GUI's
-.State Prod
-.Author Smorkster
+.Synopsis
+	Functions for working with GUI's
+.Description
+	A module for functions creating and working with GUI's
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 param (
@@ -259,7 +264,7 @@ function CreateWindowExt
 
 function LoadConverters
 {
-	try
+	if ( 7 -eq ( $PSVersionTable ).PSVersion.Major )
 	{
 		Add-Type -ReferencedAssemblies Microsoft.ActiveDirectory.Management, `
 										PresentationFramework, `
@@ -267,12 +272,14 @@ function LoadConverters
 										System.DirectoryServices.AccountManagement, `
 										System.Drawing, `
 										System.Management.Automation, `
+										System.Text.RegularExpressions, `
 										System.Windows, `
 										System.Xaml, `
-										C:\Windows\WinSxS\x86_microsoft.activedirectory.management_31bf3856ad364e35_6.3.9600.19537_none_ad6ee7559191f544\Microsoft.ActiveDirectory.Management.dll,
-										C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll -TypeDefinition $Converters -ErrorAction Stop
+										'C:\Program Files\PowerShell\7\WindowsBase.dll', `
+										'C:\Program Files\PowerShell\7\System.ComponentModel.Primitives.dll' ,
+										'C:\Program Files\PowerShell\7\System.Collections.NonGeneric.dll' -TypeDefinition $Converters -ErrorAction Stop
 	}
-	catch
+	else
 	{
 		Add-Type -ReferencedAssemblies Microsoft.ActiveDirectory.Management, `
 										PresentationFramework, `
@@ -280,8 +287,9 @@ function LoadConverters
 										System.DirectoryServices, `
 										System.Drawing, `
 										System.Management.Automation, `
-										System.Xaml, `
+										System.Text.RegularExpressions, `
 										System.Windows, `
+										System.Xaml, `
 										C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll -TypeDefinition $Converters -ErrorAction Stop
 	}
 }
@@ -305,55 +313,6 @@ function Close-SplashScreen
 	$Script:SplashShell.EndInvoke( $SplashHandle ) | Out-Null
 }
 
-function Start-SplashScreen
-{
-	<#
-	.Synopsis
-		Start runspace to display splash screen
-	#>
-
-	$Script:SplashShell.Runspace = $SplashRunspace
-	$Script:SplashHandle = $Script:SplashShell.BeginInvoke()
-}
-
-function Update-SplashProgress
-{
-	<#
-	.Synopsis
-		Update the progressbar in the splash screen
-	.Parameter Value
-		Value to update the progressbar with
-	#>
-
-	param ( $Value )
-
-	try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.Progress.Value = $Value } ) } catch {}
-}
-
-function Update-SplashText
-{
-	<#
-	.Synopsis
-		Update the text in the splash screen
-	.Parameter Text
-		Text to update the splash screen with
-	#>
-
-	param (
-		$Text,
-		[switch] $Append
-	)
-
-	if ( $Append )
-	{
-		try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.LoadingLabel.Content += $Text } ) } catch {}
-	}
-	else
-	{
-		try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.LoadingLabel.Content = $Text } ) } catch {}
-	}
-}
-
 function Show-CustomMessageBox
 {
 	<#
@@ -371,6 +330,10 @@ function Show-CustomMessageBox
 		What icon is to be displayed in the messagebox
 	.Outputs
 		Returns which button in the messagebox was clicked
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
 	#>
 
 	param (
@@ -473,6 +436,10 @@ function Show-Splash
 		The color of the border of the window
 	.Parameter SelfAdmin
 		The script calling will administrate opening and closing
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
 	#>
 
 	param (
@@ -537,6 +504,58 @@ function Show-Splash
 	$Script:SplashHash.Shell = $script:SplashShell
 }
 
+function Start-SplashScreen
+{
+	<#
+	.Synopsis
+		Start runspace to display splash screen
+	#>
+
+	$Script:SplashShell.Runspace = $SplashRunspace
+	$Script:SplashHandle = $Script:SplashShell.BeginInvoke()
+}
+
+function Update-SplashProgress
+{
+	<#
+	.Synopsis
+		Update the progressbar in the splash screen
+	.Parameter Value
+		Value to update the progressbar with
+	#>
+
+	param ( $Value )
+
+	try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.Progress.Value = $Value } ) } catch {}
+}
+
+function Update-SplashText
+{
+	<#
+	.Synopsis
+		Update the text in the splash screen
+	.Parameter Text
+		Text to update the splash screen with
+	#>
+
+	param (
+		$Text,
+		[switch] $Append
+	)
+
+	if ( $Append )
+	{
+		try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.LoadingLabel.Content += $Text } ) } catch {}
+	}
+	else
+	{
+		try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.LoadingLabel.Content = $Text } ) } catch {}
+	}
+}
+
+$RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
+Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( Get-Item $PSCommandPath ).BaseName ).psd1" -BaseDirectory "$RootDir\Localization"
+
 $Converters = @"
 using System;
 using System.DirectoryServices;
@@ -572,14 +591,22 @@ namespace FetchalonConverters
 					Id = ( ( string ) value ).Split( '(' )[1].Split( ')' )[0];
 				}
 
-				PrincipalContext pc = new PrincipalContext( ContextType.Domain, "%CodeConverterADDomainName%", "%CodeConverterADContainer%" );
+				PrincipalContext pc = new PrincipalContext( ContextType.Domain, "CodeConverterADDomainName", "CodeConverterADContainer" );
 				UserPrincipal up = new UserPrincipal( pc ) { SamAccountName = Id };
 				PrincipalSearcher ps = new PrincipalSearcher(up);
-				var u = ps.FindOne();
-				if ( u == null )
-					return value;
-				else
-					return u.Name;
+
+				try
+				{
+					var u = ps.FindOne();
+					if ( u == null )
+						return value;
+					else
+						return u.Name;
+				}
+				catch ( Exception e )
+				{
+					return e.Message;
+				}
 			}
 		}
 
@@ -594,7 +621,7 @@ namespace FetchalonConverters
 		/// <summary>Convert an AD-groups DistinguishedName to its name</summary>
 		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			DirectoryEntry de = new DirectoryEntry( "LDAP://%CodeConverterADContainer%" );
+			DirectoryEntry de = new DirectoryEntry( "LDAP://CodeConverterADContainer" );
 			DirectorySearcher adsSearcher = new DirectorySearcher( de )
 			{
 				Filter = "(DistinguishedName=" + (string)value + ")"
@@ -685,7 +712,7 @@ namespace FetchalonConverters
 			}
 			else
 			{
-				DirectoryEntry de = new DirectoryEntry( "LDAP://%CodeConverterADContainer%" );
+				DirectoryEntry de = new DirectoryEntry( "LDAP://CodeConverterADContainer" );
 				DirectorySearcher adsSearcher = new DirectorySearcher( de )
 				{
 					Filter = "(Name=" + (string)value + ")"
@@ -726,7 +753,7 @@ namespace FetchalonConverters
 				}
 				else if ( item.GetType() == typeof( String ) )
 				{
-					DirectoryEntry de = new DirectoryEntry( "LDAP://%CodeConverterADContainer%" );
+					DirectoryEntry de = new DirectoryEntry( "LDAP://CodeConverterADContainer" );
 					DirectorySearcher adsSearcher = new DirectorySearcher( de )
 					{
 						Filter = "(DistinguishedName=" + ( string ) item + ")"
@@ -755,17 +782,14 @@ namespace FetchalonConverters
 		}
 	}
 }
-"@ -replace "%CodeConverterADDomainName%", $IntMsgTable.CodeConverterADDomainName -replace "%CodeConverterADContainer%", $IntMsgTable.CodeConverterADContainer
+"@ -replace "CodeConverterADDomainName", "$( $IntMsgTable.CodeConverterADDomainName )" -replace "CodeConverterADContainer", "$( $IntMsgTable.CodeConverterADContainer )"
 
 if ( $LoadConverters ) { LoadConverters }
-
-$RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
-Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 $CallingScript = try { ( Get-Item $MyInvocation.PSCommandPath ) } catch { [pscustomobject]@{ BaseName = "NoScript" } }
 try { $Host.UI.RawUI.WindowTitle = "$( $IntMsgTable.ConsoleWinTitlePrefix ): $( ( ( Get-Item $MyInvocation.PSCommandPath ).FullName -split "Script" )[1] )" } catch {}
 
 Export-ModuleMember -Function BindControls, CreateWindow, CreatePage, CreateWindowExt,
 							Close-SplashScreen, Show-Splash, Update-SplashProgress, Update-SplashText,
-							Show-CustomMessageBox, ShowShow-MessageBox
+							Show-CustomMessageBox, Show-MessageBox
 Export-ModuleMember -Variable Converters
