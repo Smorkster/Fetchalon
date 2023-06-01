@@ -1,7 +1,7 @@
 ﻿<#
 .Synopsis A module for functions operating on remote computer
 .State Prod
-.Author Smorkster
+.Author Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
@@ -9,8 +9,10 @@ param ( $culture = "sv-SE" )
 function RunCycle
 {
 	<#
-	.Synopsis Tell computer to check for distributed updates
-	.Description Create a job that will check for updates for distributed applications, the job will start in 10 minutes
+	.Synopsis
+		Tell computer to check for distributed updates
+	.Description
+		Create a job that will check for updates for distributed applications, the job will start in 10 minutes
 	.Parameter ComputerName
 		Name of the computer that should run the job
 	.Parameter CycleName

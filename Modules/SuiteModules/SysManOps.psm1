@@ -1,7 +1,7 @@
 ﻿<#
 .Synopsis A module for functions operating with SysMan
 .State Prod
-.Author Smorkster
+.Author Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
@@ -41,10 +41,12 @@ function ChangeInstallation
 function GetSysManComputerId
 {
 	<#
-	.Description Get the internal id in SysMan for a given computer
+	.Description
+		Get the internal id in SysMan for a given computer
 	.Parameter ComputerName
 		Name of the computer to check id for
-	.Outputs Internal SysMan-id of the computer
+	.Outputs
+		Internal SysMan-id of the computer
 	#>
 
 	param ( $ComputerName )
@@ -55,10 +57,12 @@ function GetSysManComputerId
 function GetSysManUserId
 {
 	<#
-	.Description Get the internal id in SysMan for given user
+	.Description
+		Get the internal id in SysMan for given user
 	.Parameter Id
 		UserId (according to AD) of the user to do the lookup for
-	.Outputs Internal SysMan-id of the user
+	.Outputs
+		Internal SysMan-id of the user
 	#>
 
 	param ( $Id )

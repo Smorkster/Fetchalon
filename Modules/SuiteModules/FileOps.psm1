@@ -1,7 +1,8 @@
 ﻿<#
 .Synopsis A module for functions operating on files
+.Description A module for functions operating on files
 .State Prod
-.Author Smorkster
+.Author Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
@@ -281,7 +282,8 @@ function GetScriptInfo
 		Position = 0,
 		ParameterSetName = 'Fi' ) ]
 		[System.Management.Automation.FunctionInfo] $Function,
-		[pscustomobject] $InfoObject
+		[pscustomobject] $InfoObject,
+		[switch] $NoErrorRecord
 	)
 
 	if ( $null -eq $InfoObject )
@@ -295,8 +297,11 @@ function GetScriptInfo
 		{
 			$ResolvedFilePath = Resolve-Path $FilePath -ErrorAction Stop
 			$FileContent = Get-Content $ResolvedFilePath.Path -Raw -ErrorAction Stop
+			$Name = ( Get-Item $ResolvedFilePath ).Name
 			if ( [string]::IsNullOrEmpty( $InfoObject.Name ) )
-			{ Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Name" -Value ( Get-Item $ResolvedFilePath ).BaseName -Force }
+			{
+				Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Name" -Value ( ( Get-Item $ResolvedFilePath.Path ).BaseName ) -Force
+			}
 		}
 		catch
 		{
@@ -306,58 +311,99 @@ function GetScriptInfo
 	elseif ( $Function )
 	{
 		$FileContent = $Function.Definition
+		$Name = $Function.Name
 		if ( [string]::IsNullOrEmpty( $InfoObject.Name ) )
-		{ Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Name" -Value $Function.Name -Force }
+		{
+			Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Name" -Value $Function.Name -Force
+		}
 	}
 	else
 	{
 		$FileContent = $Text
+		$Name = "Text"
 		if ( [string]::IsNullOrEmpty( $InfoObject.Name ) )
-		{ Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Name" -Value $Function.Name -Force }
+		{
+			Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Name" -Value "?" -Force
+		}
 	}
 
 	if ( $FileContent -match "(?s)<#(?<Info>.*?)#>" )
 	{
-		[regex]::Matches( $Matches.Info , "\s*\.(?<InfoType>(?!Parameter)\w*)\s*((?<InputVar>\w*)\s*(?<InputComment>(?!\s*\.\w*\s*).*)*)*" ) | `
+		$Matches.Info -split "(?m)^\s*\." | `
+			Where-Object { $_ } | `
 			ForEach-Object `
-				-Begin { $InputDataList = [System.Collections.ArrayList]::new() } `
+				-Begin {
+					$InputDataList = [System.Collections.ArrayList]::new()
+				} `
 				-Process {
-					if ( "InputData" -eq $_.Groups["InfoType"].Value )
+					$_ -match "\s*(?<InfoType>(?!(Parameter)|(Outputs))\w+)\s+(?<Rest>.*)" | Out-Null
+					if ( "InputData" -eq $Matches.InfoType )
 					{
-						$InputDataList.Add( ( [pscustomobject]@{ Name = $_.Groups["InputVar"].Captures[0].Value ; InputDescription = ( $_.Groups["InputComment"].Captures[0].Value ).Trim() ; EnteredValue = "" } ) ) | Out-Null
+						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\s*?(?<InputComment>.*)" | Out-Null
+						$InputDataList.Add( (
+							[pscustomobject]@{
+								Name = $Matches.InputVar
+								InputDescription = $Matches.InputComment.Trim()
+								EnteredValue = ""
+								}
+							) ) | Out-Null
 					}
-					elseif ( "NoRunspace" -eq $_.Groups["InfoType"].Value )
+					elseif ( "NoRunspace" -eq $Matches.InfoType )
 					{
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $_.Groups["InfoType"].Value -Value $true
+						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "NoRunspace" -Value $true -Force
 					}
 					else
 					{
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $_.Groups["InfoType"].Value -Value "$( $_.Groups["InputVar"].Captures[0].Value ) $( $_.Groups["InputComment"].Captures.Value )".Trim()
+						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $Matches.InfoType -Value $Matches.Rest.Trim() -Force
 					}
-					} `
+				} `
 				-End {
 					if ( $InputDataList.Count -gt 0 )
 					{
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "InputData" -Value $InputDataList
+						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "InputData" -Value $InputDataList -Force
 					}
 				}
 
-		if ( [string]::IsNullOrEmpty( $InfoObject.MenuItem ) )
-		{
-			if ( [string]::IsNullOrEmpty( $InfoObject.Synopsis ) ) { $MenuItemText = $InfoObject.Name }
-			else { $MenuItemText = $InfoObject.Synopsis }
-			try { Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "MenuItem" -Value $MenuItemText.Trim() -Force }
-			catch {
-				[System.Windows.MessageBox]::Show( ( $MenuItemText ) )
-				[System.Windows.MessageBox]::Show( ( $InfoObject | out-string ) )
+			if ( [string]::IsNullOrEmpty( $InfoObject.MenuItem ) )
+			{
+				if ( [string]::IsNullOrEmpty( $InfoObject.Synopsis ) )
+				{
+					$MenuItemText = $InfoObject.Name
+				}
+				else
+				{
+					$MenuItemText = $InfoObject.Synopsis
+				}
+
+				try
+				{
+					Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "MenuItem" -Value $MenuItemText.Trim() -Force
+				}
+				catch
+				{
+					[System.Windows.MessageBox]::Show( $_.Exception.Message ) | Out-Null
+				}
 			}
-		}
 
 		return $InfoObject
 	}
 	else
 	{
-		throw $IntmsgTable.ErrGetScriptInfoNotScriptInfo
+		if ( -not $NoErrorRecord)
+		{
+			if ( $FilePath )
+			{
+				throw "$( $Name ): $( $IntmsgTable.ErrGetScriptInfoNotScriptInfo )"
+			}
+			elseif ( $Function )
+			{
+				throw "$( $Name ): $( $IntmsgTable.ErrGetFunctionInfoNotScriptInfo )"
+			}
+			else
+			{
+				throw "$( $Name ): $( $IntmsgTable.ErrGetTextInfoNotScriptInfo )`n$( $Text )"
+			}
+		}
 	}
 }
 
@@ -550,7 +596,7 @@ function WriteLog
 		[string] $ComputerName
 	)
 
-	$ScriptName = ( $MyInvocation.PSCommandPath -split "\\" )[-1]
+	$ScriptName = ( Get-Item $MyInvocation.PSCommandPath ).BaseName
 	$mtx = [System.Threading.Mutex]::new( $false, "WriteLog $( $ScriptName )" )
 
 	if ( $MyInvocation.PSCommandPath -notmatch "Tools" )
