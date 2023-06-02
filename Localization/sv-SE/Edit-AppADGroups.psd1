@@ -1,4 +1,5 @@
 ﻿ConvertFrom-StringData @'
+CodeSysManUrl = https://sysman.test.com/sysman
 ContentBtnPerform = Utför
 ContentBtnRefetchGroups = Läs in grupper igen
 ContentBtnRefetchGroupsTT = Läs in grupperna igen
