@@ -1,4 +1,4 @@
-﻿<#
+<#
 .Synopsis
 	A collection of functions to operate with Office365-services
 .Description
