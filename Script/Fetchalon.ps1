@@ -4,9 +4,9 @@
 .Description
 	Main script to list functions and tools, and display output
 .State
-	Dev
+	Prod
 .Author
-	Smorkster
+	Smorkster (smorkster)
 #>
 
 function EnableExtraSearch

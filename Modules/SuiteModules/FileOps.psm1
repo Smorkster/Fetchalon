@@ -1,8 +1,12 @@
 ﻿<#
-.Synopsis A module for functions operating on files
-.Description A module for functions operating on files
-.State Prod
-.Author Smorkster (smorkster)
+.Synopsis
+	A module for functions operating on files
+.Description
+	A module for functions operating on files
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
