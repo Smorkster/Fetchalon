@@ -38,10 +38,16 @@
                                                 PropertyName="LogDate" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsDgPublishedNotInDev">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="ProdFile.Name" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
         <CollectionViewSource x:Key="CvsDgUpdatedInProd">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="DevFile.Name" />
+                                                PropertyName="ProdFile.Name" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <CollectionViewSource x:Key="CvsDgUpdates">
@@ -554,7 +560,7 @@
                 MinWidth="100"
                 ResizeMode="NoResize"
                 SizeToContent="WidthAndHeight"
-                WindowStartupLocation="CenterOwner"
+                WindowStartupLocation="CenterScreen"
                 WindowStyle="None">
             <Window.Resources>
                 <sys:String x:Key="DiffRowAdded">X</sys:String>
@@ -611,16 +617,6 @@
                     </DataGrid.Style>
                     <DataGrid.Columns>
                         <DataGridTemplateColumn Width="2*">
-                            <DataGridTemplateColumn.Header>
-                                <TextBlock>
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text"
-                                                    Value="{Binding ElementName=DiffWindow, Path=DataContext.MsgTable.ContentDgDiffListColDevRow}" />
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ContentControl>
@@ -666,16 +662,6 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
                         <DataGridTextColumn Width="Auto">
-                            <DataGridTextColumn.Header>
-                                <TextBlock>
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text"
-                                                    Value="{Binding ElementName=DiffWindow, Path=DataContext.MsgTable.ContentDgDiffListColLineNr}" />
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </DataGridTextColumn.Header>
                             <DataGridTextColumn.Binding>
                                 <Binding>
                                     <Binding.Path>LineNr</Binding.Path>
@@ -687,16 +673,6 @@
                             </DataGridTextColumn.ElementStyle>
                         </DataGridTextColumn>
                         <DataGridTemplateColumn Width="2*">
-                            <DataGridTemplateColumn.Header>
-                                <TextBlock>
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Text"
-                                                    Value="{Binding ElementName=DiffWindow, Path=DataContext.MsgTable.ContentDgDiffListColProdRow}" />
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </DataGridTemplateColumn.Header>
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <ContentControl>
@@ -743,43 +719,10 @@
                         </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
-                <Button Name="BtnDiffOpenDev">
-                    <Button.Style>
-                        <Style TargetType="Button"
-                               BasedOn="{StaticResource BtnDiffStyle}">
-                            <Setter Property="Content"
-                                    Value="{Binding ElementName=DiffWindow, Path=DataContext.MsgTable.ContentBtnDiffOpenDev}" />
-                        </Style>
-                    </Button.Style>
-                </Button>
-                <Button Name="BtnDiffOpenProd">
-                    <Button.Style>
-                        <Style TargetType="Button"
-                               BasedOn="{StaticResource BtnDiffStyle}">
-                            <Setter Property="Content"
-                                    Value="{Binding ElementName=DiffWindow, Path=DataContext.MsgTable.ContentBtnDiffOpenProd}" />
-                            <Setter Property="Grid.Column"
-                                    Value="1" />
-                        </Style>
-                    </Button.Style>
-                </Button>
-                <Button Name="BtnDiffOpenBoth">
-                    <Button.Style>
-                        <Style TargetType="Button"
-                               BasedOn="{StaticResource BtnDiffStyle}">
-                            <Setter Property="Content"
-                                    Value="{Binding ElementName=DiffWindow, Path=DataContext.MsgTable.ContentBtnDiffOpenBoth}" />
-                            <Setter Property="Grid.Column"
-                                    Value="2" />
-                        </Style>
-                    </Button.Style>
-                </Button>
                 <Button Name="BtnDiffCancel">
                     <Button.Style>
                         <Style TargetType="Button"
                                BasedOn="{StaticResource BtnDiffStyle}">
-                            <Setter Property="Content"
-                                    Value="{Binding ElementName=DiffWindow, Path=DataContext.MsgTable.ContentBtnDiffCancel}" />
                             <Setter Property="Grid.Column"
                                     Value="4" />
                         </Style>
@@ -802,7 +745,7 @@
                         <RowDefinition Height="Auto" />
                         <RowDefinition />
                     </Grid.RowDefinitions>
-                    <StackPanel>
+                    <StackPanel Name="SpUpdateControls">
                         <StackPanel.Style>
                             <Style TargetType="StackPanel"
                                    BasedOn="{StaticResource SpBaseStyle}" />
@@ -861,6 +804,8 @@
                                        BasedOn="{StaticResource BtnBaseStyle}">
                                     <Setter Property="Content"
                                             Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUpdateFailedScripts}" />
+                                    <Setter Property="IsEnabled"
+                                            Value="True" />
                                     <Setter Property="Visibility"
                                             Value="Collapsed" />
                                     <Style.Triggers>
@@ -869,10 +814,45 @@
                                             <Setter Property="Visibility"
                                                     Value="Visible" />
                                         </DataTrigger>
+                                        <DataTrigger Binding="{Binding ElementName=DgFailedUpdates, Path=SelectedItems.Count}"
+                                                     Value="0">
+                                            <Setter Property="IsEnabled"
+                                                    Value="False" />
+                                        </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Button.Style>
                         </Button>
+                        <CheckBox Name="ChbPublishFiles">
+                            <CheckBox.Style>
+                                <Style TargetType="CheckBox"
+                                       BasedOn="{StaticResource ChbBaseStyle}">
+                                    <Setter Property="Content"
+                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentChbPublishFiles}" />
+                                    <Setter Property="IsEnabled"
+                                            Value="False" />
+                                    <Setter Property="Visibility"
+                                            Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=BtnUpdateScripts, Path=IsEnabled}"
+                                                     Value="True">
+                                            <Setter Property="IsEnabled"
+                                                    Value="True" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding ElementName=BtnUpdateFailedScripts, Path=IsEnabled}"
+                                                     Value="True">
+                                            <Setter Property="IsEnabled"
+                                                    Value="True" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsEnabled}"
+                                                     Value="True">
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </CheckBox.Style>
+                        </CheckBox>
                         <TextBlock Name="TblInfo">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock"
@@ -1232,6 +1212,11 @@
                                                     Value="Extended" />
                                         </Style>
                                     </DataGrid.Style>
+                                    <DataGrid.Resources>
+                                        <sys:String x:Key="StrNoScriptfile">x</sys:String>
+                                        <sys:String x:Key="StrUpdatedFileIsNew">x</sys:String>
+                                        <sys:String x:Key="StrUpdatedFileIsUpdated">x</sys:String>
+                                    </DataGrid.Resources>
                                     <DataGrid.Columns>
                                         <DataGridTextColumn Binding="{Binding Path=DevFile.Name}">
                                             <DataGridTextColumn.Width>370*</DataGridTextColumn.Width>
@@ -1247,43 +1232,42 @@
                                                        BasedOn="{StaticResource DateCell}" />
                                             </DataGridTextColumn.ElementStyle>
                                         </DataGridTextColumn>
-                                        <DataGridCheckBoxColumn Binding="{Binding Path=New}"
-                                                                Width="165*">
-                                            <DataGridCheckBoxColumn.ElementStyle>
-                                                <Style TargetType="FrameworkElement">
+                                        <DataGridTextColumn Width="150*">
+                                            <DataGridTextColumn.ElementStyle>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="FontWeight"
+                                                            Value="Bold" />
                                                     <Setter Property="HorizontalAlignment"
                                                             Value="Center" />
+                                                    <Setter Property="Text"
+                                                            Value="{DynamicResource StrUpdatedFileIsNew}" />
                                                     <Setter Property="VerticalAlignment"
                                                             Value="Center" />
-                                                </Style>
-                                            </DataGridCheckBoxColumn.ElementStyle>
-                                            <DataGridCheckBoxColumn.CellStyle>
-                                                <Style TargetType="DataGridCell">
-                                                    <Setter Property="Focusable"
-                                                            Value="False" />
-                                                    <Setter Property="IsHitTestVisible"
-                                                            Value="False" />
-                                                    <Style.Resources>
-                                                        <Style TargetType="CheckBox"
-                                                               BasedOn="{StaticResource ChbBaseStyle}">
-                                                            <Setter Property="Background"
-                                                                    Value="Transparent" />
-                                                            <Setter Property="Focusable"
-                                                                    Value="False" />
-                                                            <Setter Property="IsHitTestVisible"
-                                                                    Value="False" />
-                                                        </Style>
-                                                    </Style.Resources>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.New}"
-                                                                     Value="True">
-                                                            <Setter Property="Background"
-                                                                    Value="LightGreen" />
+                                                                     Value="False">
+                                                            <Setter Property="FontWeight"
+                                                                    Value="Normal" />
+                                                            <Setter Property="Text"
+                                                                    Value="{DynamicResource StrUpdatedFileIsUpdated}" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </DataGridCheckBoxColumn.CellStyle>
-                                        </DataGridCheckBoxColumn>
+                                            </DataGridTextColumn.ElementStyle>
+                                            <DataGridTextColumn.CellStyle>
+                                                <Style TargetType="DataGridCell">
+                                                    <Setter Property="Background"
+                                                            Value="LightGreen" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.New}"
+                                                                     Value="False">
+                                                            <Setter Property="Background"
+                                                                    Value="White" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </DataGridTextColumn.CellStyle>
+                                        </DataGridTextColumn>
                                         <DataGridTextColumn Binding="{Binding Path=ScriptInfo.State}">
                                             <DataGridTextColumn.Width>100*</DataGridTextColumn.Width>
                                             <DataGridTextColumn.ElementStyle>
@@ -1297,7 +1281,7 @@
                                                         <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.ScriptInfo}"
                                                                      Value="{x:Null}">
                                                             <Setter Property="ToolTip"
-                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrNoScriptfile}" />
+                                                                    Value="{DynamicResource StrNoScriptfile}" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding Path=ToolTip}"
                                                                      Value="{x:Static sys:String.Empty}">
@@ -1892,13 +1876,8 @@
                                                         <Setter Property="IsEnabled"
                                                                 Value="True" />
                                                     </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgUpdatedInProd, Path=SelectedItem.DevPath}"
+                                                    <DataTrigger Binding="{Binding ElementName=DgUpdatedInProd, Path=SelectedItem.DevFile}"
                                                                  Value="{x:Null}">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="False" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgUpdatedInProd, Path=SelectedItem.DevPath}"
-                                                                 Value="{x:Static sys:String.Empty}">
                                                         <Setter Property="IsEnabled"
                                                                 Value="False" />
                                                     </DataTrigger>
@@ -1920,13 +1899,8 @@
                                                         <Setter Property="IsEnabled"
                                                                 Value="True" />
                                                     </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgUpdatedInProd, Path=SelectedItem.DevPath}"
+                                                    <DataTrigger Binding="{Binding ElementName=DgUpdatedInProd, Path=SelectedItem.DevFile}"
                                                                  Value="{x:Null}">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="False" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgUpdatedInProd, Path=SelectedItem.DevPath}"
-                                                                 Value="{x:Static sys:String.Empty}">
                                                         <Setter Property="IsEnabled"
                                                                 Value="False" />
                                                     </DataTrigger>
@@ -1966,12 +1940,12 @@
                                                         <Setter Property="IsEnabled"
                                                                 Value="True" />
                                                     </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgUpdatedInProd, Path=SelectedItem.DevPath}"
+                                                    <DataTrigger Binding="{Binding ElementName=DgUpdatedInProd, Path=SelectedItem.DevFile}"
                                                                  Value="{x:Null}">
                                                         <Setter Property="IsEnabled"
                                                                 Value="False" />
                                                     </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgUpdatedInProd, Path=SelectedItem.DevPath}"
+                                                    <DataTrigger Binding="{Binding ElementName=DgUpdatedInProd, Path=SelectedItem.ProdFile}"
                                                                  Value="{x:Static sys:String.Empty}">
                                                         <Setter Property="IsEnabled"
                                                                 Value="False" />
@@ -1992,7 +1966,7 @@
                                         </Style>
                                     </DataGrid.Style>
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Binding="{Binding Path=Name}"
+                                        <DataGridTextColumn Binding="{Binding Path=ProdFile.Name}"
                                                             ElementStyle="{StaticResource ColumnElementStyle}">
                                             <DataGridTextColumn.Header>
                                                 <TextBlock>
@@ -2005,20 +1979,7 @@
                                                 </TextBlock>
                                             </DataGridTextColumn.Header>
                                         </DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding Path=RelativePath}"
-                                                            ElementStyle="{StaticResource ColumnElementStyle}">
-                                            <DataGridTextColumn.Header>
-                                                <TextBlock>
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Text"
-                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgUpdatesColPath}" />
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </DataGridTextColumn.Header>
-                                        </DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding Path=DevUpd, StringFormat='yyyy-MM-dd hh:mm:ss'}"
+                                        <DataGridTextColumn Binding="{Binding Path=DevFile.LastWriteTime, StringFormat='yyyy-MM-dd hh:mm:ss'}"
                                                             ElementStyle="{StaticResource ColumnElementStyle}">
                                             <DataGridTextColumn.Header>
                                                 <TextBlock>
@@ -2031,7 +1992,7 @@
                                                 </TextBlock>
                                             </DataGridTextColumn.Header>
                                         </DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding Path=ProdUpd, StringFormat='yyyy-MM-dd hh:mm:ss'}"
+                                        <DataGridTextColumn Binding="{Binding Path=ProdFile.LastWriteTime, StringFormat='yyyy-MM-dd hh:mm:ss'}"
                                                             ElementStyle="{StaticResource ColumnElementStyle}">
                                             <DataGridTextColumn.Header>
                                                 <TextBlock>
@@ -2044,6 +2005,207 @@
                                                 </TextBlock>
                                             </DataGridTextColumn.Header>
                                         </DataGridTextColumn>
+                                    </DataGrid.Columns>
+                                </DataGrid>
+                            </Grid>
+                        </TabItem>
+                        <TabItem Name="TiPublishedNotInDev">
+                            <TabItem.Style>
+                                <Style TargetType="TabItem"
+                                       BasedOn="{StaticResource TabItemBaseStyle}">
+                                    <Setter Property="Background"
+                                            Value="Red" />
+                                    <Setter Property="Header"
+                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiPublishedNotInDev}" />
+                                    <Setter Property="Visibility"
+                                            Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=HasItems}"
+                                                     Value="True">
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TabItem.Style>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
+                                <TextBlock Name="TblPublishedNotInDev">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock"
+                                               BasedOn="{StaticResource TblBaseStyle}">
+                                            <Setter Property="Foreground"
+                                                    Value="Red" />
+                                            <Setter Property="Text"
+                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPublishedNotInDev}" />
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel"
+                                               BasedOn="{StaticResource SpBaseStyle}">
+                                            <Setter Property="Grid.Row"
+                                                    Value="1" />
+                                        </Style>
+                                    </StackPanel.Style>
+                                    <Button Name="BtnPublishedNotInDevOpenDiffs">
+                                        <Button.Style>
+                                            <Style TargetType="Button"
+                                                   BasedOn="{StaticResource BtnBaseStyle}">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPublishedNotInDevOpenDiffs}" />
+                                                <Setter Property="IsEnabled"
+                                                        Value="False" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItems.Count}"
+                                                                 Value="1">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="True" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile}"
+                                                                 Value="{x:Null}">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="False" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile.FullName}"
+                                                                 Value="{x:Static sys:String.Empty}">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="False" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Name="BtnPublishedNotInDevOpenDevFile">
+                                        <Button.Style>
+                                            <Style TargetType="Button"
+                                                   BasedOn="{StaticResource BtnBaseStyle}">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPublishedNotInDevOpenDevFile}" />
+                                                <Setter Property="IsEnabled"
+                                                        Value="False" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItems.Count}"
+                                                                 Value="1">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="True" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile}"
+                                                                 Value="{x:Null}">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="False" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile.FullName}"
+                                                                 Value="{x:Static sys:String.Empty}">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="False" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Name="BtnPublishedNotInDevOpenProdFile">
+                                        <Button.Style>
+                                            <Style TargetType="Button"
+                                                   BasedOn="{StaticResource BtnBaseStyle}">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPublishedNotInDevOpenProdFile}" />
+                                                <Setter Property="IsEnabled"
+                                                        Value="False" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItems.Count}"
+                                                                 Value="1">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="True" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Name="BtnPublishedNotInDevOpenBothFiles">
+                                        <Button.Style>
+                                            <Style TargetType="Button"
+                                                   BasedOn="{StaticResource BtnBaseStyle}">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPublishedNotInDevOpenBothFiles}" />
+                                                <Setter Property="IsEnabled"
+                                                        Value="False" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItems.Count}"
+                                                                 Value="1">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="True" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile}"
+                                                                 Value="{x:Null}">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="False" />
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile.FullName}"
+                                                                 Value="{x:Static sys:String.Empty}">
+                                                        <Setter Property="IsEnabled"
+                                                                Value="False" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                </StackPanel>
+                                <DataGrid Name="DgPublishedNotInDev">
+                                    <DataGrid.Style>
+                                        <Style TargetType="DataGrid"
+                                               BasedOn="{StaticResource DgBaseStyle}">
+                                            <Setter Property="Grid.Row"
+                                                    Value="2" />
+                                            <Setter Property="ItemsSource"
+                                                    Value="{Binding Source={StaticResource CvsDgPublishedNotInDev}}" />
+                                        </Style>
+                                    </DataGrid.Style>
+                                    <DataGrid.Columns>
+                                        <DataGridTextColumn Binding="{Binding Path=Name}"
+                                                            ElementStyle="{StaticResource ColumnElementStyle}">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgPublishedNotInDevColName}" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Path=DevUpd, StringFormat='yyyy-MM-dd hh:mm:ss'}"
+                                                            ElementStyle="{StaticResource ColumnElementStyle}">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgPublishedNotInDevColDevUpd}" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
+                                        <DataGridTextColumn Binding="{Binding Path=ProdUpd, StringFormat='yyyy-MM-dd hh:mm:ss'}"
+                                                            ElementStyle="{StaticResource ColumnElementStyle}">
+                                            <DataGridTextColumn.Header>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgPublishedNotInDevColProdUpd}" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </DataGridTextColumn.Header>
+                                        </DataGridTextColumn>
                                         <DataGridTextColumn Binding="{Binding Path=State}"
                                                             ElementStyle="{StaticResource ColumnElementStyle}">
                                             <DataGridTextColumn.Header>
@@ -2051,7 +2213,7 @@
                                                     <TextBlock.Style>
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="Text"
-                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgUpdatesColProdState}" />
+                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgPublishedNotInDevColProdState}" />
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
