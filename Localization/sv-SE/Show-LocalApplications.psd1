@@ -1,10 +1,19 @@
 ﻿ConvertFrom-StringData @'
+CodeSysManUri = http://sysman.test.com/
 ContentBtnGetAppList = Hämta lista över applikationer
 ContentBtnUninstall = Avinstallera
-ContentInstCol = Installationsdatum
-ContentNameCol = Applikationsnamn
+ContentDgLocalInstCol = Installationsdatum
+ContentDgLocalNameCol = Applikationsnamn
+ContentDgLocalUserCol = Installerad för ...
+ContentDgSysManDescCol = Beskrivning
+ContentDgSysManNameCol = Namn
+ContentDgWrappersAppNameCol = Namn
+ContentDgWrappersInstallDateCol = Installationsdatum
+ContentDgWrappersProdVerCol = Produkt version
 ContentTblComputerNameTitle = Ange datornamn:
-ContentUserCol = Installerad för ...
+ContentTiAppListLocal = Lokalt
+ContentTiAppListSysMan = SysMan
+ContentTiAppListWrappers = Wrappers
 ErrComputerNotFound = Ingen dator hittades med angivet namn
 ErrHiveNotAccessible = Kan inte nå register hive
 QUninstall = Säker på att du vill avinstallera
@@ -16,4 +25,7 @@ StrNoDate = Inget datum
 StrSwitchComputer = Datorn som laddats i detta verktyg, och datorn som skickats från huvudfönstret är inte samma. Vill du byta till datorn som skickats från huvudfönstret?
 StrSwitchComputer2 = Dator från huvudfönstret:
 StrUninstalling = Avinstallerar
+TblAppListLocalTitle = Denna lista visar alla applikationer som är installerade på datorn, samt om de är installerade för en enskild användare eller för alla
+TblAppListSysManTitle = Denna lista visar de applikation som är angivna i SysMan
+TblAppListWrappersTitle = Denna lista visar wrappers installerade på datorn
 '@
