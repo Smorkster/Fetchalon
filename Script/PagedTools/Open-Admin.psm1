@@ -477,6 +477,7 @@ function ShowDiffWindow
 
 	$syncHash.Controls.DgDiffList.ItemsSource = $syncHash.DiffList
 	$syncHash.Controls.DiffWindow.Visibility = [System.Windows.Visibility]::Visible
+	#WriteLog -Text $syncHash.Data.msgTable.LogOpenDiffWindow -UserInput ( [string]( $LvItem.DevPath, $LvItem.ProdPath ) ) -Success $true
 }
 
 function TestLocalizations

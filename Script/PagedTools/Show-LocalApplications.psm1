@@ -24,10 +24,26 @@ function Reset
 	.Synopsis Resets controls
 	#>
 
-	$syncHash.Controls.Window.Resources['CvsApps'].Source.Clear()
+	$syncHash.Controls.Window.Resources['CvsAppsLocal'].Source.Clear()
+	$syncHash.Controls.Window.Resources['CvsAppsSysMan'].Source.Clear()
+	$syncHash.Controls.Window.Resources['CvsAppsWrappers'].Source.Clear()
 	$syncHash.DC.TbProgressInfo[0] = ""
 	$syncHash.DC.TbProgressInfo[1] = "Black"
 	$syncHash.DC.TbProgressInfo[1] = [System.Windows.Visibility]::Hidden
+}
+
+function SetLocalizations
+{
+	$syncHash.Controls.Window.Resources['CvsAppsLocal'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Controls.Window.Resources['CvsAppsSysMan'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Controls.Window.Resources['CvsAppsWrappers'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+
+	$syncHash.Controls.DgAppListWrappers.Columns[0].Header = $syncHash.Data.msgTable.ContentDgWrappersAppNameCol
+	$syncHash.Controls.DgAppListWrappers.Columns[1].Header = $syncHash.Data.msgTable.ContentDgWrappersInstallDateCol
+	$syncHash.Controls.DgAppListWrappers.Columns[2].Header = $syncHash.Data.msgTable.ContentDgWrappersProdVerCol
+
+	$syncHash.Controls.DgAppListSysMan.Columns[0].Header = $syncHash.Data.msgTable.ContentDgSysManNameCol
+	$syncHash.Controls.DgAppListSysMan.Columns[1].Header = $syncHash.Data.msgTable.ContentDgSysManDescCol
 }
 
 ################### Start script
@@ -37,19 +53,41 @@ $controls = [System.Collections.ArrayList]::new()
 [void]$controls.Add( @{ CName = "TbProgressInfo" ; Props = @( @{ PropName = "Text"; PropVal = "" } ; @{ PropName = "Foreground" ; PropVal = "Black" } ) } )
 
 BindControls $syncHash $controls
-
-$syncHash.Controls.Window.Resources['CvsApps'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-
+SetLocalizations
 $syncHash.Code.GetApps = {
-	$Apps = @()
+	$Apps = @{}
+	$Apps.InstalledApplications = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$Apps.Wrappers = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$Apps.SysMan = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+
 	$32BitPath = "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*"
 	$64BitPath = "SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
 
-	$Apps += Get-ItemProperty -Path "HKLM:\$32BitPath" | ForEach-Object { [pscustomobject]@{ Source = "Global32" ; App = $_ } }
-	$Apps += Get-ItemProperty -Path "HKLM:\$64BitPath" | ForEach-Object { [pscustomobject]@{ Source = "Global64" ; App = $_ } }
+	Get-ItemProperty -Path "HKLM:\$32BitPath" | `
+		ForEach-Object {
+			$App = $_
+			Add-Member -InputObject $App -MemberType Noteproperty -Name "Source" -Value "Global32"
+			$Apps.InstalledApplications.Add( $_ ) | Out-Null
+		}
+	Get-ItemProperty -Path "HKLM:\$64BitPath" | `
+		ForEach-Object {
+			$App = $_
+			Add-Member -InputObject $App -MemberType Noteproperty -Name "Source" -Value "Global64"
+			$Apps.InstalledApplications.Add( $App ) | Out-Null
+		}
 
-	$Apps += Get-ItemProperty "Registry::\HKEY_CURRENT_USER\$32BitPath" | ForEach-Object { [pscustomobject]@{ Source = "CurrentUser32" ; App = $_ } }
-	$Apps += Get-ItemProperty "Registry::\HKEY_CURRENT_USER\$64BitPath" | ForEach-Object { [pscustomobject]@{ Source = "CurrentUser64" ; App = $_ } }
+	Get-ItemProperty "Registry::\HKEY_CURRENT_USER\$32BitPath" | `
+		ForEach-Object {
+			$App = $_
+			Add-Member -InputObject $App -MemberType Noteproperty -Name "Source" -Value "CurrentUser32"
+			$Apps.InstalledApplications.Add( $App ) | Out-Null
+		}
+	Get-ItemProperty "Registry::\HKEY_CURRENT_USER\$64BitPath" | `
+		ForEach-Object {
+			$App = $_
+			Add-Member -InputObject $App -MemberType Noteproperty -Name "Source" -Value "CurrentUser64"
+			$Apps.InstalledApplications.Add( $App ) | Out-Null
+		}
 
 	$AllProfiles = Get-CimInstance Win32_UserProfile | Select-Object LocalPath, SID, Loaded, Special | Where-Object { $_.SID -like "S-1-5-21-*" }
 	$MountedProfiles = $AllProfiles | Where-Object { $_.Loaded -eq $true }
@@ -58,8 +96,20 @@ $syncHash.Code.GetApps = {
 	$MountedProfiles | `
 		ForEach-Object {
 			$U = $_
-			$Apps += Get-ItemProperty -Path "Registry::\HKEY_USERS\$( $_.SID )\$32BitPath" | ForEach-Object { [pscustomobject]@{ Source = "User32" ; App = $_ ; User = ( $U.LocalPath -split "\\" )[-1] } }
-			$Apps += Get-ItemProperty -Path "Registry::\HKEY_USERS\$( $_.SID )\$64BitPath" | ForEach-Object { [pscustomobject]@{ Source = "User64" ; App = $_ ; User = ( $U.LocalPath -split "\\" )[-1] } }
+			Get-ItemProperty -Path "Registry::\HKEY_USERS\$( $_.SID )\$32BitPath" | `
+				ForEach-Object {
+					$App = $_
+					Add-Member -InputObject $App -MemberType Noteproperty -Name "Source" -Value "User32"
+					Add-Member -InputObject $App -MemberType Noteproperty -Name "User" -Value ( ( $U.LocalPath -split "\\" )[-1] )
+					$Apps.InstalledApplications.Add( $App ) | Out-Null
+				}
+			Get-ItemProperty -Path "Registry::\HKEY_USERS\$( $_.SID )\$64BitPath" | `
+				ForEach-Object {
+					$App = $_
+					Add-Member -InputObject $App -MemberType Noteproperty -Name "Source" -Value "User64"
+					Add-Member -InputObject $App -MemberType Noteproperty -Name "User" -Value ( ( $U.LocalPath -split "\\" )[-1] )
+					$Apps.InstalledApplications.Add( $App ) | Out-Null
+				}
 		}
 
 	$UnmountedProfiles | `
@@ -71,19 +121,39 @@ $syncHash.Code.GetApps = {
 			{
 				REG LOAD HKU\temp $Hive
 
-				$Apps += Get-ItemProperty -Path "Registry::\HKEY_USERS\temp\$32BitPath" | ForEach-Object { [pscustomobject]@{ Source = "User32" ; App = $_ ; User = ( $U.LocalPath -split "\\" )[-1] } }
-				$Apps += Get-ItemProperty -Path "Registry::\HKEY_USERS\temp\$64BitPath" | ForEach-Object { [pscustomobject]@{ Source = "User64" ; App = $_ ; User = ( $U.LocalPath -split "\\" )[-1] } }
+				Get-ItemProperty -Path "Registry::\HKEY_USERS\temp\$32BitPath" | `
+					ForEach-Object {
+						$App = $_
+						Add-Member -InputObject $App -MemberType Noteproperty -Name "Source" -Value "User32"
+						Add-Member -InputObject $App -MemberType Noteproperty -Name "User" -Value ( ( $U.LocalPath -split "\\" )[-1] )
+						$Apps.InstalledApplications.Add( $App ) | Out-Null
+					}
+				Get-ItemProperty -Path "Registry::\HKEY_USERS\temp\$64BitPath" | `
+					ForEach-Object {
+						$App = $_
+						Add-Member -InputObject $App -MemberType Noteproperty -Name "Source" -Value "User64"
+						Add-Member -InputObject $App -MemberType Noteproperty -Name "User" -Value ( ( $U.LocalPath -split "\\" )[-1] )
+						$Apps.InstalledApplications.Add( $App ) | Out-Null
+					}
 
 				# Run manual GC to allow hive to be unmounted
 				[GC]::Collect()
-				[GC]::WaitForPendingFinalizers()
+				[GC]::WaitForPendingFinalizers() | Out-Null
 			
-				REG UNLOAD HKU\temp
+				REG UNLOAD HKU\temp | Out-Null
 			} else {
 				"$( $syncHash.Data.msgTable.ErrHiveNotAccessible ): $Hive"
 			}
 		}
-	$Apps
+
+	Get-ChildItem -Path 'HKLM:\SOFTWARE\eKlient\Wrapper\' | `
+		ForEach-Object {
+			Get-ItemProperty -Path "HKLM:$( $_.ToString() )" | `
+				ForEach-Object {
+					$Apps.Wrappers.Add( $_ ) | Out-Null
+				}
+		}
+	return $Apps
 }
 
 $syncHash.Data.UninstallLog = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
@@ -120,19 +190,31 @@ $syncHash.Controls.BtnGetAppList.Add_Click( {
 			try
 			{
 				$syncHash.Data.Temp = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-				Invoke-Command -ComputerName $syncHash.Data.ComputerName-ScriptBlock $syncHash.Code.GetApps -ErrorAction Stop | `
-					Where-Object { $null -ne $_.App.DisplayName } |`
-					Select-Object -Property @{ Name = "Name" ; Expression = { if ( $null -eq $_.App.DisplayName ) { $_.App.ParentDisplayName } else { $_.App.DisplayName } } }, `
-								@{ Name = "Installed" ; Expression = { try { ( [datetime]::ParseExact( $_.App.InstallDate, "yyyyMMdd", $null ) ).ToShortDateString() } catch { 0 } } }, `
-								@{ Name = "ID" ; Expression = { $_.App.IdentifyingNumber } }, `
-								@{ Name = "RegItem" ; Expression = { $_.App } }, `
-								@{ Name = "Source" ; Expression = { $_.Source } }, `
+				$Apps = Invoke-Command -ComputerName $syncHash.Data.ComputerName -ScriptBlock $syncHash.Code.GetApps -ErrorAction Stop | `
+					Where-Object { $_ -isnot [string] }
+
+				Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/Client/?name=$( $syncHash.Data.ComputerName )" -Method Get -UseDefaultCredentials -ContentType "application/json" | `
+					ForEach-Object {
+						Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/application/GetInstalledSystems?targetId=$( $_.id )" -Method Get -UseDefaultCredentials -ContentType "application/json"
+					} | `
+					Select-Object -ExpandProperty result | `
+					ForEach-Object {
+						$Apps.SysMan.Add( $_ ) | Out-Null
+					}
+
+				$Apps.InstalledApplications = $Apps.InstalledApplications |`
+					Select-Object -Property @{ Name = "Name" ; Expression = { if ( $null -eq $_.DisplayName ) { $_.ParentDisplayName } else { $_.DisplayName } } }, `
+								@{ Name = "Installed" ; Expression = { try { ( [datetime]::ParseExact( $_.InstallDate, "yyyyMMdd", $null ) ).ToShortDateString() } catch { 0 } } }, `
+								@{ Name = "ID" ; Expression = { $_.IdentifyingNumber } }, `
+								@{ Name = "RegItem" ; Expression = { $_ } }, `
 								@{ Name = "User" ; Expression = { if ( $null -ne $_.User ) { ( Get-ADUser -Identity $_.User ).Name } else { $syncHash.Data.msgTable.StrAllUsers } } } | `
-					Sort-Object User, Name | `
-					ForEach-Object { $syncHash.Data.Temp.Add( $_ ) | out-null }
+					Sort-Object User, Name
 				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsApps'].Source = $syncHash.Data.Temp
+					$syncHash.Controls.Window.Resources['CvsAppsLocal'].Source = $Apps.InstalledApplications
+					$syncHash.Controls.Window.Resources['CvsAppsSysMan'].Source = $Apps.SysMan
+					$syncHash.Controls.Window.Resources['CvsAppsWrappers'].Source = $Apps.Wrappers
 				} )
+				$Temp.Clear()
 				$syncHash.DC.TbProgressInfo[0] = ""
 			}
 			catch
@@ -159,8 +241,8 @@ $syncHash.Controls.BtnGetAppList.Add_Click( {
 $syncHash.Controls.BtnUninstall.Add_Click( {
 	$syncHash.DC.TbProgressInfo[0] = ""
 	$syncHash.DC.TbProgressInfo[1] = "Black"
-	if ( $syncHash.Controls.DgAppList.SelectedItems.Count -gt 10 ) { $summary = "$( $syncHash.Controls.DgAppList.SelectedItems.Count ) $( $syncHash.Data.msgTable.StrAppSum )" }
-	else { $summary = "`n`n$( $ofs = "`n"; [string] $syncHash.Controls.DgAppList.SelectedItems.Name )" }
+	if ( $syncHash.Controls.DgAppListLocal.SelectedItems.Count -gt 10 ) { $summary = "$( $syncHash.Controls.DgAppListLocal.SelectedItems.Count ) $( $syncHash.Data.msgTable.StrAppSum )" }
+	else { $summary = "`n`n$( $ofs = "`n"; [string] $syncHash.Controls.DgAppListLocal.SelectedItems.Name )" }
 
 	if ( [System.Windows.MessageBox]::Show( "$( $syncHash.Data.msgTable.QUninstall ) $summary", "", [System.Windows.MessageBoxButton]::YesNo ) -eq "Yes" )
 	{
@@ -193,14 +275,14 @@ $syncHash.Controls.BtnUninstall.Add_Click( {
 				$syncHash.Controls.BtnGetAppList.RaiseEvent( [System.Windows.RoutedEventArgs]::new( [System.Windows.Controls.Button]::ClickEvent ) )
 			} )
 			$syncHash.DC.PbProgress[2] = [System.Windows.Visibility]::Hidden
-		} ).AddArgument( $syncHash ).AddArgument( @( $syncHash.Controls.DgAppList.SelectedItems | Where-Object { $_ } ) )
+		} ).AddArgument( $syncHash ).AddArgument( @( $syncHash.Controls.DgAppListLocal.SelectedItems | Where-Object { $_ } ) )
 		$syncHash.Jobs.HUninstall = $syncHash.Jobs.PUninstall.BeginInvoke()
 	}
 } )
 
 # If any item is selected, enable button to uninstall
-$syncHash.Controls.DgAppList.Add_SelectionChanged( {
-	$syncHash.DC.BtnUninstall[0] = ( $syncHash.Controls.DgAppList.SelectedItems.Count -gt 0 )
+$syncHash.Controls.DgAppListLocal.Add_SelectionChanged( {
+	$syncHash.DC.BtnUninstall[0] = ( $syncHash.Controls.DgAppListLocal.SelectedItems.Count -gt 0 )
 } )
 
 # When the GUI is visible, check if computername should be entered to the textbox or if applist is to be fetched
