@@ -434,73 +434,10 @@ function RunScriptNoRunspace
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
 	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $syncHash.Data.msgTable.StrScriptRunningWithoutRunspace }, [System.Windows.Threading.DispatcherPriority]::Send )
 
-	$Info = [pscustomobject]@{ Finished = $null; Data = $null ; Script = $ScriptObject ; Error = $null ; Item = $syncHash.Data.SearchedItem ; OutputType = "String" }
+	$EnteredInput = @{}
+	$syncHash.GridFunctionOp.DataContext.InputData | ForEach-Object { $EnteredInput."$( $_.Name )" = $_.EnteredValue }
+	. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module ) $syncHash.Data.SearchedItem $EnteredInput
 
-	try
-	{
-		if ( "None" -eq $syncHash.GridFunctionOp.DataContext.SearchedItemRequest )
-		{
-			$ScriptOutput = . $Info.Script.Name $EnteredInput
-		}
-		else
-		{
-			$ScriptOutput = . $Info.Script.Name $Info.Item $EnteredInput
-		}
-
-		$Info.Data = $ScriptOutput
-
-		if ( $null -eq $Info.Data )
-		{
-			$Info.OutputType = "String"
-		}
-		elseif ( $Info.Data -is [pscustomobject] )
-		{
-			$Info.Data | Get-Member -MemberType NoteProperty | `
-				ForEach-Object `
-					-Begin { $l = [System.Collections.ArrayList]::new() } `
-					-Process { $l.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrOutputPropName = $_.Name ; $syncHash.Data.msgTable.StrOutputPropValue = $Info.Data."$( $_.Name )" } ) ) | Out-Null } `
-					-End { $Info.Data = $l }
-			$Info.OutputType = "ObjectList"
-		}
-
-		if ( $Info.Data -is [string] )
-		{
-			$Info.OutputType = "String"
-		}
-		elseif ( "String", "List", "ObjectList" -match $ScriptObject.OutputType )
-		{
-			$Info.OutputType = $ScriptObject.OutputType
-		}
-		else
-		{
-			$Info.OutputType = "String"
-		}
-	}
-	catch
-	{
-		$Info.Error = $_
-	}
-	$Info.Finished = Get-Date
-
-	# Log activity
-	if ( $null -ne $syncHash.Data.SearchedItem )
-	{
-		$LogText = "Function: $( $ScriptObject.Name )`r`n$( $syncHash.Data.msgTable.LogStrSearchItemTitle ): $( $syncHash.Data.SearchedItem.Name )"
-	}
-	else
-	{
-		$LogText = "Function: $( $ScriptObject.Name )"
-	}
-
-	if ( $Info.Error )
-	{
-		$eh = WriteErrorlog -LogText $LogText -UserInput $null -Severity -1
-	}
-	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $EnteredInput | ConvertTo-Json -Compress ) -ErrorLogHash $eh | Out-Null
-
-	$syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $Info )
-	$syncHash.GridFunctionOp.DataContext = $null
-	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Collapsed
 	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $msgTable.StrDefaultMainTitle } )
 }
 
@@ -997,6 +934,7 @@ $syncHash.Code.ListItem =
 			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADGroups" -Value ( [System.Collections.ArrayList]::new() )
 			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ReadPermissions" -Value ( [System.Collections.ArrayList]::new() )
 			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "WritePermissions" -Value ( [System.Collections.ArrayList]::new() )
+
 			$acl = Get-Acl $syncHash.Data.SearchedItem.FullName
 			( $acl.Access | Where-Object { $_.IdentityReference -match $syncHash.Data.msgTable.CodeRegExAclIdentity } ).IdentityReference | `
 				Select-Object -Unique | `
@@ -1009,11 +947,7 @@ $syncHash.Code.ListItem =
 					{
 						Get-ADGroupMember $_.Name | `
 							Sort-Object Name | `
-							ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $_.DistinguishedName ) }
-						if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Count )
-						{
-							$syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $syncHash.Data.msgTable.ContentNoMembersOfList ) | Out-Null
-						}
+							ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $_.DistinguishedName ) | Out-Null }
 
 						try
 						{
@@ -1029,13 +963,22 @@ $syncHash.Code.ListItem =
 					{
 						Get-ADGroupMember $_.Name | `
 							Sort-Object Name | `
-							ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $_.DistinguishedName ) }
-						if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Count )
-						{
-							$syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $syncHash.Data.msgTable.ContentNoMembersOfList ) | Out-Null
-						}
+							ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $_.DistinguishedName ) | Out-Null }
 					}
 				}
+
+			if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.ADGroups.Count )
+			{
+				$syncHash.Data.SearchedItem.ExtraInfo.Other.ADGroups.Add( $syncHash.Data.msgTable.ContentNoMembersOfList ) | Out-Null
+			}
+			if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Count )
+			{
+				$syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $syncHash.Data.msgTable.ContentNoMembersOfList ) | Out-Null
+			}
+			if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Count )
+			{
+				$syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $syncHash.Data.msgTable.ContentNoMembersOfList ) | Out-Null
+			}
 		}
 
 		if ( $syncHash.Data.SearchedItem.MemberOf -match $syncHash.Data.msgTable.StrGrpNameSharedCompName )
@@ -1311,7 +1254,6 @@ Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximu
 
 	if ( $null -ne $SenderObject.DataContext.Script.Synopsis )
 	{ $Synopsis = "`n$( $syncHash.Data.msgTable.StrCopyOutputSynopsis ): $( $SenderObject.DataContext.Script.Synopsis )" }
-	$syncHash.Data.Test = $SenderObject
 
 	if ( $_.Script.InputData )
 	{ $InputData = "$( $syncHash.Data.msgTable.StrCopyOutputEnteredInput ):`n$( $SenderObject.DataContext.Script.InputData | ForEach-Object { "$( $_.Name ): $( $_.EnteredValue )`n" } )" }
@@ -1509,14 +1451,16 @@ $(
 	StartSearch
 }
 
+# Code for running a function and display its output
 $syncHash.Code.SBlockExecuteFunction = {
 	param ( $syncHash, $ScriptObject, $Modules, $ItemToSend, $InputData )
 
+	$Error.Clear()
 	Add-Type -AssemblyName PresentationFramework
 	Import-Module $Modules -Force
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
 
-	$Info = [pscustomobject]@{ Finished = $null ; Data = $null ; Script = $ScriptObject ; Error = $null ; Item = $ItemToSend ; OutputType = "String" }
+	$Info = [pscustomobject]@{ Finished = $null ; Data = $null ; Script = $ScriptObject ; Error = [System.Collections.ArrayList]::new() ; Item = $ItemToSend ; OutputType = $ScriptObject.OutputType }
 
 	try
 	{
@@ -1550,12 +1494,21 @@ $syncHash.Code.SBlockExecuteFunction = {
 		}
 		elseif ( $Info.Data -is [pscustomobject] )
 		{
-			$Info.Data | Get-Member -MemberType NoteProperty | `
-				ForEach-Object `
-					-Begin { $l = [System.Collections.ArrayList]::new() } `
-					-Process { $l.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrOutputPropName = $_.Name ; $syncHash.Data.msgTable.StrOutputPropValue = $Info.Data."$( $_.Name )" } ) ) | Out-Null } `
-					-End { $Info.Data = $l }
-			$Info.OutputType = "ObjectList"
+			if ( "List" -eq $Info.OutputType )
+			{
+				$temp = [System.Collections.ArrayList]::new()
+				$temp.Add( $Info.Data ) | Out-Null
+				$Info.Data = $temp
+			}
+			else
+			{
+				$Info.Data | Get-Member -MemberType NoteProperty | `
+					ForEach-Object `
+						-Begin { $l = [System.Collections.ArrayList]::new() } `
+						-Process { $l.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrOutputPropName = $_.Name ; $syncHash.Data.msgTable.StrOutputPropValue = $Info.Data."$( $_.Name )" } ) ) | Out-Null } `
+						-End { $Info.Data = $l }
+				$Info.OutputType = "ObjectList"
+			}
 		}
 
 		if ( $Info.Data -is [string] )
@@ -1564,16 +1517,13 @@ $syncHash.Code.SBlockExecuteFunction = {
 		{ $Info.OutputType = $ScriptObject.OutputType }
 		else
 		{ $Info.OutputType = "String" }
+	}
+	catch {}
 
-		if ( $Error.Count -gt 0 )
-		{
-			$Info.Error = $Error
+	$Error | `
+		ForEach-Object {
+			$Info.Error.Add( $_ ) | Out-Null
 		}
-	}
-	catch
-	{
-		$Info.Error = $_
-	}
 	$Info.Finished = Get-Date
 
 	# Log activity
@@ -1590,7 +1540,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 	{
 		$eh = WriteErrorlog -LogText $LogText -UserInput $null -Severity -1
 	}
-	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $InputData | ConvertTo-Json -Compress ) -ErrorLogHash $eh
+	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $InputData | ConvertTo-Json -Compress ) -ErrorLogHash $eh | Out-Null
 
 	$syncHash.Window.Dispatcher.Invoke( [action] {
 		# Send result to GUI
@@ -1639,7 +1589,6 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 	ForEach-Object {
 		Get-ChildItem $_.FullName | `
 			ForEach-Object {
-				try { Remove-Variable MiObject, File, ScriptInfo, MenuItemText -ErrorAction Stop } catch {}
 				$File = $_
 				$MiObject = GetScriptInfo -FilePath $File.FullName -NoErrorRecord
 				if (
@@ -1804,8 +1753,11 @@ $syncHash.IcOutputObjects.ItemsSource.Add_CollectionChanged( {
 	{
 		try
 		{
-			$syncHash.Jobs.ExecuteFunction.P.Close()
-			$syncHash.Jobs.ExecuteFunction.P.Dispose()
+			if ( $syncHash.Jobs.ExecuteFunction )
+			{
+				$syncHash.Jobs.ExecuteFunction.P.Close()
+				$syncHash.Jobs.ExecuteFunction.P.Dispose()
+			}
 		}
 		catch
 		{
@@ -1912,7 +1864,6 @@ $syncHash.TbSearch.Add_GotFocus( {
 
 # Key was pressed in the search textbox
 $syncHash.TbSearch.Add_KeyDown( {
-	$syncHash.Test = $args
 	if ( "Return" -eq $args[1].Key )
 	{
 		$syncHash.DC.TbSearch[0] = $this.Text

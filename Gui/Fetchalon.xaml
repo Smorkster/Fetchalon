@@ -1424,7 +1424,6 @@
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
                                     <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
                                     <RowDefinition Height="1*" />
                                 </Grid.RowDefinitions>
                                 <Grid Name="GridOutputTitle">
@@ -1577,17 +1576,23 @@
                                         </Button>
                                     </Grid>
                                 </Grid>
-                                <TextBlock Name="TblOutputErrorTitle">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock"
-                                               BasedOn="{StaticResource PropTitleStyle}">
+                                <Border>
+                                    <Border.Style>
+                                        <Style TargetType="Border">
+                                            <Setter Property="BorderBrush"
+                                                    Value="Red" />
+                                            <Setter Property="BorderThickness"
+                                                    Value="4,0" />
                                             <Setter Property="Grid.Row"
                                                     Value="1" />
-                                            <Setter Property="Text"
-                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblOutputErrorsTitle}" />
                                             <Setter Property="Visibility"
                                                     Value="Visible" />
                                             <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Path=Error.Count}"
+                                                             Value="0">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed" />
+                                                </DataTrigger>
                                                 <DataTrigger Binding="{Binding Path=Error}"
                                                              Value="{x:Null}">
                                                     <Setter Property="Visibility"
@@ -1595,9 +1600,52 @@
                                                 </DataTrigger>
                                             </Style.Triggers>
                                         </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Name="TblOutputObjectErrors">
+                                    </Border.Style>
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition />
+                                        </Grid.RowDefinitions>
+                                        <TextBlock Name="TblOutputErrorTitle">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock"
+                                                       BasedOn="{StaticResource PropTitleStyle}">
+                                                    <Setter Property="Text"
+                                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblOutputErrorsTitle}" />
+                                                    <Setter Property="Visibility"
+                                                            Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Path=Error}"
+                                                                     Value="{x:Null}">
+                                                            <Setter Property="Visibility"
+                                                                    Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        <ListView>
+                                            <ListView.Style>
+                                                <Style TargetType="ListView">
+                                                    <Setter Property="Grid.Row"
+                                                            Value="1" />
+                                                    <Setter Property="ItemTemplate">
+                                                        <Setter.Value>
+                                                            <DataTemplate>
+                                                                <TextBlock Text="{Binding Path=Exception.Message}" />
+                                                            </DataTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                    <Setter Property="ItemsSource"
+                                                            Value="{Binding Path=Error}" />
+                                                    <Setter Property="Margin"
+                                                            Value="{StaticResource StdMargin}" />
+                                                </Style>
+                                            </ListView.Style>
+                                        </ListView>
+                                    </Grid>
+                                </Border>
+                                <!--<TextBlock Name="TblOutputObjectErrors">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="Foreground"
@@ -1619,13 +1667,14 @@
                                             </Style.Triggers>
                                         </Style>
                                     </TextBlock.Style>
-                                </TextBlock>
+                                </TextBlock>-->
+                                <!-- Data output from function -->
                                 <Grid Grid.Row="3">
                                     <ScrollViewer Name="ScvOutputData">
                                         <ScrollViewer.Style>
                                             <Style TargetType="ScrollViewer">
                                                 <Setter Property="Grid.Row"
-                                                        Value="3" />
+                                                        Value="2" />
                                                 <Setter Property="HorizontalScrollBarVisibility"
                                                         Value="Auto" />
                                                 <Setter Property="VerticalScrollBarVisibility"
@@ -2685,70 +2734,87 @@
                                 </MenuItem.ItemContainerStyle>
                                 <MenuItem.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid>
-                                            <Grid.Resources>
-                                                <Style TargetType="TextBlock"
-                                                       x:Key="TblMenuItemstyle">
-                                                    <Setter Property="FontSize"
-                                                            Value="12" />
-                                                    <Setter Property="FontWeight"
-                                                            Value="Normal" />
-                                                    <Setter Property="HorizontalAlignment"
-                                                            Value="Stretch" />
-                                                    <Setter Property="Margin"
-                                                            Value="{StaticResource StdMargin}" />
+                                        <Border>
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="BorderBrush"
+                                                            Value="Red" />
+                                                    <Setter Property="BorderThickness"
+                                                            Value="5,0,0,0" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Path=Error}"
+                                                                     Value="{x:Null}">
+                                                            <Setter Property="BorderBrush"
+                                                                    Value="LightGreen" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
                                                 </Style>
-                                            </Grid.Resources>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition />
-                                                <ColumnDefinition />
-                                                <ColumnDefinition Width="Auto" />
-                                            </Grid.ColumnDefinitions>
-                                            <Label>
-                                                <Label.Style>
-                                                    <Style TargetType="Label">
-                                                        <Setter Property="Content"
-                                                                Value="{Binding Path=Finished}" />
-                                                        <Setter Property="ContentStringFormat"
-                                                                Value="{DynamicResource StrTimeFormat}" />
-                                                        <Setter Property="FontSize"
-                                                                Value="12" />
-                                                        <Setter Property="HorizontalAlignment"
-                                                                Value="Right" />
-                                                    </Style>
-                                                </Label.Style>
-                                            </Label>
-                                            <TextBlock>
-                                                <TextBlock.Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Grid.Resources>
                                                     <Style TargetType="TextBlock"
-                                                           BasedOn="{StaticResource TblMenuItemstyle}">
+                                                           x:Key="TblMenuItemstyle">
                                                         <Setter Property="FontSize"
                                                                 Value="12" />
                                                         <Setter Property="FontWeight"
-                                                                Value="Bold" />
-                                                        <Setter Property="Grid.Column"
-                                                                Value="1" />
-                                                        <Setter Property="Text"
-                                                                Value="{Binding Path=Script.Name}" />
-                                                        <Setter Property="ToolTip"
-                                                                Value="{Binding Path=Script.Description}" />
+                                                                Value="Normal" />
+                                                        <Setter Property="HorizontalAlignment"
+                                                                Value="Stretch" />
+                                                        <Setter Property="Margin"
+                                                                Value="{StaticResource StdMargin}" />
                                                     </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                            <TextBlock>
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock"
-                                                           BasedOn="{StaticResource TblMenuItemstyle}">
-                                                        <Setter Property="Grid.Column"
-                                                                Value="2" />
-                                                        <Setter Property="Text"
-                                                                Value="{Binding Path=Item.Name}" />
-                                                        <Setter Property="TextWrapping"
-                                                                Value="NoWrap" />
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                        </Grid>
+                                                </Grid.Resources>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Label>
+                                                    <Label.Style>
+                                                        <Style TargetType="Label">
+                                                            <Setter Property="Content"
+                                                                    Value="{Binding Path=Finished}" />
+                                                            <Setter Property="ContentStringFormat"
+                                                                    Value="{DynamicResource StrTimeFormat}" />
+                                                            <Setter Property="FontSize"
+                                                                    Value="12" />
+                                                            <Setter Property="HorizontalAlignment"
+                                                                    Value="Right" />
+                                                        </Style>
+                                                    </Label.Style>
+                                                </Label>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource TblMenuItemstyle}">
+                                                            <Setter Property="FontSize"
+                                                                    Value="12" />
+                                                            <Setter Property="FontWeight"
+                                                                    Value="Bold" />
+                                                            <Setter Property="Grid.Column"
+                                                                    Value="1" />
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding Path=Script.Name}" />
+                                                            <Setter Property="ToolTip"
+                                                                    Value="{Binding Path=Script.Description}" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource TblMenuItemstyle}">
+                                                            <Setter Property="Grid.Column"
+                                                                    Value="2" />
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding Path=Item.Name}" />
+                                                            <Setter Property="TextWrapping"
+                                                                    Value="NoWrap" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Border>
                                     </DataTemplate>
                                 </MenuItem.ItemTemplate>
                             </MenuItem>

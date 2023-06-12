@@ -20,4 +20,40 @@ $FullName = [pscustomobject]@{
 	MandatorySource = "AD"
 }
 
-Export-ModuleMember -Variable DirectoryInventory
+# Handler to turn WritePermissions-list to more readble names
+$WritePermissions = [pscustomobject]@{
+	Code = 'try {
+		$List = [System.Collections.ArrayList]::new()
+		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilectlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
+	} catch {}
+	if ( $List.Count -gt 0 )
+	{
+		$SenderObject.DataContext.Value = $List
+		$syncHash.IcPropsList.Items.Refresh()
+	}'
+	Title = $IntMsgTable.HTWritePermissions
+	Description = $IntMsgTable.HDescWritePermissions
+	Progress = 0
+	MandatorySource = "Other"
+}
+
+# Handler to turn ReadPermissions-list to more readble names
+$ReadPermissions = [pscustomobject]@{
+	Code = '
+	$syncHash.Data.Test = $SenderObject
+	try {
+		$List = [System.Collections.ArrayList]::new()
+		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilectlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
+	} catch {}
+	if ( $List.Count -gt 0 )
+	{
+		$SenderObject.DataContext.Value = $List
+		$syncHash.IcPropsList.Items.Refresh()
+	}'
+	Title = $IntMsgTable.HTReadPermissions
+	Description = $IntMsgTable.HDescReadPermissions
+	Progress = 0
+	MandatorySource = "Other"
+}
+
+Export-ModuleMember -Variable FullName, WritePermissions, ReadPermissions

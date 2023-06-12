@@ -1,8 +1,8 @@
 ﻿ConvertFrom-StringData @'
-HTMemberOf = Visa lättläst
+HDescClearPrintQueueJobs = Rensa skrivarkön
 HDescMemberOf = Gör om namnen till lättläsliga namn
-HTOpenPrinterWebpage = Öppna skrivaren i Chrome
 HDescOpenPrinterWebpage = Anslut till skrivarens, via dess IP, i Chrome
 HTClearPrintQueueJobs = Rensa skrivarkön
-HDescClearPrintQueueJobs = Rensa skrivarkön
+HTMemberOf = Visa lättläst
+HTOpenPrinterWebpage = Öppna skrivaren i Chrome
 '@

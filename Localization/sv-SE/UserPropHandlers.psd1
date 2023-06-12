@@ -1,6 +1,6 @@
 ﻿ConvertFrom-StringData @'
-HTOpenHomeDirectory = Öppna i Utforskaren
+HDescMemberOf = Gör om namnen till lättläsliga namn
 HDescOpenHomeDirectory = Öppna mappen i Utforskaren
 HTMemberOf = Visa lättläst
-HDescMemberOf = Gör om namnen till lättläsliga namn
+HTOpenHomeDirectory = Öppna i Utforskaren
 '@
