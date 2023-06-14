@@ -498,14 +498,15 @@ function TestLocalizations
 	$OrphandLocs = [System.Collections.ArrayList]::new()
 	$InvalidLocs = [System.Collections.ArrayList]::new()
 
+	# Localization strings for current file
 	Import-LocalizedData -BindingVariable LocalizationData -UICulture $syncHash.Data.CultureInfo.CurrentCulture.Name -BaseDirectory "$( $syncHash.Data.DevRoot )\Localization\" -FileName $File.DevFile.BaseName
-	Import-LocalizedData -BindingVariable MainScriptLocalizationData -UICulture $syncHash.Data.CultureInfo.CurrentCulture.Name -BaseDirectory "$( $syncHash.Data.DevRoot )\Localization\" -FileName "Fetchalon"
 
 	if ( $File.DevFile.Extension -match "(psm*1)|(xaml)" )
 	{
 		if ( $File.DevFile.BaseName -match "PropHandlers" )
 		{
-			Import-LocalizedData -BindingVariable MainScriptLocalizationData -UICulture $syncHash.Data.CultureInfo.CurrentCulture.Name -BaseDirectory "$( $syncHash.Data.DevRoot )\Localization\" -FileName "Fetchalon"
+			# Localization strings for suite main script
+			Import-LocalizedData -BindingVariable MainScriptLocalizationData -UICulture $syncHash.Data.CultureInfo.CurrentCulture.Name -BaseDirectory "$( $syncHash.Data.DevRoot )\Localization\" -FileName $syncHash.Data.SuiteBaseName
 
 			[regex]::Matches( ( Get-Content $File.DevFile.FullName ), "(?m)\s*\[pscustomobject\].*?Code = '(?<Code>.*?)'\s*?Title" ) | `
 				ForEach-Object {
@@ -518,13 +519,17 @@ function TestLocalizations
 						}
 				}
 
-			[regex]::Matches( ( Get-Content $File.DevFile.FullName ), "Int[Mm]sgTable\.(?<Key>\w+(?<!Keys))\b" ) | `
-				ForEach-Object {
-					if ( $LocalizationData.Keys -notcontains $_.Groups['Key'].Value )
-					{
-						$InvalidLocs.Add( $_.Groups['Key'].Value ) | Out-Null
+			Get-Item -Path $File.DevFile.FullName | `
+				Select-String -Pattern "Int[Mm]sgTable\.(\w+(?<!Keys))\b" -AllMatches | `
+					ForEach-Object {
+						if ( $_.Line -match "Int[Mm]sgTable\.(?<Key>\w+(?<!Keys))\b" )
+						{
+							if ( $LocalizationData.Keys -notcontains $Matches.Key )
+							{
+								$InvalidLocs.Add( ( [pscustomobject]@{ Key = $Matches.Key ; LineNumber = $_.LineNumber ; Line = $_.Line.Trim() } ) ) | Out-Null
+							}
+						}
 					}
-				}
 		}
 		else
 		{
@@ -542,17 +547,36 @@ function TestLocalizations
 				}
 		}
 	}
-	if ( $File.DevFile.Extension -eq ".psd1" )
+	elseif ( $File.DevFile.Extension -eq ".psd1" )
 	{
 		$ScriptFile = Get-ChildItem -Path $syncHash.Data.BaseDir -Exclude "Rollback", "Logs", "ErrorLogs", "Output", "Tests" | ForEach-Object { Get-ChildItem -Path $_.FullName -Filter "$( $File.DevFile.BaseName )*" -Recurse | Where-Object { $_.Extension -match "psm*1" } }
 		$XamlFile = Get-ChildItem -Path $syncHash.Data.BaseDir -Exclude "Rollback", "Logs", "ErrorLogs", "Output", "Tests" | ForEach-Object { Get-ChildItem -Path $_.FullName -Filter "$( $File.DevFile.BaseName ).xaml" -Recurse }
 
+		if ( $syncHash.Data.SuiteBaseName -eq $File.DevFile.BaseName )
+		{
+			# Check keys in prophandlers against keys in Fetchalon loc
+			$LocsInPropHandlers = @{}
+			Get-Module -Name *PropHandlers | `
+				ForEach-Object {
+					$Module = $_
+					$_.ExportedVariables.GetEnumerator() | `
+						ForEach-Object {
+							[regex]::Matches( $_.Value.Value.Code , "\.msgTable\.(?<Var>\w+?)\b" ) | `
+								ForEach-Object {
+									try { $LocsInPropHandlers.Add( $_.Groups['Var'].Value, "" ) | Out-Null }
+									catch {}
+								}
+						}
+				}
+		}
+
 		# Check that if any key in localization-file is not present in the scriptfile or Xaml-file
 		foreach ( $Key in $LocalizationData.Keys )
 		{
-			try { Remove-Variable UsedInScript, UsedInXaml -ErrorAction SilentlyContinue } catch {}
+			try { Remove-Variable UsedInScript, UsedInXaml, UsedInPropHandler -ErrorAction SilentlyContinue } catch {}
 			$UsedInScript = $false
 			$UsedInXaml = $false
+			$UsedInPropHandler = $false
 
 			try
 			{
@@ -570,9 +594,18 @@ function TestLocalizations
 				}
 			} catch {}
 
-			if ( ( -not $UsedInScript ) -and ( -not $UsedInXaml ) )
+			if ( $LocsInPropHandlers )
 			{
-				$OrphandLocs.Add( $Key ) | Out-Null
+				$UsedInPropHandler = $Key -in $LocsInPropHandlers.Keys
+			}
+
+			if (
+				( -not $UsedInScript ) -and `
+				( -not $UsedInXaml ) -and `
+				( -not $UsedInPropHandler )
+			)
+			{
+				$OrphandLocs.Add( ( [pscustomobject]@{ LocVar = $Key ; LocVal = $LocalizationData.$Key } ) ) | Out-Null
 			}
 		}
 	}
@@ -848,6 +881,8 @@ else
 {
 	$syncHash.Controls.SpUpdateControls.Children.Remove( $syncHash.Controls.ChbPublishFiles )
 }
+
+$syncHash.Data.SuiteBaseName = "Fetchalon"
 
 [System.Windows.RoutedEventHandler] $syncHash.Code.OpenFailedUpdatedFile =
 {

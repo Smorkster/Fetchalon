@@ -38,12 +38,6 @@
                                                 PropertyName="LogDate" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsDgPublishedNotInDev">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="ProdFile.Name" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
         <CollectionViewSource x:Key="CvsDgUpdatedInProd">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
@@ -1264,6 +1258,11 @@
                                                             <Setter Property="Background"
                                                                     Value="White" />
                                                         </DataTrigger>
+                                                        <Trigger Property="IsSelected"
+                                                                 Value="True">
+                                                            <Setter Property="Foreground"
+                                                                    Value="{StaticResource DefaultFontColor}" />
+                                                        </Trigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </DataGridTextColumn.CellStyle>
@@ -1625,19 +1624,19 @@
                                                                                                     <Run FontWeight="Bold"
                                                                                                          Text="{DynamicResource DgIVColHeaderTextLN}" />
                                                                                                     <Run Text=" " />
-                                                                                                    <Run Text="{Binding ScLineNr}" />
+                                                                                                    <Run Text="{Binding LineNumber}" />
                                                                                                 </TextBlock>
                                                                                                 <TextBlock>
                                                                                                     <Run FontWeight="Bold"
                                                                                                          Text="{DynamicResource DgIVColHeaderTextSV}" />
                                                                                                     <Run Text=" " />
-                                                                                                    <Run Text="{Binding ScVar}" />
+                                                                                                    <Run Text="{Binding Key}" />
                                                                                                 </TextBlock>
                                                                                                 <TextBlock>
                                                                                                     <Run FontWeight="Bold"
                                                                                                          Text="{DynamicResource DgIVColHeaderTextSL}" />
                                                                                                     <Run Text=" " />
-                                                                                                    <Run Text="{Binding ScLine}" />
+                                                                                                    <Run Text="{Binding Line}" />
                                                                                                 </TextBlock>
                                                                                             </StackPanel>
                                                                                         </Setter.Value>
@@ -1652,21 +1651,7 @@
                                                                                 </Style>
                                                                             </DataGrid.Style>
                                                                             <DataGrid.Columns>
-                                                                                <DataGridTextColumn Binding="{Binding ScLineNr}">
-                                                                                    <DataGridTextColumn.Header>
-                                                                                        <TextBlock Text="{DynamicResource DgIVColHeaderTextLN}" />
-                                                                                    </DataGridTextColumn.Header>
-                                                                                </DataGridTextColumn>
-                                                                                <DataGridTextColumn Binding="{Binding ScVar}">
-                                                                                    <DataGridTextColumn.Header>
-                                                                                        <TextBlock Text="{DynamicResource DgIVColHeaderTextSV}" />
-                                                                                    </DataGridTextColumn.Header>
-                                                                                </DataGridTextColumn>
-                                                                                <DataGridTextColumn Binding="{Binding ScLine}">
-                                                                                    <DataGridTextColumn.Header>
-                                                                                        <TextBlock Text="{DynamicResource DgIVColHeaderTextSL}" />
-                                                                                    </DataGridTextColumn.Header>
-                                                                                </DataGridTextColumn>
+                                                                                <DataGridTextColumn Binding="{Binding Key}" />
                                                                             </DataGrid.Columns>
                                                                         </DataGrid>
                                                                     </DataTemplate>
@@ -1727,12 +1712,14 @@
                                                                             <DataGrid.Style>
                                                                                 <Style TargetType="DataGrid"
                                                                                        BasedOn="{StaticResource DgInCellStyle}">
+                                                                                    <Setter Property="HeadersVisibility"
+                                                                                            Value="None" />
                                                                                     <Setter Property="ItemsSource"
                                                                                             Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.OrphandLocalizations}" />
                                                                                 </Style>
                                                                             </DataGrid.Style>
                                                                             <DataGrid.Columns>
-                                                                                <DataGridTextColumn Binding="{Binding Path=.}" />
+                                                                                <DataGridTextColumn Binding="{Binding Path=LocVar}" />
                                                                             </DataGrid.Columns>
                                                                         </DataGrid>
                                                                     </DataTemplate>
@@ -2000,220 +1987,6 @@
                                                         <Style TargetType="TextBlock">
                                                             <Setter Property="Text"
                                                                     Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgUpdatesColProdUpd}" />
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </DataGridTextColumn.Header>
-                                        </DataGridTextColumn>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-                            </Grid>
-                        </TabItem>
-                        <TabItem Name="TiPublishedNotInDev">
-                            <TabItem.Style>
-                                <Style TargetType="TabItem"
-                                       BasedOn="{StaticResource TabItemBaseStyle}">
-                                    <Setter Property="Background"
-                                            Value="Red" />
-                                    <Setter Property="Header"
-                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiPublishedNotInDev}" />
-                                    <Setter Property="Visibility"
-                                            Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=HasItems}"
-                                                     Value="True">
-                                            <Setter Property="Visibility"
-                                                    Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </TabItem.Style>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition Height="Auto" />
-                                    <RowDefinition />
-                                </Grid.RowDefinitions>
-                                <TextBlock Name="TblPublishedNotInDev">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock"
-                                               BasedOn="{StaticResource TblBaseStyle}">
-                                            <Setter Property="Foreground"
-                                                    Value="Red" />
-                                            <Setter Property="Text"
-                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPublishedNotInDev}" />
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <StackPanel>
-                                    <StackPanel.Style>
-                                        <Style TargetType="StackPanel"
-                                               BasedOn="{StaticResource SpBaseStyle}">
-                                            <Setter Property="Grid.Row"
-                                                    Value="1" />
-                                        </Style>
-                                    </StackPanel.Style>
-                                    <Button Name="BtnPublishedNotInDevOpenDiffs">
-                                        <Button.Style>
-                                            <Style TargetType="Button"
-                                                   BasedOn="{StaticResource BtnBaseStyle}">
-                                                <Setter Property="Content"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPublishedNotInDevOpenDiffs}" />
-                                                <Setter Property="IsEnabled"
-                                                        Value="False" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItems.Count}"
-                                                                 Value="1">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="True" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile}"
-                                                                 Value="{x:Null}">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="False" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile.FullName}"
-                                                                 Value="{x:Static sys:String.Empty}">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="False" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-                                    <Button Name="BtnPublishedNotInDevOpenDevFile">
-                                        <Button.Style>
-                                            <Style TargetType="Button"
-                                                   BasedOn="{StaticResource BtnBaseStyle}">
-                                                <Setter Property="Content"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPublishedNotInDevOpenDevFile}" />
-                                                <Setter Property="IsEnabled"
-                                                        Value="False" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItems.Count}"
-                                                                 Value="1">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="True" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile}"
-                                                                 Value="{x:Null}">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="False" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile.FullName}"
-                                                                 Value="{x:Static sys:String.Empty}">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="False" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-                                    <Button Name="BtnPublishedNotInDevOpenProdFile">
-                                        <Button.Style>
-                                            <Style TargetType="Button"
-                                                   BasedOn="{StaticResource BtnBaseStyle}">
-                                                <Setter Property="Content"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPublishedNotInDevOpenProdFile}" />
-                                                <Setter Property="IsEnabled"
-                                                        Value="False" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItems.Count}"
-                                                                 Value="1">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="True" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-                                    <Button Name="BtnPublishedNotInDevOpenBothFiles">
-                                        <Button.Style>
-                                            <Style TargetType="Button"
-                                                   BasedOn="{StaticResource BtnBaseStyle}">
-                                                <Setter Property="Content"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPublishedNotInDevOpenBothFiles}" />
-                                                <Setter Property="IsEnabled"
-                                                        Value="False" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItems.Count}"
-                                                                 Value="1">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="True" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile}"
-                                                                 Value="{x:Null}">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="False" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding ElementName=DgPublishedNotInDev, Path=SelectedItem.DevFile.FullName}"
-                                                                 Value="{x:Static sys:String.Empty}">
-                                                        <Setter Property="IsEnabled"
-                                                                Value="False" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Button.Style>
-                                    </Button>
-                                </StackPanel>
-                                <DataGrid Name="DgPublishedNotInDev">
-                                    <DataGrid.Style>
-                                        <Style TargetType="DataGrid"
-                                               BasedOn="{StaticResource DgBaseStyle}">
-                                            <Setter Property="Grid.Row"
-                                                    Value="2" />
-                                            <Setter Property="ItemsSource"
-                                                    Value="{Binding Source={StaticResource CvsDgPublishedNotInDev}}" />
-                                        </Style>
-                                    </DataGrid.Style>
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Binding="{Binding Path=Name}"
-                                                            ElementStyle="{StaticResource ColumnElementStyle}">
-                                            <DataGridTextColumn.Header>
-                                                <TextBlock>
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Text"
-                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgPublishedNotInDevColName}" />
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </DataGridTextColumn.Header>
-                                        </DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding Path=DevUpd, StringFormat='yyyy-MM-dd hh:mm:ss'}"
-                                                            ElementStyle="{StaticResource ColumnElementStyle}">
-                                            <DataGridTextColumn.Header>
-                                                <TextBlock>
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Text"
-                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgPublishedNotInDevColDevUpd}" />
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </DataGridTextColumn.Header>
-                                        </DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding Path=ProdUpd, StringFormat='yyyy-MM-dd hh:mm:ss'}"
-                                                            ElementStyle="{StaticResource ColumnElementStyle}">
-                                            <DataGridTextColumn.Header>
-                                                <TextBlock>
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Text"
-                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgPublishedNotInDevColProdUpd}" />
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                            </DataGridTextColumn.Header>
-                                        </DataGridTextColumn>
-                                        <DataGridTextColumn Binding="{Binding Path=State}"
-                                                            ElementStyle="{StaticResource ColumnElementStyle}">
-                                            <DataGridTextColumn.Header>
-                                                <TextBlock>
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Text"
-                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgPublishedNotInDevColProdState}" />
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
