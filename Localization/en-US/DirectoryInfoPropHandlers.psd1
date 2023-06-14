@@ -1,8 +1,8 @@
 ﻿ConvertFrom-StringData @'
-HDescOpenDirectory = Open folder in Explorer
-HDescReadPermissions = Change the names to easy-to-read names
-HDescWritePermissions = Change the names to easy-to-read names
-HTOpenDirectory = Open folder
-HTReadPermissions = Display easy to read
-HTWritePermissions = Display easy to read
+HDescDirectoryInfoOtherOpenDirectory = Open folder in Explorer
+HDescDirectoryInfoOtherReadPermissions = Change the names to easy-to-read names
+HDescDirectoryInfoOtherWritePermissions = Change the names to easy-to-read names
+HTDirectoryInfoOtherOpenDirectory = Open folder
+HTDirectoryInfoOtherReadPermissions = Display easy to read
+HTDirectoryInfoOtherWritePermissions = Display easy to read
 '@

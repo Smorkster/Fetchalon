@@ -12,28 +12,28 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 # Handler to turn MemberOf-list to more readble strings
-$MemberOf = [pscustomobject]@{
+$PHPrintQueueAdMemberOf = [pscustomobject]@{
 	Code = '$List = [System.Collections.ArrayList]::new()
 	$SenderObject.DataContext.Value | Get-ADGroup | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
 	$SenderObject.DataContext.Value = $List
 	$syncHash.IcPropsList.Items.Refresh()'
-	Title = $IntMsgTable.HTMemberOf
-	Description = $IntMsgTable.HDescMemberOf
+	Title = $IntMsgTable.HTPrintQueueAdMemberOf
+	Description = $IntMsgTable.HDescPrintQueueAdMemberOf
 	Progress = 0
 	MandatorySource = "AD"
 }
 
 # Handler to open a printers webpage in Chrome, from its portname (IP)
-$portName = [pscustomobject]@{
+$PHPrintQueueAdportName = [pscustomobject]@{
 	Code = '[System.Diagnostics.Process]::Start( "chrome", "http://$( $SenderObject.DataContext.Value )/" )'
-	Title = $IntMsgTable.HTOpenPrinterWebpage
-	Description = $IntMsgTable.HDescOpenPrinterWebpage
+	Title = $IntMsgTable.HTPrintQueueAdOpenWebpage
+	Description = $IntMsgTable.HDescPrintQueueAdOpenWebpage
 	Progress = 0
 	MandatorySource = "AD"
 }
 
 # Remove printjobs on selected printQueue
-$PrintJobs = [pscustomobject]@{
+$PHPrintQueueOtherPrintJobs = [pscustomobject]@{
 	Code = '$syncHash.Jobs.PClearPrinterJobs = [powershell]::Create()
 	$syncHash.Jobs.PClearPrinterJobs.AddScript( { param ( $syncHash, $c, $list )
 		$list | ForEach-Object `
@@ -74,9 +74,9 @@ $PrintJobs = [pscustomobject]@{
 	$syncHash.Jobs.PClearPrinterJobs.AddArgument( $SenderObject.DataContext.Value )
 	$syncHash.Jobs.HClearPrinterJobs = $syncHash.Jobs.PClearPrinterJobs.BeginInvoke()
 	'
-	Title = $IntMsgTable.HTClearPrintQueueJobs
-	Description = $IntMsgTable.HDescClearPrintQueueJobs
+	Title = $IntMsgTable.HTPrintQueueOtherClearJobs
+	Description = $IntMsgTable.HDescPrintQueueOtherClearJobs
 	MandatorySource = "Other"
 }
 
-Export-ModuleMember -Variable MemberOf, portName, PrintJobs
+Export-ModuleMember -Variable PHPrintQueueAdMemberOf, PHPrintQueueAdportName, PHPrintQueueOtherPrintJobs

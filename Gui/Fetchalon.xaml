@@ -4487,6 +4487,14 @@
                                                                                            BasedOn="{StaticResource DgPropValueStyle}">
                                                                                         <Setter Property="ItemsSource"
                                                                                                 Value="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Value}" />
+                                                                                        <Setter Property="MaxColumnWidth"
+                                                                                                Value="500" />
+                                                                                        <Setter Property="MaxWidth"
+                                                                                                Value="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ActualWidth}" />
+                                                                                        <Setter Property="ScrollViewer.CanContentScroll"
+                                                                                                Value="False" />
+                                                                                        <Setter Property="Width"
+                                                                                                Value="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ActualWidth}" />
                                                                                     </Style>
                                                                                 </DataGrid.Style>
                                                                             </DataGrid>

@@ -12,19 +12,19 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 # Handler to turn MemberOf-list to more readble strings
-$MemberOf = [pscustomobject]@{
+$PHComputerAdMemberOf = [pscustomobject]@{
 	Code = '$List = [System.Collections.ArrayList]::new()
 	$SenderObject.DataContext.Value | Get-ADGroup | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
 	$SenderObject.DataContext.Value = $List
 	$syncHash.IcPropsList.Items.Refresh()'
-	Title = $IntMsgTable.HTMemberOf
-	Description = $IntMsgTable.HDescMemberOf
+	Title = $IntMsgTable.HTComputerAdMemberOf
+	Description = $IntMsgTable.HDescComputerAdMemberOf
 	Progress = 0
 	MandatorySource = "AD"
 }
 
 # Check if computer is online
-$IsOnline = [pscustomobject]@{
+$PHComputerOtherIsOnline = [pscustomobject]@{
 	Code = '
 	$syncHash.Jobs.PCheckComputerOnline = [powershell]::Create()
 	$syncHash.Jobs.PCheckComputerOnline.AddScript( { param ( $syncHash, $c )
@@ -52,13 +52,96 @@ $IsOnline = [pscustomobject]@{
 	$syncHash.Jobs.PCheckComputerOnline.AddArgument( $SenderObject )
 	$syncHash.Jobs.HCheckComputerOnline = $syncHash.Jobs.PCheckComputerOnline.BeginInvoke()
 	'
-	Title = $IntMsgTable.HTCheckComputerOnline
-	Description = $IntMsgTable.HDescCheckComputerOnline
+	Title = $IntMsgTable.HTComputerOtherCheckOnline
+	Description = $IntMsgTable.HDescComputerOtherCheckOnline
+	MandatorySource = "Other"
+}
+
+# Get currently, active processes
+$PHComputerOtherProcessList = [pscustomobject]@{
+	Code = '
+	$syncHash.GridProgress.Visibility = [System.Windows.Visibility]::Visible
+
+		$List = [System.Collections.ArrayList]::new()
+		try
+		{
+			try { $syncHash.Window.Resources[''CvsDetailedProps''].Source.Where( { $_.Name -eq "ProcessList" } )[0].Value.Clear() } catch {}
+			$syncHash.Data.SearchedItem.ExtraInfo.Other.ProcessList.Clear()
+			$SenderObject.DataContext.Value.Clear()
+		}
+		catch {}
+		try
+		{
+			Get-Process -ComputerName $syncHash.Data.SearchedItem.Name -ErrorAction Stop | `
+				Select-Object Name, Id | `
+				Sort-Object Name | `
+				ForEach-Object {
+					if ( $List.Name -match $_.Name )
+					{
+						$P = $_
+						try { $List.Where( { $_.Name -eq $P.Name } )[0].IdList.Add( $P.Id ) | Out-Null }
+						catch {}
+					}
+					else
+					{
+						$Process = [pscustomobject]@{
+							Name = $_.Name
+							IdList = [System.Collections.ArrayList]::new()
+						}
+						$Process.IdList.Add( $_.Id ) | Out-Null
+						$List.Add( $Process ) | Out-Null
+					}
+				}
+			$List = $List | `
+				Select-Object `
+					@{
+						Name = $syncHash.Data.msgTable.StrPHComputerOtherProcessListColName
+						Expression = { $_.Name }
+					}, `
+					@{
+						Name = $syncHash.Data.msgTable.StrPHComputerOtherProcessListColId
+						Expression = { $_.IdList | `
+							ForEach-Object `
+								-Begin { `
+									$c = 0
+									$t = ""
+								} `
+								-Process {
+									if ( $c -eq 0 )
+									{
+										$t = "$( $_.ToString() )"
+									}
+									elseif ( 0 -eq $c % 7 )
+									{
+										$t = "$t $( $_ )`n"
+									}
+									else
+									{
+										$t = "$t $( $_ )"
+									}
+									$c = $c + 1
+								} `
+								-End { $t.Trim() }
+						}
+					}
+			try { $syncHash.Window.Resources[''CvsDetailedProps''].Source.Where( { $_.Name -eq "ProcessList" } )[0].Value = $List } catch {}
+		}
+		catch
+		{
+			$List.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrPHComputerOtherProcessListColName = $syncHash.Data.msgTable.StrPHComputerOtherProcessListError ; $syncHash.Data.msgTable.StrPHComputerOtherProcessListColId = 0 } ) ) | Out-Null
+		}
+		$SenderObject.DataContext.Value = $List
+		$syncHash.Window.Resources[''CvsPropsList''].View.Refresh()
+		$syncHash.GridProgress.Visibility = [System.Windows.Visibility]::Hidden
+	'
+	Title = $IntMsgTable.HTComputerOtherProcessList
+	Description = $IntMsgTable.HDescComputerOtherProcessList
+	Progress = 0.0
 	MandatorySource = "Other"
 }
 
 # Get sharedaccount connected to computer
-$SharedAccount = [pscustomobject]@{
+$PHComputerOtherSharedAccount = [pscustomobject]@{
 	Code = '$syncHash.GridProgress.Visibility = [System.Windows.Visibility]::Visible
 	$syncHash.Jobs.SharedAccountPS = [powershell]::Create().AddScript( { param ( $Name, $Modules, $syncHash )
 		Import-Module $Modules
@@ -76,10 +159,10 @@ $SharedAccount = [pscustomobject]@{
 	$syncHash.Jobs.SharedAccountPS.AddArgument( $syncHash )
 	$syncHash.Jobs.SharedAccountH = $syncHash.Jobs.SharedAccountPS.BeginInvoke()
 	'
-	Title = $IntMsgTable.HTGetSharedAccount
-	Description = $IntMsgTable.HDescGetSharedAccount
+	Title = $IntMsgTable.HTComputerOtherGetSharedAccount
+	Description = $IntMsgTable.HDescComputerOtherGetSharedAccount
 	Progress = 0.0
 	MandatorySource = "Other"
 }
 
-Export-ModuleMember -Variable MemberOf, IsOnline, SharedAccount
+Export-ModuleMember -Variable PHComputerAdMemberOf, PHComputerOtherIsOnline, PHComputerOtherProcessList, PHComputerOtherSharedAccount
