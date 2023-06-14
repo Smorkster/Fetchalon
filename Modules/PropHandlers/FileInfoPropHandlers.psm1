@@ -12,16 +12,16 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 # Handler to open file
-$FullName = [pscustomobject]@{
+$PHFileInfoAdFullName = [pscustomobject]@{
 	Code = 'explorer $syncHash.Data.SearchedItem.FullName'
-	Title = $IntMsgTable.HTOpenFile
-	Description = $IntMsgTable.HDescOpenFile
+	Title = $IntMsgTable.HTFileInfoAdOpenFile
+	Description = $IntMsgTable.HDescFileInfoAdOpenFile
 	Progress = 0
 	MandatorySource = "AD"
 }
 
 # Handler to turn WritePermissions-list to more readble names
-$WritePermissions = [pscustomobject]@{
+$PHFileInfoOtherWritePermissions = [pscustomobject]@{
 	Code = 'try {
 		$List = [System.Collections.ArrayList]::new()
 		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilectlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
@@ -31,14 +31,14 @@ $WritePermissions = [pscustomobject]@{
 		$SenderObject.DataContext.Value = $List
 		$syncHash.IcPropsList.Items.Refresh()
 	}'
-	Title = $IntMsgTable.HTWritePermissions
-	Description = $IntMsgTable.HDescWritePermissions
+	Title = $IntMsgTable.HTFileInfoOtherWritePermissions
+	Description = $IntMsgTable.HDescFileInfoOtherWritePermissions
 	Progress = 0
 	MandatorySource = "Other"
 }
 
 # Handler to turn ReadPermissions-list to more readble names
-$ReadPermissions = [pscustomobject]@{
+$PHFileInfoOtherReadPermissions = [pscustomobject]@{
 	Code = '
 	$syncHash.Data.Test = $SenderObject
 	try {
@@ -50,10 +50,10 @@ $ReadPermissions = [pscustomobject]@{
 		$SenderObject.DataContext.Value = $List
 		$syncHash.IcPropsList.Items.Refresh()
 	}'
-	Title = $IntMsgTable.HTReadPermissions
-	Description = $IntMsgTable.HDescReadPermissions
+	Title = $IntMsgTable.HTFileInfoOtherReadPermissions
+	Description = $IntMsgTable.HDescFileInfoOtherReadPermissions2
 	Progress = 0
 	MandatorySource = "Other"
 }
 
-Export-ModuleMember -Variable FullName, WritePermissions, ReadPermissions
+Export-ModuleMember -Variable PHFileInfoAdFullName, PHFileInfoOtherReadPermissions, PHFileInfoOtherWritePermissions

@@ -1,8 +1,8 @@
 ﻿ConvertFrom-StringData @'
-HDescOpenFile = Öppna fil i associerad applikation
-HDescReadPermissions = Gör om namnen till lättläsliga namn
-HDescWritePermissions = Gör om namnen till lättläsliga namn
-HTOpenFile = Öppna fil
-HTReadPermissions = Visa lättläst
-HTWritePermissions = Visa lättläst
+HDescFileInfoAdOpenFile = Öppna fil i associerad applikation
+HDescFileInfoOtherReadPermissions = Gör om namnen till lättläsliga namn
+HDescFileInfoOtherWritePermissions = Gör om namnen till lättläsliga namn
+HTFileInfoAdOpenFile = Öppna fil
+HTFileInfoOtherReadPermissions = Visa lättläst
+HTFileInfoOtherWritePermissions = Visa lättläst
 '@

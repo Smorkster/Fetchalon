@@ -598,6 +598,7 @@ function StartSearch
 				switch -Regex ( $Id )
 				{
 					"(?i)[aeiuoyåäöÀ-ÿ ].*[^\d]$" { $LDAPSearches.Add( "(&(ObjectClass=user)(Name=$Id))" ) | Out-Null ; break }
+					"(?i)f\w{3}\d*" { $LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null ; break }
 					"\*" { $LDAPSearches.Add( "(&(ObjectClass=user)(|(SamAccountName=$Id)(Name=$Id)))" ) | Out-Null ; break }
 				}
 
@@ -773,6 +774,7 @@ $syncHash.Code.ListItem =
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "PCRoll" -Value $Matches.role
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Organisation" -Value $Matches.org
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ProcessList" -Value ( [System.Collections.ArrayList]::new() )
+				$syncHash.Data.SearchedItem.ExtraInfo.Other.ProcessList.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrPHComputerOtherProcessListColName = $syncHash.Data.msgTable.StrPropDataNotFetched ; $syncHash.Data.msgTable.StrPHComputerOtherProcessListColId = 0 } ) ) | Out-Null
 			}
 			"Group"
 			{
@@ -815,7 +817,7 @@ $syncHash.Code.ListItem =
 
 				if ( $syncHash.Data.SearchedItem.LogonWorkstations -ne $null )
 				{
-					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.LogonWorkstationsList = $syncHash.Data.SearchedItem.LogonWorkstations -split "," | Sort-Object
+					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.LogonWorkstations = @( $syncHash.Data.SearchedItem.LogonWorkstations -split "," | Sort-Object )
 				}
 
 				if ( $syncHash.Window.DataContext.O365Connected -eq $true )
@@ -1197,9 +1199,9 @@ $syncHash.Code.ListProperties =
 						$Prop.Type = "ArrayList"
 					}
 
-					if ( $Prop.Source -eq $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."$( $Prop.Name )".MandatorySource )
+					if ( $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PH$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )" )
 					{
-						Add-Member -InputObject $Prop -MemberType NoteProperty -Name "Handler" -Value $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."$( $Prop.Name )"
+						Add-Member -InputObject $Prop -MemberType NoteProperty -Name "Handler" -Value $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."PH$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )"
 					}
 					Add-Member -InputObject $Prop -MemberType NoteProperty -Name "CheckedForVisible" -Value ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Name -contains $Prop.Name )
 

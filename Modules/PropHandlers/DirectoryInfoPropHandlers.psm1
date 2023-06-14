@@ -12,16 +12,16 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 # Handler to open directory in Explorer
-$DirectoryInventory = [pscustomobject]@{
+$PHDirectoryInfoOtherDirectoryInventory = [pscustomobject]@{
 	Code = 'explorer $syncHash.Data.SearchedItem.FullName'
-	Title = $IntMsgTable.HTOpenDirectory
-	Description = $IntMsgTable.HDescOpenDirectory
+	Title = $IntMsgTable.HTDirectoryInfoOtherOpenDirectory
+	Description = $IntMsgTable.HDescDirectoryInfoOtherOpenDirectory
 	Progress = 0
 	MandatorySource = "Other"
 }
 
 # Handler to turn WritePermissions-list to more readble names
-$WritePermissions = [pscustomobject]@{
+$PHDirectoryInfoOtherWritePermissions = [pscustomobject]@{
 	Code = 'try {
 		$List = [System.Collections.ArrayList]::new()
 		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilectlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
@@ -31,14 +31,14 @@ $WritePermissions = [pscustomobject]@{
 		$SenderObject.DataContext.Value = $List
 		$syncHash.IcPropsList.Items.Refresh()
 	}'
-	Title = $IntMsgTable.HTWritePermissions
-	Description = $IntMsgTable.HDescWritePermissions
+	Title = $IntMsgTable.HTDirectoryInfoOtherWritePermissions
+	Description = $IntMsgTable.HDescDirectoryInfoOtherWritePermissions
 	Progress = 0
 	MandatorySource = "Other"
 }
 
 # Handler to turn ReadPermissions-list to more readble names
-$ReadPermissions = [pscustomobject]@{
+$PHDirectoryInfoOtherReadPermissions = [pscustomobject]@{
 	Code = '
 	$syncHash.Data.Test = $SenderObject
 	try {
@@ -50,10 +50,10 @@ $ReadPermissions = [pscustomobject]@{
 		$SenderObject.DataContext.Value = $List
 		$syncHash.IcPropsList.Items.Refresh()
 	}'
-	Title = $IntMsgTable.HTReadPermissions
-	Description = $IntMsgTable.HDescReadPermissions
+	Title = $IntMsgTable.HTDirectoryInfoOtherReadPermissions
+	Description = $IntMsgTable.HDescDirectoryInfoOtherReadPermissions
 	Progress = 0
 	MandatorySource = "Other"
 }
 
-Export-ModuleMember -Variable DirectoryInventory, WritePermissions, ReadPermissions
+Export-ModuleMember -Variable PHDirectoryInfoOtherDirectoryInventory, PHDirectoryInfoOtherReadPermissions, PHDirectoryInfoOtherWritePermissions

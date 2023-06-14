@@ -1,6 +1,6 @@
 ﻿ConvertFrom-StringData @'
-HDescMemberOf = Change names to easy-to-read names
-HDescMembers = Change names to easy-to-read names
-HTMemberOf = Make easy-to-read
-HTMembers = Make easy-to-read
+HDescGroupAdMemberOf = Change names to easy-to-read names
+HDescGroupAdMembers = Change names to easy-to-read names
+HTGroupAdMemberOf = Make easy-to-read
+HTGroupAdMembers = Make easy-to-read
 '@

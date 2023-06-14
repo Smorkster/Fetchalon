@@ -1,8 +1,8 @@
 ﻿ConvertFrom-StringData @'
-HDescOpenFile = Open file in associated application
-HDescReadPermissions = Change the names to easy-to-read names
-HDescWritePermissions = Change the names to easy-to-read names
-HTOpenFile = Open file
-HTReadPermissions = Display easy to read
-HTWritePermissions = Display easy to read
+HDescFileInfoAdOpenFile = Open file in associated application
+HDescFileInfoOtherReadPermissions = Change the names to easy-to-read names
+HDescFileInfoOtherWritePermissions = Change the names to easy-to-read names
+HTFileInfoAdOpenFile = Oepn file
+HTFileInfoOtherReadPermissions = Display easy to read
+HTFileInfoOtherWritePermissions = Display easy to read
 '@
