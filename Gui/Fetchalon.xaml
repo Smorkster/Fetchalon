@@ -87,6 +87,11 @@
         <Geometry x:Key="ObjCopyInfoIcon">M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z</Geometry>
         <Geometry x:Key="ObjDetailedInfoIcon">M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22H20A2,2 0 0,0 22,20V12A10,10 0 0,0 12,2M13,7H11V11H7V13H11V17H13V13H17V11H13V7Z</Geometry>
         <Geometry x:Key="O365Icon">M19.94 5.59V18.39Q19.94 19.06 19.55 19.59 19.16 20.11 18.5 20.29L12.77 21.94Q12.65 21.97 12.5 22H12.28Q11.95 22 11.68 21.91 11.41 21.82 11.13 21.67L7.38 19.55Q7.17 19.43 7.05 19.24 6.93 19.05 6.93 18.81 6.93 18.45 7.19 18.2 7.44 17.95 7.8 17.95H12.66V6.14L9 7.44Q8.57 7.6 8.3 8 8.03 8.38 8.03 8.85V15.58Q8.03 16 7.82 16.34 7.62 16.68 7.25 16.88L5.53 17.82Q5.29 17.95 5.05 17.95 4.64 17.95 4.35 17.66 4.06 17.37 4.06 16.95V7.47Q4.06 6.95 4.33 6.5 4.61 6 5.06 5.74L11.22 2.24Q11.43 2.12 11.67 2.06 11.91 2 12.15 2 12.32 2 12.46 2.03 12.6 2.05 12.77 2.1L18.5 3.69Q18.83 3.78 19.09 3.96 19.35 4.14 19.54 4.39 19.74 4.65 19.84 4.95 19.94 5.26 19.94 5.59M18.62 18.39V5.59Q18.62 5.36 18.5 5.19 18.35 5 18.13 4.96L15.31 4.18Q15 4.09 14.65 4 14.32 3.89 14 3.81V20.21L18.13 19Q18.35 18.96 18.5 18.79 18.62 18.62 18.62 18.39Z</Geometry>
+        <Geometry x:Key="O365SharedMailboxIcon">M12,5.5A3.5,3.5 0 0,1 15.5,9A3.5,3.5 0 0,1 12,12.5A3.5,3.5 0 0,1 8.5,9A3.5,3.5 0 0,1 12,5.5M5,8C5.56,8 6.08,8.15 6.53,8.42C6.38,9.85 6.8,11.27 7.66,12.38C7.16,13.34 6.16,14 5,14A3,3 0 0,1 2,11A3,3 0 0,1 5,8M19,8A3,3 0 0,1 22,11A3,3 0 0,1 19,14C17.84,14 16.84,13.34 16.34,12.38C17.2,11.27 17.62,9.85 17.47,8.42C17.92,8.15 18.44,8 19,8M5.5,18.25C5.5,16.18 8.41,14.5 12,14.5C15.59,14.5 18.5,16.18 18.5,18.25V20H5.5V18.25M0,20V18.5C0,17.11 1.89,15.94 4.45,15.6C3.86,16.28 3.5,17.22 3.5,18.25V20H0M24,20H20.5V18.25C20.5,17.22 20.14,16.28 19.55,15.6C22.11,15.94 24,17.11 24,18.5V20Z</Geometry>
+        <Geometry x:Key="O365DistributionlistIcon">M10,2C8.89,2 8,2.89 8,4V7C8,8.11 8.89,9 10,9H11V11H2V13H6V15H5C3.89,15 3,15.89 3,17V20C3,21.11 3.89,22 5,22H9C10.11,22 11,21.11 11,20V17C11,15.89 10.11,15 9,15H8V13H16V15H15C13.89,15 13,15.89 13,17V20C13,21.11 13.89,22 15,22H19C20.11,22 21,21.11 21,20V17C21,15.89 20.11,15 19,15H18V13H22V11H13V9H14C15.11,9 16,8.11 16,7V4C16,2.89 15.11,2 14,2H10M10,4H14V7H10V4M5,17H9V20H5V17M15,17H19V20H15V17Z</Geometry>
+        <Geometry x:Key="O365ResourceIcon">M12.9 4.22C18.73 6.84 20 2 20 2S18.89 8.07 13.79 10.55C12.75 11.06 12.1 11.33 12.1 11.33L3.73 7.25L12.1 3.82C12.1 3.82 11.9 3.76 12.9 4.22M11.12 22L3.33 17.78V9.07L11.12 13.04V22M12.88 22L20.68 17.78V9.07L12.88 13.04V22Z</Geometry>
+        <Geometry x:Key="O365RoomIcon">M8,3C6.89,3 6,3.89 6,5V21H18V5C18,3.89 17.11,3 16,3H8M8,5H16V19H8V5M13,11V13H15V11H13Z</Geometry>
+        <Geometry x:Key="O365UserIcon">M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z</Geometry>
         <Geometry x:Key="OtherIcon">M11 15H6L13 1V9H18L11 23V15Z</Geometry>
         <Geometry x:Key="OutputIcon">M23,12L19,8V11H10V13H19V16M1,18V6C1,4.89 1.9,4 3,4H15A2,2 0 0,1 17,6V9H15V6H3V18H15V15H17V18A2,2 0 0,1 15,20H3A2,2 0 0,1 1,18Z</Geometry>
         <Geometry x:Key="PrinterIcon">M18,3H6V7H18M19,12A1,1 0 0,1 18,11A1,1 0 0,1 19,10A1,1 0 0,1 20,11A1,1 0 0,1 19,12M16,19H8V14H16M19,8H5A3,3 0 0,0 2,11V17H6V21H18V17H22V11A3,3 0 0,0 19,8Z</Geometry>
@@ -186,6 +191,7 @@
                                 Y="0" />
         </TransformGroup>
         <Visibility x:Key="MenuTextVisibility">Visible</Visibility>
+        <Visibility x:Key="ExchangeAdministrator">Collapsed</Visibility>
         <x:Array x:Key="ContentNoMembersOfList"
                  Type="sys:String" />
         <sys:Boolean x:Key="UseConverters">True</sys:Boolean>
@@ -216,8 +222,8 @@
                x:Key="PathObjectMenuIconStyle"
                BasedOn="{StaticResource PathMenuIconStyle}">
             <Style.Triggers>
-                <DataTrigger Binding="{Binding ElementName=IcPropsList, Path=ItemsSource.Count}"
-                             Value="0">
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Menu}, Path=IsEnabled}"
+                             Value="False">
                     <Setter Property="Fill"
                             Value="LightGray" />
                     <Setter Property="Stroke"
@@ -601,17 +607,50 @@
         </Style>
         <Style TargetType="MenuItem"
                x:Key="MiSubLevelBaseStyle">
-            <Style.Resources>
-                <sys:String x:Key="StrOpensSeparateWindow">x</sys:String>
-            </Style.Resources>
             <Setter Property="FontSize"
                     Value="12" />
             <Setter Property="FontStyle"
                     Value="Normal" />
             <Setter Property="FontWeight"
                     Value="Normal" />
-            <Setter Property="Header"
-                    Value="{Binding Path=MenuItem}" />
+            <Setter Property="HeaderTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <Border>
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="BorderBrush"
+                                            Value="Transparent" />
+                                    <Setter Property="BorderThickness"
+                                            Value="5,0,0,0" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.SearchedItemRequest}"
+                                                     Value="Allowed">
+                                            <Setter Property="BorderBrush"
+                                                    Value="Yellow" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.SearchedItemRequest}"
+                                                     Value="Required">
+                                            <Setter Property="BorderBrush"
+                                                    Value="Green" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock>
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Margin"
+                                                Value="5" />
+                                        <Setter Property="Text"
+                                                Value="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.MenuItem}" />
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </Border>
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
             <Setter Property="ToolTip">
                 <Setter.Value>
                     <ToolTip>
@@ -725,6 +764,10 @@
                              Value="{x:Null}">
                     <Setter Property="Visibility"
                             Value="Visible" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.Depends}" Value="ExchangeAdministrator">
+                    <Setter Property="Visibility"
+                            Value="{DynamicResource ExchangeAdministrator}" />
                 </DataTrigger>
             </Style.Triggers>
         </Style>
@@ -878,13 +921,6 @@
                                                 PropertyName="MenuItem" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiO365Functions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem">
-                </componentmodel:SortDescription>
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
         <CollectionViewSource x:Key="CvsMiOtherFunctions">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
@@ -926,6 +962,48 @@
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <CollectionViewSource x:Key="CvsPropsList">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="Name">
+                </componentmodel:SortDescription>
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMiO365Functions">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="MenuItem">
+                </componentmodel:SortDescription>
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMiO365UserFunctions">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="Name">
+                </componentmodel:SortDescription>
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMiO365SharedMailboxFunctions">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="Name">
+                </componentmodel:SortDescription>
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMiO365DistributionlistFunctions">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="Name">
+                </componentmodel:SortDescription>
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMiO365ResourceFunctions">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="Name">
+                </componentmodel:SortDescription>
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMiO365RoomFunctions">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
                                                 PropertyName="Name">
@@ -1135,8 +1213,8 @@
             <Setter Property="Visibility"
                     Value="{DynamicResource MenuTextVisibility}" />
             <Style.Triggers>
-                <DataTrigger Binding="{Binding ElementName=IcPropsList, Path=ItemsSource.Count}"
-                             Value="0">
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Menu}, Path=IsEnabled}"
+                             Value="False">
                     <Setter Property="Foreground"
                             Value="LightGray" />
                 </DataTrigger>
@@ -1209,6 +1287,21 @@
             <Setter Property="Padding"
                     Value="{StaticResource StdPadding}" />
         </Style>
+        <Style x:Key="TbInputStyle"
+               TargetType="TextBox"
+               BasedOn="{StaticResource TbBaseStyle}">
+            <EventSetter Event="Loaded" />
+        </Style>
+        <Style TargetType="TextBox"
+               x:Key="TbListValueBaseStyle"
+               BasedOn="{StaticResource TbBaseStyle}">
+            <Setter Property="IsReadOnly"
+                    Value="True" />
+            <Setter Property="Margin"
+                    Value="0" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
         <Style TargetType="TextBox"
                x:Key="TbValueBaseStyle"
                BasedOn="{StaticResource TbBaseStyle}">
@@ -1228,16 +1321,6 @@
                             Value="LightGray" />
                 </DataTrigger>
             </Style.Triggers>
-        </Style>
-        <Style TargetType="TextBox"
-               x:Key="TbListValueBaseStyle"
-               BasedOn="{StaticResource TbBaseStyle}">
-            <Setter Property="IsReadOnly"
-                    Value="True" />
-            <Setter Property="Margin"
-                    Value="0" />
-            <Setter Property="VerticalContentAlignment"
-                    Value="Center" />
         </Style>
         <Path x:Key="PathObjDetailed"
               Data="{StaticResource ObjDetailedInfoIcon}"
@@ -1360,7 +1443,8 @@
                                     </TextBlock>
                                     <TextBox Name="TbValueInput">
                                         <TextBox.Style>
-                                            <Style TargetType="TextBox">
+                                            <Style TargetType="TextBox"
+                                                   BasedOn="{StaticResource TbInputStyle}">
                                                 <Setter Property="Grid.ColumnSpan"
                                                         Value="3" />
                                                 <Setter Property="Grid.Row"
@@ -1645,29 +1729,6 @@
                                         </ListView>
                                     </Grid>
                                 </Border>
-                                <!--<TextBlock Name="TblOutputObjectErrors">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="Foreground"
-                                                    Value="Red" />
-                                            <Setter Property="Grid.Row"
-                                                    Value="2" />
-                                            <Setter Property="Margin"
-                                                    Value="{StaticResource StdMargin}" />
-                                            <Setter Property="Text"
-                                                    Value="{Binding Path=Error.Exception.Message}" />
-                                            <Setter Property="Visibility"
-                                                    Value="Visible" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Path=Error}"
-                                                             Value="{x:Null}">
-                                                    <Setter Property="Visibility"
-                                                            Value="Collapsed" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>-->
                                 <!-- Data output from function -->
                                 <Grid Grid.Row="3">
                                     <ScrollViewer Name="ScvOutputData">
@@ -2325,14 +2386,7 @@
                                     <Setter Property="Grid.Row"
                                             Value="3" />
                                     <Setter Property="IsEnabled"
-                                            Value="True" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=IcPropsList, Path=ItemsSource.Count}"
-                                                     Value="0">
-                                            <Setter Property="IsEnabled"
-                                                    Value="False" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
+                                            Value="False" />
                                 </Style>
                             </Menu.Style>
                             <MenuItem Name="MiCloseObj">
@@ -3106,6 +3160,15 @@
                                                BasedOn="{StaticResource PathMenuIconStyle}">
                                             <Setter Property="Data"
                                                     Value="{StaticResource O365Icon}" />
+                                            <Setter Property="Stroke"
+                                                    Value="Black" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365Connected}"
+                                                             Value="False">
+                                                    <Setter Property="Stroke"
+                                                            Value="Red" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
                                         </Style>
                                     </Path.Style>
                                 </Path>
@@ -3113,8 +3176,17 @@
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock"
                                                BasedOn="{StaticResource TblFunctionMenuStyle}">
+                                            <Setter Property="Foreground"
+                                                    Value="Black" />
                                             <Setter Property="Text"
                                                     Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiConnectO365ServicesText}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ElementName=Window, Path=DataContext.O365Connected}"
+                                                             Value="False">
+                                                    <Setter Property="Foreground"
+                                                            Value="Red" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
                                         </Style>
                                     </TextBlock.Style>
                                 </TextBlock>
@@ -3153,8 +3225,6 @@
                                         </Grid>
                                     </Setter.Value>
                                 </Setter>
-                                <Setter Property="ItemsSource"
-                                        Value="{Binding Source={StaticResource CvsMiO365Functions}}" />
                                 <Setter Property="Visibility"
                                         Value="Visible" />
                                 <Style.Triggers>
@@ -3166,10 +3236,286 @@
                                 </Style.Triggers>
                             </Style>
                         </MenuItem.Style>
-                        <MenuItem.ItemContainerStyle>
-                            <Style TargetType="MenuItem"
-                                   BasedOn="{StaticResource MiSubLevelO365Style}" />
-                        </MenuItem.ItemContainerStyle>
+                        <MenuItem Name="MiO365User">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem"
+                                       BasedOn="{StaticResource MiTopLevelStyle}">
+                                    <Setter Property="Header">
+                                        <Setter.Value>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Path>
+                                                    <Path.Style>
+                                                        <Style TargetType="Path"
+                                                               BasedOn="{StaticResource PathMenuIconStyle}">
+                                                            <Setter Property="Data"
+                                                                    Value="{StaticResource O365UserIcon}" />
+                                                        </Style>
+                                                    </Path.Style>
+                                                </Path>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource TblFunctionMenuStyle}">
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMiO365User}" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="ItemsSource"
+                                            Value="{Binding Source={StaticResource CvsMiO365UserFunctions}}" />
+                                </Style>
+                            </MenuItem.Style>
+                            <MenuItem.ItemContainerStyle>
+                                <Style TargetType="MenuItem"
+                                       BasedOn="{StaticResource MiSubLevelFunctionsStyle}">
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.SearchedItemRequest}"
+                                                           Value="Required" />
+                                                <Condition Binding="{Binding ElementName=Window, Path=DataContext.SearchedItem.ObjectClass}"
+                                                           Value="user" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                        </MultiDataTrigger>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.SearchedItemRequest}"
+                                                           Value="Required" />
+                                                <Condition Binding="{Binding ElementName=Window, Path=DataContext.SearchedItem.ObjectClass}"
+                                                           Value="O365user" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.ItemContainerStyle>
+                        </MenuItem>
+                        <MenuItem Name="MiO365SharedMailbox">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem"
+                                       BasedOn="{StaticResource MiTopLevelStyle}">
+                                    <Setter Property="Header">
+                                        <Setter.Value>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Path>
+                                                    <Path.Style>
+                                                        <Style TargetType="Path"
+                                                               BasedOn="{StaticResource PathMenuIconStyle}">
+                                                            <Setter Property="Data"
+                                                                    Value="{StaticResource O365SharedMailboxIcon}" />
+                                                        </Style>
+                                                    </Path.Style>
+                                                </Path>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource TblFunctionMenuStyle}">
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMiO365SharedMailbox}" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="ItemsSource"
+                                            Value="{Binding Source={StaticResource CvsMiO365SharedMailboxFunctions}}" />
+                                </Style>
+                            </MenuItem.Style>
+                            <MenuItem.ItemContainerStyle>
+                                <Style TargetType="MenuItem"
+                                       BasedOn="{StaticResource MiSubLevelFunctionsStyle}">
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.SearchedItemRequest}"
+                                                           Value="Required" />
+                                                <Condition Binding="{Binding ElementName=Window, Path=DataContext.SearchedItem.ObjectClass}"
+                                                           Value="O365SharedMailbox" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.ItemContainerStyle>
+                        </MenuItem>
+                        <MenuItem Name="MiO365Distributionlist">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem"
+                                       BasedOn="{StaticResource MiTopLevelStyle}">
+                                    <Setter Property="Header">
+                                        <Setter.Value>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Path>
+                                                    <Path.Style>
+                                                        <Style TargetType="Path"
+                                                               BasedOn="{StaticResource PathMenuIconStyle}">
+                                                            <Setter Property="Data"
+                                                                    Value="{StaticResource O365DistributionlistIcon}" />
+                                                        </Style>
+                                                    </Path.Style>
+                                                </Path>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource TblFunctionMenuStyle}">
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMiO365Distributionlist}" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="ItemsSource"
+                                            Value="{Binding Source={StaticResource CvsMiO365DistributionlistFunctions}}" />
+                                </Style>
+                            </MenuItem.Style>
+                            <MenuItem.ItemContainerStyle>
+                                <Style TargetType="MenuItem"
+                                       BasedOn="{StaticResource MiSubLevelFunctionsStyle}">
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.SearchedItemRequest}"
+                                                           Value="Required" />
+                                                <Condition Binding="{Binding ElementName=Window, Path=DataContext.SearchedItem.ObjectClass}"
+                                                           Value="O365Distributionlist" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.ItemContainerStyle>
+                        </MenuItem>
+                        <MenuItem Name="MiO365Resource">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem"
+                                       BasedOn="{StaticResource MiTopLevelStyle}">
+                                    <Setter Property="Header">
+                                        <Setter.Value>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Path>
+                                                    <Path.Style>
+                                                        <Style TargetType="Path"
+                                                               BasedOn="{StaticResource PathMenuIconStyle}">
+                                                            <Setter Property="Data"
+                                                                    Value="{StaticResource O365ResourceIcon}" />
+                                                        </Style>
+                                                    </Path.Style>
+                                                </Path>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource TblFunctionMenuStyle}">
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMiO365Resource}" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="ItemsSource"
+                                            Value="{Binding Source={StaticResource CvsMiO365ResourceFunctions}}" />
+                                </Style>
+                            </MenuItem.Style>
+                            <MenuItem.ItemContainerStyle>
+                                <Style TargetType="MenuItem"
+                                       BasedOn="{StaticResource MiSubLevelFunctionsStyle}">
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.SearchedItemRequest}"
+                                                           Value="Required" />
+                                                <Condition Binding="{Binding ElementName=Window, Path=DataContext.SearchedItem.ObjectClass}"
+                                                           Value="O365Resource" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.ItemContainerStyle>
+                        </MenuItem>
+                        <MenuItem Name="MiO365Room">
+                            <MenuItem.Style>
+                                <Style TargetType="MenuItem"
+                                       BasedOn="{StaticResource MiTopLevelStyle}">
+                                    <Setter Property="Header">
+                                        <Setter.Value>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <Path>
+                                                    <Path.Style>
+                                                        <Style TargetType="Path"
+                                                               BasedOn="{StaticResource PathMenuIconStyle}">
+                                                            <Setter Property="Data"
+                                                                    Value="{StaticResource O365RoomIcon}" />
+                                                        </Style>
+                                                    </Path.Style>
+                                                </Path>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource TblFunctionMenuStyle}">
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMiO365Room}" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </Setter.Value>
+                                    </Setter>
+                                    <Setter Property="ItemsSource"
+                                            Value="{Binding Source={StaticResource CvsMiO365RoomFunctions}}" />
+                                </Style>
+                            </MenuItem.Style>
+                            <MenuItem.ItemContainerStyle>
+                                <Style TargetType="MenuItem"
+                                       BasedOn="{StaticResource MiSubLevelFunctionsStyle}">
+                                    <Style.Triggers>
+                                        <MultiDataTrigger>
+                                            <MultiDataTrigger.Conditions>
+                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.SearchedItemRequest}"
+                                                           Value="Required" />
+                                                <Condition Binding="{Binding ElementName=Window, Path=DataContext.SearchedItem.ObjectClass}"
+                                                           Value="O365Room" />
+                                            </MultiDataTrigger.Conditions>
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                        </MultiDataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </MenuItem.ItemContainerStyle>
+                        </MenuItem>
                     </MenuItem>
                     <MenuItem Name="MiTools">
                         <MenuItem.Style>
@@ -3504,15 +3850,6 @@
                                     Value="1" />
                             <Setter Property="Grid.Row"
                                     Value="1" />
-                            <Setter Property="Visibility"
-                                    Value="Visible" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding ElementName=IcPropsList, Path=HasItems}"
-                                             Value="False">
-                                    <Setter Property="Visibility"
-                                            Value="Collapsed" />
-                                </DataTrigger>
-                            </Style.Triggers>
                         </Style>
                     </Grid.Style>
                     <Grid.RowDefinitions>
@@ -3589,15 +3926,6 @@
                                        BasedOn="{StaticResource CbPropValueStyle}">
                                     <Setter Property="Content"
                                             Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentChBGetFromComputerProcesses}" />
-                                </Style>
-                            </CheckBox.Style>
-                        </CheckBox>
-                        <CheckBox Name="ChBGetFromComputerWarranty">
-                            <CheckBox.Style>
-                                <Style TargetType="CheckBox"
-                                       BasedOn="{StaticResource CbPropValueStyle}">
-                                    <Setter Property="Content"
-                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentChBGetComputerWarranty}" />
                                 </Style>
                             </CheckBox.Style>
                         </CheckBox>
@@ -4488,7 +4816,7 @@
                                                                                         <Setter Property="ItemsSource"
                                                                                                 Value="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Value}" />
                                                                                         <Setter Property="MaxColumnWidth"
-                                                                                                Value="500" />
+                                                                                                Value="300" />
                                                                                         <Setter Property="MaxWidth"
                                                                                                 Value="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ActualWidth}" />
                                                                                         <Setter Property="ScrollViewer.CanContentScroll"
@@ -4593,6 +4921,7 @@
                 <Grid.RowDefinitions>
                     <RowDefinition />
                     <RowDefinition />
+                    <RowDefinition />
                 </Grid.RowDefinitions>
                 <Image>
                     <Image.Style>
@@ -4636,6 +4965,20 @@
                                     Value="Center" />
                             <Setter Property="Text"
                                     Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFailedSearchText}" />
+                            <Setter Property="VerticalAlignment"
+                                    Value="Top" />
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Name="TblFailedSearchMessage">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontSize"
+                                    Value="20" />
+                            <Setter Property="Grid.Row"
+                                    Value="2" />
+                            <Setter Property="HorizontalAlignment"
+                                    Value="Center" />
                             <Setter Property="VerticalAlignment"
                                     Value="Top" />
                         </Style>

@@ -191,6 +191,7 @@ function CreatePage
 		$syncHash.Data = [hashtable]( @{} )
 		$syncHash.DC = [hashtable]( @{} )
 		$syncHash.Errors = [System.Collections.ArrayList]::new()
+		$syncHash.EventSubscribers = [System.Collections.ArrayList]::new()
 		$syncHash.GenErrors = [System.Collections.ArrayList]::new()
 		$syncHash.Jobs = [hashtable]( @{} )
 		$syncHash.Root = $RootDir
@@ -245,6 +246,7 @@ function CreateWindowExt
 	$syncHash.Bindings = [hashtable]( @{} )
 	$syncHash.Data = [hashtable]( @{} )
 	$syncHash.DC = [hashtable]( @{} )
+	$syncHash.EventSubscribers = [System.Collections.ArrayList]::new()
 	$syncHash.Jobs = [hashtable]( @{} )
 	$syncHash.Output = ""
 	$syncHash.GenErrors = [System.Collections.ArrayList]::new()
@@ -543,13 +545,16 @@ function Update-SplashText
 		[switch] $Append
 	)
 
-	if ( $Append )
+	if ( $Script:SplashHash.LoadingLabel )
 	{
-		try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.LoadingLabel.Content += $Text } ) } catch {}
-	}
-	else
-	{
-		try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.LoadingLabel.Content = $Text } ) } catch {}
+		if ( $Append )
+		{
+			try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.LoadingLabel.Content += $Text } ) } catch {}
+		}
+		else
+		{
+			try { $Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action] { $Script:SplashHash.LoadingLabel.Content = $Text } ) } catch {}
+		}
 	}
 }
 

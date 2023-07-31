@@ -1,4 +1,5 @@
 ﻿ConvertFrom-StringData @'
+CodeAzureGrpName = ^(MB-)|(DL-)|(RES-)*\\w* (Funk)|(Dist)|(Resurs)|(Rum)
 CodeLockoutAddress = \\\\test.domain.com\\LockedoutLogs\$
 CodeMsExchIgnoreOrg = OU=Org1
 CodeOrgGrpCaptureRegex = CN=Org1_Wrk_(?<org>.{3})_PR_(?<role>.*_PC).*
@@ -14,8 +15,7 @@ ContentBtnFileView = Show
 ContentBtnGetExtraInfo = Fetch extra info
 ContentBtnRunVirusScan = Run virus check
 ContentBtnSearch = Search
-ContentChBGetComputerWarranty = Warranty period
-ContentChBGetFromComputerProcesses = Processer
+ContentChBGetFromComputerProcesses = Processes
 ContentChBGetFromPrintQueuePrintJobs = Printer queue
 ContentChBGetFromSysMan = SysMan
 ContentChBGetFromUserLockOut = Lockout list
@@ -30,6 +30,11 @@ ContentLblUserOAccountCheck = O365-account created
 ContentLblUserOExchCheck = Synced to Exchange
 ContentLblUserOLicCheck = Has E3 license
 ContentLblUserOLoginCheck = O365 login active
+ContentMiO365Distributionlist = Distributionlist
+ContentMiO365Resource = Resource
+ContentMiO365Room = Room
+ContentMiO365SharedMailbox = SharedMailbox
+ContentMiO365User = User
 ContentMiObjDetailedHide = Simplified view
 ContentNoMembersOfList = < No values >
 ContentSavePropValueButton = Save
@@ -74,6 +79,8 @@ ContentTTMiObjDetailedShow = View detailed list
 ContentTTTblContentTblMiShowHideObj = Show/hide the view for AD objects
 ContentTTTblContentTblMiShowHideOutputView = Show/hide the output view
 ErrForbiddenCmdLet = Banned CmdLet
+ErrO365NotImplemented = Functions for Office365 are not implemented
+ErrSearchO365NotConnected = No connection to Office 365 services, can't search Azure groups.
 ErrToolGuiNotPage = Gui is not defined with a Page object. The tool will therefore not be loaded
 LogStrPropHandlerRun = Ran handler for
 LogStrSearchItemTitle = AD-object
@@ -136,6 +143,7 @@ StrSplashJoke6 = Lorem ipsum
 StrSplashJoke7 = Never a shoe without a ...
 StrSplashJoke8 = Your shoelace is undone
 StrSplashJoke9 = Remember the incident
+StrSplashLastAdjustments = Some last adjustments
 StrSplashReadingSettings = Loading settings
 StrSysManApi = http://sysman.domain.com/SysMan/api/
 StrVerbVirusScan = Search for threats
