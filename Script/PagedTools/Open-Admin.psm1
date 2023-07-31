@@ -837,6 +837,7 @@ function UpdateFiles
 			$syncHash.Controls.TbUpdated.SelectedIndex = 0
 		}
 	}
+	$syncHash.Controls.ChbPublishFiles.IsChecked = $true
 	$syncHash.DC.TblInfo[0] = [System.Windows.Visibility]::Collapsed
 }
 
@@ -845,7 +846,7 @@ $controls = [System.Collections.ArrayList]::new( @(
 @{ CName = "BtnDiffCancel" ; Props = @( @{ PropName = "Content" ; PropVal = $syncHash.Data.msgTable.ContentBtnDiffCancel } ) },
 @{ CName = "BtnDoRollback" ; Props = @( @{ PropName = "IsEnabled" ; PropVal = $false } ) },
 @{ CName = "BtnOpenRollbackFile" ; Props = @( @{ PropName = "IsEnabled" ; PropVal = $false } ) },
-@{ CName = "ChbPublishFiles" ; Props = @( @{ PropName = "IsChecked"; PropVal = $false } ) },
+@{ CName = "ChbPublishFiles" ; Props = @( @{ PropName = "IsChecked"; PropVal = $true } ) },
 @{ CName = "PbLogSearch" ; Props = @( @{ PropName = "Value"; PropVal = [double] 0 } ) },
 @{ CName = "PbParseErrorLogs" ; Props = @( @{ PropName = "Value"; PropVal = [double] 0 } ) },
 @{ CName = "PbParseErrorLogsOps" ; Props = @( @{ PropName = "Value"; PropVal = [double] 0 } ; @{ PropName = "Maximum" ; PropVal = [double] 3 } ) },
