@@ -27,7 +27,7 @@ function Get-FolderMembership
 	.OutputType
 		ObjectList
 	.Author
-	Smorkster (smorkster)
+		Smorkster (smorkster)
 	#>
 
 	param ( $Item )
@@ -165,7 +165,7 @@ function Compare-UserGroups
 	}
 	else
 	{
-		throw "$( $IntMsgTable.StrCompareUserGroupsNoValidUsers )`n`n$( $null -eq $InputData )"
+		throw $IntMsgTable.StrCompareUserGroupsNoValidUsers
 	}
 }
 
@@ -213,6 +213,42 @@ function Open-SysManMobileDevices
 	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/MobileDevice/EditForUser#userName=$( $Item.SamAccountName )" )
 }
 
+function Remove-ProfileAria
+{
+	<#
+	.Synopsis
+		Clear Aria profile, alternatively open the profiles folder
+	.Description
+		Deletes Aria profile for specified user. If no user is specified, the folder for profiles is opened
+	.MenuItem
+		Clear Aria profile
+	.SearchedItemRequest
+		Allowed
+	.OutputType
+		String
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	if ( $null -eq $Item.SamAccountName )
+	{
+		explorer "\\dfs\ctx$\prf_aria"
+	}
+	else
+	{
+		if ( Test-Path "\\dfs\ctx$\prf_aria\$( $Item.SamAccountName )" )
+		{
+			Start-Process -FilePath C:\Windows\explorer.exe -ArgumentList "/select, ""\\dfs\ctx$\prf_aria\$( $Item.SamAccountName )"""
+		}
+		else
+		{
+			explorer "\\dfs\ctx$\_prf_aria\"
+		}
+	}
+}
+
 function Remove-ProfileVK
 {
 	<#
@@ -251,8 +287,17 @@ function Remove-ProfileVK
 		{
 			$Org | `
 				ForEach-Object {
-					$_ -match "CN=(?<Org>(Org1)|(Org2)|(Org3))_Org_(\d)_Users" | Out-Null
-					Remove-Item -Path "\\dfs.test.com\c$\$( $Matches.Org.ToLower() )\$( $Item.SamAccountName )" -Recurse -Force
+					if ( $_ -match "CN=(?<Org>(Org1)|(Org2)|(Org3))_Org_(\d)_Users" )
+					{
+						if ( Test-Path "\\dfs\ctx$\$( $Matches.Org.ToLower() )_prf\$( $Item.SamAccountName )" )
+						{
+							Remove-Item -Path "\\dfs\ctx$\$( $Matches.Org.ToLower() )_prf\$( $Item.SamAccountName )" -Recurse -Force
+						}
+						else
+						{
+							explorer "\\dfs\ctx$\$( $Matches.Org.ToLower() )_prf\"
+						}
+					}
 				}
 
 			return $IntMsgTable.RemoveProfileVKProfileRemoved
@@ -264,15 +309,15 @@ function Remove-ProfileVK
 	}
 }
 
-function Remove-ProfileAria
+function Remove-ProfileVKTC
 {
 	<#
 	.Synopsis
-		Clear Aria profile, alternatively open the profiles folder
+		Clear TC-profile for vKlient, alternatively open the profiles folder
 	.Description
-		Deletes Aria profile for specified user. If no user is specified, the folder for profiles is opened
+		Deletes TC-profile for vKlient for given user. If no user is specified, the folder for profiles is opened
 	.MenuItem
-		Deletes Aria-profile
+		Delete TC vKlient-profile
 	.SearchedItemRequest
 		Allowed
 	.OutputType
@@ -283,13 +328,38 @@ function Remove-ProfileAria
 
 	param ( $Item )
 
-	if ( $null -eq $Item )
+	$Prod = [System.Text.StringBuilder]::new()
+	$RO = [System.Text.StringBuilder]::new()
+	$Prod.Append( "\\dfs\ctx$\" ) | Out-Null
+	$RO.Append( "\\dfs\ctx$\" ) | Out-Null
+
+	if ( $Item.CanonicalName -notmatch "H/(Org1)|(Org2)|(Org4)" )
 	{
-		explorer "\\dfs.test.com\c$\aria"
+		$Org = ( Show-CustomMessageBox -Text $IntMsgTable.RemoveProfileVKTCSelectCustomer -Title $IntMsgTable.RemoveProfileVKTCSelectCustomerTitle -Button "Org1","Org2","Org4" ).ToLower()
+		$Prod.Append( $Org ) | Out-Null
+		$RO.Append( $Org ) | Out-Null
 	}
 	else
 	{
-		Remove-Item "\\dfs.test.com\c$\aria\$( $Item.SamAccountName )" -Recurse -Force
+		$Item.CanonicalName -match "H/(?<Org>\w*)/" | Out-Null
+		$Prod.Append( $Matches.Org.ToLower() ) | Out-Null
+		$RO.Append( $Matches.Org.ToLower() ) | Out-Null
+	}
+
+	$Prod.Append( "_tcprod_app" ) | Out-Null
+	$RO.Append( "_tcro_app" ) | Out-Null
+
+	if ( Test-Path "$( $s.ToString() )\$( $Item.SamAccountName )" )
+	{
+		$Prod.Append( "\$( $Item.SamAccountName )" ) | Out-Null
+		$RO.Append( "\$( $Item.SamAccountName )" ) | Out-Null
+		Start-Process -FilePath C:\Windows\explorer.exe -ArgumentList "/select, ""$( $s.ToString() )"""
+		Start-Process -FilePath C:\Windows\explorer.exe -ArgumentList "/select, ""$( $s.ToString() )"""
+	}
+	else
+	{
+		explorer $Prod.ToString()
+		explorer $RO.ToString()
 	}
 }
 
@@ -299,4 +369,4 @@ Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName 
 
 Export-ModuleMember -Function Get-FolderMembership, Get-FolderOwnership, Compare-UserGroups
 Export-ModuleMember -Function Open-SysManGroups, Open-SysManMobileDevices
-Export-ModuleMember -Function Remove-ProfileAria, Remove-ProfileVK
+Export-ModuleMember -Function Remove-ProfileAria, Remove-ProfileVK, Remove-ProfileVKTC

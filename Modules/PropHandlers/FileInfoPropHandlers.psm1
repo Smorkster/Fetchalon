@@ -24,7 +24,7 @@ $PHFileInfoAdFullName = [pscustomobject]@{
 $PHFileInfoOtherWritePermissions = [pscustomobject]@{
 	Code = 'try {
 		$List = [System.Collections.ArrayList]::new()
-		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilectlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
+		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
 	} catch {}
 	if ( $List.Count -gt 0 )
 	{
@@ -40,10 +40,9 @@ $PHFileInfoOtherWritePermissions = [pscustomobject]@{
 # Handler to turn ReadPermissions-list to more readble names
 $PHFileInfoOtherReadPermissions = [pscustomobject]@{
 	Code = '
-	$syncHash.Data.Test = $SenderObject
 	try {
 		$List = [System.Collections.ArrayList]::new()
-		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilectlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
+		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
 	} catch {}
 	if ( $List.Count -gt 0 )
 	{
@@ -51,7 +50,7 @@ $PHFileInfoOtherReadPermissions = [pscustomobject]@{
 		$syncHash.IcPropsList.Items.Refresh()
 	}'
 	Title = $IntMsgTable.HTFileInfoOtherReadPermissions
-	Description = $IntMsgTable.HDescFileInfoOtherReadPermissions2
+	Description = $IntMsgTable.HDescFileInfoOtherReadPermissions
 	Progress = 0
 	MandatorySource = "Other"
 }

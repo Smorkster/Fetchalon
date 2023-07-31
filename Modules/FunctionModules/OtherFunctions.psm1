@@ -15,11 +15,11 @@ function Clear-FileDownloads
 {
 	<#
 	.Synopsis
-			Clear downloads
+		Clear downloads
 	.Description
 		Remove all files older than one week
 	.State
-	Prod
+		Prod
 	.RequiredAdGroups
 		Role_Servicedesk_BO
 	.SearchedItemRequest
@@ -63,11 +63,13 @@ function Clear-FileDownloads
 
 		$percentage = [Math]::Round( ( $filesToRemove.Count / $Files.Count ) * 100, 2 )
 		$ReturnText.AppendLine( "$( $filesToRemove.Count ) $( $IntMsgTable.StrClearFileDownloadsOld ) ($percentage %)" ) | Out-Null
+		$ReturnText.AppendLine() | Out-Null
 		if ( $FaultyRemovals.Count -gt 0 )
 		{
 			$ReturnText.AppendLine( $IntMsgTable.StrClearFileDownloadsFaultyFiles ) | Out-Null
 			$OFS = "`n"
 			$ReturnText.AppendLine( ( $FaultyRemovals | ForEach-Object { "$( $_.Directory.Name )\$( $_.Name )" } ) ) | Out-Null
+			$ReturnText.AppendLine() | Out-Null
 		}
 
 		if ( $Removed.Count -gt 0 )
@@ -81,7 +83,7 @@ function Clear-FileDownloads
 		$ReturnText.AppendLine( $IntMsgTable.StrClearFileDownloadsNoFiles ) | Out-Null
 	}
 
-	Send-MailMessage -From ( Get-ADUser $env:USERNAME.Substring( ( $env:USERNAME.Length - 4 ), 4 ) -Properties EmailAddress ).EmailAddress`
+	Send-MailMessage -From ( ( Get-ADUser $env:USERNAME.Substring( ( $env:USERNAME.Length - 4 ), 4 ) -Properties EmailAddress ).EmailAddress )`
 		-To $IntMsgTable.StrClearFileDownloadsBotAddress `
 		-Body $ReturnText.ToString() `
 		-Encoding bigendianunicode `
@@ -99,7 +101,7 @@ function Get-PollenRapport
 	.Description
 		Download today's theme days from Pollenrapporten.se
 	.MenuItem
-		Dagens pollenrapport
+		Today's pollen report
 	.SearchedItemRequest
 		None
 	.NoRunspace
@@ -150,8 +152,19 @@ function Get-SomeFiles
 	$List = [System.Collections.ArrayList]::new()
 	try
 	{
-		$files =  Get-ChildItem C:\Temp
-		$files | Select-Object Name, LastWriteTime, @{ Name = "Size"; Expression = { $_.Length } } | Sort-Object @{ Expression = { $_.Name } ; Descending = $true } | ForEach-Object { [void] $List.Add( $_ ) }
+		$files =  Get-ChildItem C:\
+		$files | `
+			Select-Object Name, Extension, LastWriteTime, `
+				@{ Name = "IsDir"; Expression = { $_ -is [System.IO.DirectoryInfo] } }, `
+				@{ Name = "Size"; Expression = {
+					if ( $_ -is [System.IO.DirectoryInfo] )
+					{ $IntMsgTable.GetSomeFilesFolder }
+					elseif ( $_.Length -lt 1kB ) { "$( $_.Length ) B" }
+					elseif ( $_.Length -gt 1kB -and $_.Length -lt 1MB ) { "$( [math]::Round( ( $_.Length / 1kB ), 2 ) ) kB" }
+					elseif ( $_.Length -gt 1MB -and $_.Length -lt 1GB ) { "$( [math]::Round( ( $_.Length / 1MB ), 2 ) ) MB" }
+					elseif ( $_.Length -gt 1GB -and $_.Length -lt 1TB ) { "$( [math]::Round( ( $_.Length / 1GB ), 2 ) ) GB" } } } | `
+			Sort-Object @{ Expression = { $_.IsDir }; Descending = $true }, Extension, Name | `
+			Select-Object Name, LastWriteTime, Size, Extension | ForEach-Object { [void] $List.Add( $_ ) }
 	} catch {}
 	if ( $null -eq $List )
 	{
@@ -227,13 +240,13 @@ function Get-TemaDagar
 	#>
 
 	$List = [System.Collections.ArrayList]::new()
-	$BaseUri = "https://temadagar.se/$( Get-Date -Format "d-MMMM" )/"
-	$req = Invoke-WebRequest -Method Get -Uri $BaseUri
-
-	$e = $req.ParsedHtml.getElementById( "content" )
-	$l = $e.getElementsByTagName( "p" ) | Select-Object -First 1
-	$l.getElementsByTagName( "a" ) | `
-		ForEach-Object { $List.Add( ( [pscustomobject]@{ Address = $_.Href; Text = $_.InnerText ; Type = "Hyperlink" } ) ) | Out-Null }
+	$BaseUri = "https://temadagar.se"
+	$req = Invoke-WebRequest -Method Get -Uri "$( $BaseUri )/$( Get-Date -Format "d-MMMM" )/" -UseBasicParsing
+	$req.Content -match "(?s)id=""content"".*?(?<Links><p>.*?)Ezoic" | Out-Null
+	[regex]::Matches( $Matches.Links , "(?s)<a href=""(?<L>.*?)"">(?<T>.*?)<" ) | `
+		ForEach-Object {
+			$List.Add( [pscustomobject]@{ Text = $_.Groups['T'].Value ; Address = "$BaseUri$( $_.Groups['L'] )" ; Type = "Hyperlink" } ) | Out-Null
+		}
 
 	if ( 0 -eq $List.Count )
 	{

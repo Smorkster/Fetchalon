@@ -1,4 +1,5 @@
 ﻿ConvertFrom-StringData @'
+CodeAzureGrpName = ^(MB-)|(DL-)|(RES-)*\\w* (Funk)|(Dist)|(Resurs)|(Rum)
 CodeLockoutAddress = \\\\test.domain.com\\LockedoutLogs\$
 CodeMsExchIgnoreOrg = OU=Org1
 CodeOrgGrpCaptureRegex = CN=Org1_Wrk_(?<org>.{3})_PR_(?<role>.*_PC).*
@@ -14,7 +15,6 @@ ContentBtnFileView = Visa
 ContentBtnGetExtraInfo = Hämta extra info
 ContentBtnRunVirusScan = Kör virus kontroll
 ContentBtnSearch = Sök
-ContentChBGetComputerWarranty = Garantitid
 ContentChBGetFromComputerProcesses = Processer
 ContentChBGetFromPrintQueuePrintJobs = Kölista utskrifter
 ContentChBGetFromSysMan = SysMan
@@ -30,6 +30,11 @@ ContentLblUserOAccountCheck = O365-konto skapat
 ContentLblUserOExchCheck = Synkat till Exchange
 ContentLblUserOLicCheck = Har E3-licens
 ContentLblUserOLoginCheck = O365 inloggning aktiv
+ContentMiO365Distributionlist = Distributionslist
+ContentMiO365Resource = Resurs
+ContentMiO365Room = Rum
+ContentMiO365SharedMailbox = Funktionsbrevlåda
+ContentMiO365User = Användare
 ContentMiObjDetailedHide = Förenklad vy
 ContentNoMembersOfList = < Inga värden >
 ContentSavePropValueButton = Spara
@@ -74,6 +79,8 @@ ContentTTMiObjDetailedShow = Visa detaljerad lista
 ContentTTTblContentTblMiShowHideObj = Visa/dölj vyn för AD-objekt
 ContentTTTblContentTblMiShowHideOutputView = Visa/dölj utdatavyn
 ErrForbiddenCmdLet = Förbjuden CmdLet
+ErrO365NotImplemented = Funktioner för Office365 är inte implementerade
+ErrSearchO365NotConnected = Ingen anslutning till Office 365 services, kan inte söka på Azure-grupper.
 ErrToolGuiNotPage = Gui är inte definierad med ett Page-objekt. Verktyg kommer därför inte laddas
 LogStrPropHandlerRun = Kört handler för
 LogStrSearchItemTitle = AD-objekt
@@ -136,6 +143,7 @@ StrSplashJoke6 = En herre utan mustasch kan aldrig...
 StrSplashJoke7 = Kurre Träbock
 StrSplashJoke8 = Go och glad, kexchoklad
 StrSplashJoke9 = Ta alltid telefonnummer
+StrSplashLastAdjustments = Lite finjusteringar
 StrSplashReadingSettings = Läser in inställningar
 StrSysManApi = http://sysman.domain.com/SysMan/api/
 StrVerbVirusScan = Sök efter hot

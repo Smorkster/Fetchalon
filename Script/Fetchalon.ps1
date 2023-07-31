@@ -9,6 +9,38 @@
 	Smorkster (smorkster)
 #>
 
+function CheckO365Connection
+{
+	try
+	{
+		Get-AcceptedDomain -ErrorAction Stop | Out-Null
+
+		$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Collapsed
+		$syncHash.Window.DataContext.O365Connected = $true
+	}
+	catch
+	{
+		$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Visible
+		$syncHash.Window.DataContext.O365Connected = $false
+		throw $_
+	}
+}
+
+function CheckO365Roles
+{
+	Get-AzureADDirectoryRole | `
+		ForEach-Object {
+			$Role = $_
+			if ( ( Get-AzureADDirectoryRoleMember -ObjectId $_.ObjectId | Where-Object { $_.UserPrincipalName -eq ( Get-AzureADCurrentSessionInfo ).Account.Id } ) )
+			{
+				if ( $Role.DisplayName -eq "Exchange Administrator" )
+				{
+					$syncHash.Window.Resources['ExchangeAdministrator'] = [System.Windows.Visibility]::Visible
+				}
+			}
+		}
+}
+
 function EnableExtraSearch
 {
 	<#
@@ -16,8 +48,7 @@ function EnableExtraSearch
 		Verify if button for extra info search is to be enabled
 	#>
 
-	$a = $syncHash.WpSearchFromBoxes.Children.Where( { $_.Visibility -eq [System.Windows.Visibility]::Visible } )
-	$syncHash.BtnGetExtraInfo.IsEnabled = ( $a.IsChecked -eq $true ).Count -gt 0
+	$syncHash.BtnGetExtraInfo.IsEnabled = $syncHash.WpSearchFromBoxes.Children.Where( { $_.Visibility -eq [System.Windows.Visibility]::Visible -and $_.IsChecked -eq $true } ).Count -gt 0
 }
 
 function GetExtraInfoComputer
@@ -216,6 +247,13 @@ function GetExtraInfoUser
 
 function GetPropHandlers
 {
+	<#
+	.Synopsis
+		Import PropHandlers
+	.Description
+		Import PropHandlers per objectclass, if description or title is not specified, a default string will be set
+	#>
+
 	$syncHash.Code = @{}
 	$syncHash.Code.PropHandlers = @{}
 	Get-ChildItem -Path "$BaseDir\Modules\PropHandlers" | `
@@ -224,15 +262,18 @@ function GetPropHandlers
 			$syncHash.Code.PropHandlers."$( $Module )" = @{}
 			( Import-Module $_.FullName -PassThru ).ExportedVariables.GetEnumerator() | `
 				ForEach-Object {
-					$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )" = $_.Value.Value
+					if ( $null -ne $_.Value.Value.Code )
+					{
+						$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )" = $_.Value.Value
 
-					if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description ) )
-					{
-						$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description = $syncHash.Data.msgTable.StrDefaultHandlerDescription
-					}
-					if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title ) )
-					{
-						$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title = $syncHash.Data.msgTable.StrRunHandler
+						if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description ) )
+						{
+							$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description = $syncHash.Data.msgTable.StrDefaultHandlerDescription
+						}
+						if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title ) )
+						{
+							$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title = $syncHash.Data.msgTable.StrRunHandler
+						}
 					}
 				}
 		}
@@ -299,24 +340,31 @@ function PrepareToRunScript
 		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "ScriptObject", $ScriptObject ) | Out-Null
 		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "Modules", ( Get-Module ) ) | Out-Null
 
-		# SearchedItem is not requested in the function
+		$ItemToSend = $null
+		# SearchedItem is not required in the function
 		if ( "None" -eq $ScriptObject.SearchedItemRequest )
 		{
 			$syncHash.Jobs.ExecuteFunction.P.AddParameter( "SearchedItem", $null ) | Out-Null
 		}
-		# SearchedItem is allowed/requested in the function
+		# SearchedItem is allowed/required in the function
 		else
 		{
-			if ( $null -ne $syncHash.Data.SearchedItem )
+			if ( $null -ne $syncHash.Data.SearchedItem -and `
+				$syncHash.Data.SearchedItem.ObjectClass -eq $ScriptObject.ObjectClass
+			)
 			{
 				$ItemToSend = @{}
 
 				$syncHash.Data.SearchedItem | `
 					Get-Member -MemberType NoteProperty | `
 					ForEach-Object { $ItemToSend."$( $_.Name )" = $syncHash.Data.SearchedItem."$( $_.Name )" }
-			}
 
-			$syncHash.Jobs.ExecuteFunction.P.AddParameter( "SearchedItem", $ItemToSend ) | Out-Null
+				$syncHash.Jobs.ExecuteFunction.P.AddParameter( "SearchedItem", $ItemToSend ) | Out-Null
+			}
+			else
+			{
+				$syncHash.Jobs.ExecuteFunction.P.AddParameter( "SearchedItem", $null ) | Out-Null
+			}
 		}
 	}
 
@@ -347,6 +395,7 @@ function PrepareToRunScript
 			{
 				$syncHash.GridFunctionOp.DataContext.InputData[0].EnteredValue = $syncHash.Data.SearchedItem.SamAccountName
 			}
+			$syncHash.IcFunctionInput.ItemContainerGenerator.ContainerFromIndex( 0 ).Focus()
 		}
 	}
 }
@@ -365,6 +414,11 @@ function ReadSettingsFile
 			Group = [System.Collections.ArrayList]::new()
 			PrintQueue = [System.Collections.ArrayList]::new()
 			User = [System.Collections.ArrayList]::new()
+			O365User = [System.Collections.ArrayList]::new()
+			O365SharedMailbox = [System.Collections.ArrayList]::new()
+			O365Resource = [System.Collections.ArrayList]::new()
+			O365Room = [System.Collections.ArrayList]::new()
+			O365Distributionlist = [System.Collections.ArrayList]::new()
 		}
 		Maximized = $false
 		MenuTextVisible = $true
@@ -407,8 +461,10 @@ function ResetInfo
 		ForEach-Object { $_.Fill = "Red" }
 
 	$syncHash.Window.DataContext.SearchedItem = $null
+	$syncHash.MenuObject.IsEnabled = $false
 	$syncHash.Data.SearchedItem = $null
 	$syncHash.DC.DgSearchResults[0].Clear()
+	$syncHash.DC.TblFailedSearchMessage[0] = ""
 	try { $syncHash.Jobs.SearchJobs | ForEach-Object { $_.P.Dispose() } } catch {}
 	$syncHash.Jobs | ForEach-Object { try { $_.Stop() ; $_.Dispose() } catch {} }
 	$syncHash.ScObjInfo.ScrollToTop()
@@ -436,7 +492,14 @@ function RunScriptNoRunspace
 
 	$EnteredInput = @{}
 	$syncHash.GridFunctionOp.DataContext.InputData | ForEach-Object { $EnteredInput."$( $_.Name )" = $_.EnteredValue }
-	. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module ) $syncHash.Data.SearchedItem $EnteredInput
+	if ( "None" -eq $ScriptObject.SearchedItemRequest )
+	{
+		. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module ) $null $EnteredInput
+	}
+	else
+	{
+		. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module ) $syncHash.Data.SearchedItem $EnteredInput
+	}
 
 	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $msgTable.StrDefaultMainTitle } )
 }
@@ -470,6 +533,7 @@ function SetLocalizations
 	$syncHash.Window.Resources['MiSubLevelFunctionsStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
 	$syncHash.Window.Resources['MiSubLevelO365Style'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
 	$syncHash.Window.Resources['MiSubLevelToolStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
+	$syncHash.Window.Resources['TbInputStyle'].Setters.Where( { $_.Event.Name -match "Loaded" } )[0].Handler = $syncHash.Code.InputTextBoxLoaded
 	$syncHash.Window.Resources['TblHlStyle'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.HyperLinkClick
 
 	$syncHash.MiOutputHistory.ItemContainerStyle.Setters[0].Handler = $syncHash.Code.ShowOutputItem
@@ -486,6 +550,11 @@ function SetLocalizations
 	$syncHash.Window.Resources['CvsMiTools'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Window.Resources['CvsMiUserFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Window.Resources['CvsPropsList'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Window.Resources['CvsMiO365UserFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Window.Resources['CvsMiO365SharedMailboxFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Window.Resources['CvsMiO365DistributionlistFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Window.Resources['CvsMiO365ResourceFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Window.Resources['CvsMiO365RoomFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
 	"DgSearchResults", "IcObjectDetailed", "IcPropsList", "MiOutputHistory" | `
 		ForEach-Object {
@@ -507,7 +576,11 @@ function StartSearch
 		$syncHash.DC.TbSearch[0] = $syncHash.Data.TestSearches."$( $syncHash.DC.TbSearch[0] )"
 	}
 
-	$syncHash.Jobs.SearchJob = [powershell]::Create().AddScript( { param ( $syncHash )
+	$syncHash.Jobs.SearchJob = [powershell]::Create()
+	$syncHash.Jobs.SearchJob.AddScript( {
+		param ( $syncHash, $Modules, $O365Connected )
+		Import-Module $Modules
+
 		$syncHash.Window.Dispatcher.Invoke( [action] {
 			$syncHash.PopupMenu.IsOpen = $true
 			$syncHash.DC.PbSearchProgress[0] = [System.Windows.Visibility]::Visible
@@ -524,6 +597,82 @@ function StartSearch
 			$syncHash.Window.Dispatcher.Invoke( [action] {
 				$syncHash.DC.DgSearchResults[0].Add( $FoundObject )
 			}, [System.Windows.Threading.DispatcherPriority]::DataBind )
+		}
+		# Searchstring match an mailaddress
+		elseif ( $syncHash.DC.TbSearch[0].Trim() -match "^(?:(?!.*?[.]{2})[a-zA-Z0-9](?:[a-zA-Z0-9.+!%-]{1,64}|)|\""[a-zA-Z0-9.+!% -]{1,64}\"")@[a-zA-Z0-9][a-zA-Z0-9.-]+(.[a-z]{2,}|.[0-9]{1,})$" )
+		{
+			if ( $O365Connected )
+			{
+				$FoundObject = Get-EXORecipient $syncHash.DC.TbSearch[0].Trim()
+				Add-Member -InputObject $FoundObject -MemberType NoteProperty -Name "ObjectClass" -Value "O365User"
+			}
+			else
+			{
+				$FoundObject = Get-ADUser -LDAPFilter "(Mail=$( $syncHash.DC.TbSearch[0].Trim() ))"
+			}
+
+			$syncHash.Window.Dispatcher.Invoke( [action] {
+				$syncHash.DC.DgSearchResults[0].Add( $FoundObject )
+			}, [System.Windows.Threading.DispatcherPriority]::DataBind )
+		}
+		# Searchstring match name of Azure-group
+		elseif ( $syncHash.DC.TbSearch[0].Trim() -match $syncHash.Data.msgTable.CodeAzureGrpName )
+		{
+			if ( $O365Connected )
+			{
+				switch -Regex ( $syncHash.DC.TbSearch[0].Trim() )
+				{
+					"^MB-" {
+						$AzureObject = Get-AzureADMSGroup -Filter "startswith(DisplayName,'$( $syncHash.DC.TbSearch[0].Trim() )')"
+						break
+					}
+					"^\w* Funk .*" {
+						$FoundObject = Get-EXORecipient $syncHash.DC.TbSearch[0].Trim()
+						break
+					}
+					"^DL-" {
+						$AzureObject = Get-AzureADMSGroup -Filter "DisplayName eq '$( $syncHash.DC.TbSearch[0].Trim() )'"
+						break
+					}
+					"^\w* Dist .*" {
+						$FoundObject = Get-EXORecipient $syncHash.DC.TbSearch[0].Trim()
+						break
+					}
+					"^RES-" {
+						$AzureObject = Get-AzureADMSGroup -Filter "startswith(DisplayName, '$( $syncHash.DC.TbSearch[0].Trim() )')"
+						break
+					}
+					"^\w* (resurs)|(rum) .*" {
+						$FoundObject = Get-EXORecipient $syncHash.DC.TbSearch[0].Trim()
+						break
+					}
+				}
+				if ( $AzureObject )
+				{
+					$AzureObject[0].DisplayName -match "^\w*-(?<Name>.*)-\w*$" | Out-Null
+					$FoundObject = Get-EXORecipient $Matches.Name
+				}
+
+				$OC = switch ( $FoundObject.RecipientTypeDetails )
+				{
+					"SharedMailbox" { "O365SharedMailbox" }
+					"EquipmentMailbox" { "O365Resource" }
+					"RoomMailbox" { "O365Room" }
+					"MailUniversalDistributionGroup" { "O365Distributionlist" }
+				}
+				Add-Member -InputObject $FoundObject -MemberType NoteProperty -Name "ObjectClass" -Value $OC
+
+				if ( $null -ne $FoundObject )
+				{
+					$syncHash.Window.Dispatcher.Invoke( [action] {
+						$syncHash.DC.DgSearchResults[0].Add( $FoundObject )
+					}, [System.Windows.Threading.DispatcherPriority]::DataBind )
+				}
+			}
+			else
+			{
+				$syncHash.DC.TblFailedSearchMessage[0] = $syncHash.Data.msgTable.ErrSearchO365NotConnected
+			}
 		}
 		# Check if text matches an IP-address
 		elseif ( $syncHash.DC.TbSearch[0].Trim() -match "^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$" )
@@ -646,7 +795,10 @@ function StartSearch
 				}
 			}
 		}, [System.Windows.Threading.DispatcherPriority]::Send )
-	} ).AddArgument( $syncHash )
+	} )
+	$syncHash.Jobs.SearchJob.AddArgument( $syncHash )
+	$syncHash.Jobs.SearchJob.AddArgument( ( Get-Module ) )
+	$syncHash.Jobs.SearchJob.AddArgument( $syncHash.Window.DataContext.O365Connected )
 	$syncHash.Jobs.SearchJob.Runspace = $syncHash.Jobs.SearchRunspace
 	$syncHash.Jobs.SearchJobHandle = $syncHash.Jobs.SearchJob.BeginInvoke()
 }
@@ -663,6 +815,7 @@ Get-Module | Where-Object { $_.Path -match "Fetchalon" } | Remove-Module
 		Import-Module -Name $_ -Force -ArgumentList $culture, $true
 	}
 Show-Splash -Text "" -SelfAdmin
+WriteLog -Text "Start" -Success $true | Out-Null
 
 $controls = [System.Collections.ArrayList]::new()
 [void] $controls.Add( @{ CName = "BrdAsterixWarning" ; Props = @( @{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
@@ -673,6 +826,7 @@ $controls = [System.Collections.ArrayList]::new()
 [void] $controls.Add( @{ CName = "IcOutputObjects" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[object]]::new() } ) } )
 [void] $controls.Add( @{ CName = "PbSearchProgress" ; Props = @( @{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
 [void] $controls.Add( @{ CName = "TblAsterixWarning" ; Props = @( @{ PropName = "Text" ; PropVal = $msgTable.ContentTblAsterixWarning } ) } )
+[void] $controls.Add( @{ CName = "TblFailedSearchMessage" ; Props = @( @{ PropName = "Text" ; PropVal = "" } ) } )
 [void] $controls.Add( @{ CName = "TbSearch" ; Props = @( @{ PropName = "Text"; PropVal = "" } ) } )
 
 Update-SplashText -Text $msgTable.StrSplashCreatingWindow
@@ -905,7 +1059,14 @@ $syncHash.Code.ListItem =
 
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "DataStreams" -Value ( [System.Collections.ArrayList]::new() )
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "FileSize" -Value ""
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Extension" -Value "$( $Object.Extension ) ($( ( Get-ItemProperty "Registry::HKEY_Classes_root\$( ( Get-ItemProperty "Registry::HKEY_Classes_root\$( $Object.Extension )" )."(default)" )")."(default)" ))"
+				try
+				{
+					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Extension" -Value "$( $Object.Extension ) ($( ( Get-ItemProperty "Registry::HKEY_Classes_root\$( ( Get-ItemProperty "Registry::HKEY_Classes_root\$( $Object.Extension )" -ErrorAction Stop )."(default)" )")."(default)" ))"
+				}
+				catch
+				{
+					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Extension" -Value "$( $Object.Extension )"
+				}
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "FileVersionInfo" -Value ( [System.Collections.ArrayList]::new() )
 
 				$syncHash.Data.SearchedItem.ExtraInfo.Other.FileSize = if ( $Object.Length -lt 1kB ) { "$( $Object.Length ) B" }
@@ -925,6 +1086,36 @@ $syncHash.Code.ListItem =
 
 				$syncHash.Data.SearchedItem.VersionInfo | Get-Member -MemberType Property | ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.FileVersionInfo.Add( ( [pscustomobject]@{ "Name" = $_.Name ; "Value" = $syncHash.Data.SearchedItem.VersionInfo."$( $_.Name )" } ) ) }
 			}
+			"O365User"
+			{
+				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
+				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
+				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+			}
+			"O365SharedMailbox"
+			{
+				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
+				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
+				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+			}
+			"O365Resource"
+			{
+				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
+				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
+				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+			}
+			"O365Room"
+			{
+				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
+				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
+				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+			}
+			"O365Distributionlist"
+			{
+				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
+				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
+				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+			}
 			default
 			{
 				[pscustomobject] $syncHash.Data.SearchedItem = $syncHash.DgSearchResults.SelectedItem | Select-Object *
@@ -940,33 +1131,53 @@ $syncHash.Code.ListItem =
 			$acl = Get-Acl $syncHash.Data.SearchedItem.FullName
 			( $acl.Access | Where-Object { $_.IdentityReference -match $syncHash.Data.msgTable.CodeRegExAclIdentity } ).IdentityReference | `
 				Select-Object -Unique | `
-				ForEach-Object { Get-ADGroup ( $_ -split "\\" )[1] } | `
-				Get-ADGroupMember | `
 				ForEach-Object {
-					[void] $syncHash.Data.SearchedItem.ExtraInfo.Other.ADGroups.Add( $_.Name )
-
-					if ( $_.Name -match "C$" )
-					{
-						Get-ADGroupMember $_.Name | `
-							Sort-Object Name | `
-							ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $_.DistinguishedName ) | Out-Null }
-
-						try
-						{
-							Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value ( ( Get-ADUser ( Get-ADGroup $_.DistinguishedName -Properties managedBy ).managedBy ).Name )
-						}
-						catch
-						{
-							Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value $syncHash.Data.msgTable.StrNoOwner
-						}
-
-					}
+					$PermType = if ( $_ -match "C$" )
+					{ "C" }
 					else
-					{
-						Get-ADGroupMember $_.Name | `
-							Sort-Object Name | `
-							ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $_.DistinguishedName ) | Out-Null }
-					}
+					{ "R" }
+					Get-ADGroup ( $_ -split "\\" )[1]  | `
+						Get-ADGroupMember | `
+							ForEach-Object {
+								if ( "group" -eq $_.ObjectClass )
+								{
+									[void] $syncHash.Data.SearchedItem.ExtraInfo.Other.ADGroups.Add( $_.Name )
+
+									if ( $_.Name -match "C$" )
+									{
+										Get-ADGroupMember $_.SamAccountName | `
+											Sort-Object Name | `
+											ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $_.DistinguishedName ) | Out-Null }
+
+										try
+										{
+											Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value ( ( Get-ADUser ( Get-ADGroup $_.DistinguishedName -Properties managedBy ).managedBy ).Name )
+										}
+										catch
+										{
+											Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value $syncHash.Data.msgTable.StrNoOwner
+										}
+
+									}
+									else
+									{
+										Get-ADGroupMember $_.SamAccountName | `
+											Sort-Object Name | `
+											ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $_.DistinguishedName ) | Out-Null }
+									}
+								}
+								elseif ( "user" -eq $_.ObjectClass )
+								{
+									if ( "C" -eq $PermType )
+									{
+										$syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $_.DistinguishedName ) | Out-Null
+									}
+									elseif ( "R" -eq $PermType )
+									{
+										$syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $_.DistinguishedName ) | Out-Null
+									}
+								}
+							}
 				}
 
 			if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.ADGroups.Count )
@@ -996,8 +1207,9 @@ $syncHash.Code.ListItem =
 
 		Invoke-Command $syncHash.Code.ListProperties -ArgumentList $false
 
-		if ( $syncHash.Data.SearchedItem.ObjectClass -notin "group", "DirectoryInfo", "FileInfo" )
+		if ( $syncHash.Data.SearchedItem.ObjectClass -in "user", "computer", "printQueue" )
 		{
+			$syncHash.GridExtraInfo.Visibility = [System.Windows.Visibility]::Visible
 			if ( "computer" -eq $syncHash.Data.SearchedItem.ObjectClass )
 			{
 				$syncHash.SpComputerOnlineStatus.Visibility = [System.Windows.Visibility]::Visible
@@ -1006,20 +1218,37 @@ $syncHash.Code.ListItem =
 			{
 				$syncHash.SpComputerOnlineStatus.Visibility = [System.Windows.Visibility]::Collapsed
 			}
-			$syncHash.WpSearchFromBoxes.Children | Select-Object -Skip 1 | ForEach-Object {
-				if ( $_.Name -match $syncHash.Data.SearchedItem.ObjectClass )
-				{
-					$_.Visibility = [System.Windows.Visibility]::Visible
-					$_.IsChecked = $true
-				}
-				else
-				{
-					$_.Visibility = [System.Windows.Visibility]::Collapsed
-					$_.IsChecked = $false
-				}
-			}
+			# Make checkboxes for extrainfo for appropriated objectclass, visible
+			$syncHash.WpSearchFromBoxes.Children | `
+				ForEach-Object `
+					-Begin { $c = 0 } `
+					-Process {
+						if ( 0 -eq $c )
+						{
+							$_.Visibility = [System.Windows.Visibility]::Visible
+						}
+						else
+						{
+							if ( $_.Name -match $syncHash.Data.SearchedItem.ObjectClass )
+							{
+								$_.Visibility = [System.Windows.Visibility]::Visible
+							}
+							else
+							{
+								$_.Visibility = [System.Windows.Visibility]::Collapsed
+							}
+						}
+
+						$c += 1
+					}
+		}
+		else
+		{
+			$syncHash.GridExtraInfo.Visibility = [System.Windows.Visibility]::Hidden
 		}
 
+		$syncHash.Window.DataContext.SearchedItem = $syncHash.Data.SearchedItem
+		$syncHash.MenuObject.IsEnabled = $true
 		$syncHash.TblObjName.GetBindingExpression( [System.Windows.Controls.TextBlock]::TextProperty ).UpdateTarget()
 		$syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "Cvs.*" } | ForEach-Object { $_.Value.View.Refresh() }
 		$syncHash.GridObj.Visibility = [System.Windows.Visibility]::Visible
@@ -1110,15 +1339,23 @@ $syncHash.Code.ListProperties =
 				if ( 0 -eq $c )
 				{
 					( Get-Member -InputObject $_ -MemberType NoteProperty ).Name | `
+						Where-Object { $_ } | `
 						Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
 						ForEach-Object {
 							$Key = $_
-							if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -eq "AD" -and $_.Name -eq $Key } ) -or `
+							if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -match "(AD)|(Exchange)" -and $_.Name -eq $Key } ) -or `
 								$OtherObjectClass -or `
 								$Detailed
 							)
 							{
-								[pscustomobject]@{ Name = $Key ; Value = $syncHash.Data.SearchedItem."$( $Key )" ; Source = "AD" }
+								if ( $syncHash.Data.SearchedItem.ObjectClass -match "(SharedMailbox)|(Room)|(Resource)|(Distributionlist)" )
+								{
+									[pscustomobject]@{ Name = $Key ; Value = $syncHash.Data.SearchedItem."$( $Key )" ; Source = "Exchange" }
+								}
+								else
+								{
+									[pscustomobject]@{ Name = $Key ; Value = $syncHash.Data.SearchedItem."$( $Key )" ; Source = "AD" }
+								}
 							}
 						}
 				}
@@ -1127,6 +1364,7 @@ $syncHash.Code.ListProperties =
 					$_ | ForEach-Object {
 						$Source = $_
 						( Get-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.$Source -MemberType NoteProperty ).Name | `
+							Where-Object { $_ } | `
 							Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
 							ForEach-Object {
 								$Key = $_
@@ -1239,7 +1477,7 @@ Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximu
 {
 	param ( $SenderObject, $e )
 
-	WriteLog -Text "$( $syncHash.Data.msgTable.LogStrPropHandlerRun ): $( $SenderObject.DataContext.Name )::$( $SenderObject.DataContext.Source )" -Success $true
+	WriteLog -Text "$( $syncHash.Data.msgTable.LogStrPropHandlerRun ): $( $syncHash.Data.SearchedItem.ObjectClass )::$( $SenderObject.DataContext.Name )::$( $SenderObject.DataContext.Source )" -Success $true
 	. ( [scriptblock]::Create( $SenderObject.DataContext.Handler.Code ) )
 }
 
@@ -1309,6 +1547,17 @@ $(
 	Show-Splash -Text $syncHash.Data.msgTable.StrPropertyCopied -NoTitle -NoProgressBar
 }
 
+# TextBox for function input is loaded, check if it is the first one, if so, set focus
+[System.Windows.RoutedEventHandler] $syncHash.Code.InputTextBoxLoaded =
+{
+	param ( $SenderObject, $e )
+
+	if ( $syncHash.IcFunctionInput.DataContext.InputData[0].Name -eq $SenderObject.DataContext.Name )
+	{
+		$SenderObject.Focus()
+	}
+}
+
 # Open a hyperlink
 [System.Windows.Input.MouseButtonEventHandler] $syncHash.Code.HyperLinkClick =
 {
@@ -1347,6 +1596,7 @@ $(
 				{
 					$page = CreatePage -FilePath $SenderObject.DataContext.Xaml
 					$page.Data.msgTable = Import-LocalizedData -BaseDirectory $SenderObject.DataContext.Localization.Directory.FullName -FileName $SenderObject.DataContext.Localization.Name
+					$page.Data.Modules = Get-Module
 					$page.Page.DataContext = [pscustomobject]@{
 						MsgTable = $page.Data.msgTable
 					}
@@ -1474,7 +1724,14 @@ $syncHash.Code.SBlockExecuteFunction = {
 			}
 			else
 			{
-				$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem $InputData
+				if ( $ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass )
+				{
+					$ScriptOutput = . $ScriptObject.Name $null $InputData
+				}
+				else
+				{
+					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem $InputData
+				}
 			}
 		}
 		else
@@ -1485,7 +1742,14 @@ $syncHash.Code.SBlockExecuteFunction = {
 			}
 			else
 			{
-				$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem
+				if ( $ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass )
+				{
+					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem
+				}
+				else
+				{
+					$ScriptOutput = . $ScriptObject.Name $null
+				}
 			}
 		}
 		$Info.Data = $ScriptOutput
@@ -1496,7 +1760,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 		}
 		elseif ( $Info.Data -is [pscustomobject] )
 		{
-			if ( "List" -eq $Info.OutputType )
+			if ( "List","ObjectList" -contains $Info.OutputType )
 			{
 				$temp = [System.Collections.ArrayList]::new()
 				$temp.Add( $Info.Data ) | Out-Null
@@ -1567,10 +1831,20 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\*.psm1" | `
 		Get-Command -Module $ModuleName | `
 			ForEach-Object {
 				$CodeDefinition = $_.Definition
-				$MiObject = [pscustomobject]@{
-					Name = $_.Name
-					ObjectClass = ( $ModuleName -replace "Functions$" )
+				if ( $ModuleName -match "O365Functions" )
+				{
+					$MiObject = [pscustomobject]@{
+						Name = $_.Name
+					}
 				}
+				else
+				{
+					$MiObject = [pscustomobject]@{
+						Name = $_.Name
+						ObjectClass = ( $ModuleName -replace "Functions$" )
+					}
+				}
+
 				$MiObject = GetScriptInfo -Text $CodeDefinition -InfoObject $MiObject -NoErrorRecord
 
 				if ( $null -ne $MiObject )
@@ -1666,7 +1940,7 @@ $syncHash.BtnGetExtraInfo.Add_Click( {
 	. "GetExtraInfo$( $syncHash.Data.SearchedItem.ObjectClass )"
 } )
 
-#
+# Hides text for the menuitems at toplevel
 $syncHash.BtnHideMenuTexts.Add_Click( {
 	if ( $syncHash.Window.Resources['MenuTextVisibility'] -eq [System.Windows.Visibility]::Visible )
 	{
@@ -1697,8 +1971,6 @@ $syncHash.BtnSearch.Add_Click( {
 } )
 
 # If checked for checkbox changes, enabled/disable button for extra info search
-$syncHash.ChBGetFromComputerWarranty.Add_Checked( { EnableExtraSearch } )
-$syncHash.ChBGetFromComputerWarranty.Add_UnChecked( { EnableExtraSearch } )
 $syncHash.ChBGetFromComputerProcesses.Add_Checked( { EnableExtraSearch } )
 $syncHash.ChBGetFromComputerProcesses.Add_UnChecked( { EnableExtraSearch } )
 $syncHash.ChBGetFromPrintQueuePrintJobs.Add_Checked( { EnableExtraSearch } )
@@ -1795,22 +2067,21 @@ $syncHash.MiCopyObj.Add_Click( {
 $syncHash.MiO365Connect.Add_Click( {
 	try
 	{
-		#throw "Error"
+		throw $syncHash.Data.msgTable.ErrO365NotImplemented
 		Connect-AzureAD -ErrorAction Stop
-		Connect-ExchangeOnline -UserPrincipalName ( Get-AzureADCurrentSessionInfo ).account.id  -ErrorAction Stop
-		$syncHash.Window.DataContext.O365Connected = $true
-		$this.Visibility = [System.Windows.Visibility]::Collapsed
-		$syncHash.PathMiO365Connect.Stroke = "Black"
-		$syncHash.TblMiO365Connect.Foreground = "Black"
+		Connect-ExchangeOnline -ErrorAction Stop
+
+		CheckO365Connection
+		#CheckO365Roles
 	}
 	catch
 	{
-		$e = $_
-		$syncHash.PathMiO365Connect.Stroke = "Red"
-		$syncHash.TblMiO365Connect.Foreground = "Red"
+		( $e = [System.Collections.ArrayList]::new() ).Add( $_ )
 		$output = [pscustomobject]@{ Finished = Get-Date; Data = $null ; Script = ( [pscustomobject]@{ Name = $syncHash.Data.msgTable.StrConnectO365Title } ) ; Error = $e ; Item = $null ; OutputType = "String" }
 		[void] $syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $output )
+		$syncHash.Window.Resources['ExchangeAdministrator'] = [System.Windows.Visibility]::Collapsed
 	}
+	$syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "Cvs.*" } | ForEach-Object { $_.Value.View.Refresh() }
 } )
 
 # Show a detailed overview of the object
@@ -1931,9 +2202,9 @@ $syncHash.Window.Add_Loaded( {
 		$syncHash.Window.Top = $syncHash.Data.UserSettings.WindowTop
 		$syncHash.Window.Left = $syncHash.Data.UserSettings.WindowLeft
 	}
-	$this.Resources.GetEnumerator() | Where-Object { $_.Name -match "^Cvs" } | ForEach-Object { $_.Value.View.Refresh() }
 	$this.Resources['MenuTextVisibility'] = [System.Windows.Visibility]::Parse( [System.Windows.Visibility], $syncHash.Data.UserSettings.MenuTextVisible )
 	$this.Resources['MainOutput'].Title = $syncHash.Data.msgTable.StrDefaultMainTitle
+
 	if ( $PSCommandPath -match "(Development)|(User)" )
 	{
 		$this.BorderBrush = "Red"
@@ -1942,6 +2213,8 @@ $syncHash.Window.Add_Loaded( {
 	{
 		$this.BorderBrush = "Black"
 	}
+
+	try { CheckO365Connection } catch {}
 
 	Update-SplashText -Text $syncHash.Data.msgTable.StrSplashFinished
 	Close-SplashScreen
@@ -1952,17 +2225,9 @@ $syncHash.Window.Add_ContentRendered( {
 	$syncHash.Data.MainWindowHandle = ( [System.Windows.Interop.WindowInteropHelper]::new( $this ) ).Handle
 	$syncHash.FrameTool.Navigate( $this.Resources['MainOutput'] )
 
-	try
-	{
-		if ( @( Get-PSSession | Where-Object { $_.Name -match "ExchangeOnline" } ).Count -gt 0 )
-		{
-			$syncHash.Window.DataContext.O365Connected = $true
-			$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Collapsed
-		}
-	} catch {}
-
 	$syncHash.Window.Resources['UseConverters'] = $true
 	$this.Activate()
+	$this.Resources.GetEnumerator() | Where-Object { $_.Name -match "^Cvs" } | ForEach-Object { $_.Value.View.Refresh() }
 } )
 
 # Catch keystrokes to see if the menu is to be opened
@@ -2025,7 +2290,31 @@ $syncHash.Window.Add_Closed( {
 		} catch {}
 
 		# Close all runspaces opened for tools
-		$syncHash.MiTools.Items | Where-Object { $_.Separate -eq $true } | ForEach-Object { try { $_.Process.PObj.CloseMainWindow() ; $_.Process.PObj.Close() } catch {} }
+		$syncHash.MiTools.Items |`
+			Where-Object { $_.Separate -eq $true } | `
+			ForEach-Object {
+				try
+				{
+					$_.Process.PObj.CloseMainWindow()
+					$_.Process.PObj.Close()
+				}
+				catch {}
+			}
+
+		# Unregister eventsubscribers created in tools
+		$syncHash.Window.Resources.GetEnumerator() | `
+			Where-Object { $_.Name -match "^Cvs" } | `
+			ForEach-Object {
+				$_.Value.Source | `
+					Where-Object { $null -ne $_.PS }
+			} | `
+			ForEach-Object {
+				$_.PageObject.EventSubscribers | `
+					ForEach-Object {
+						Unregister-Event -SourceIdentifier $_
+					}
+			}
+
 	}
 	[System.GC]::Collect()
 } )
