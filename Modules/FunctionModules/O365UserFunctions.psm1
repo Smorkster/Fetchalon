@@ -1,33 +1,15 @@
 <#
 .Synopsis
-	A collection of functions to operate with Office365-services
+	A collection of functions to operate with Office365-users
 .Description
-	A collection of functions to operate with Office365-services
+	A collection of functions to operate with Office365-users
 .State
 	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
-
-function Show-NotImplemented
-{
-	<#
-	.Synopsis
-		Inform that O365 is not implemented
-	.Description
-		Temp1
-	.MenuItem
-		0 Not implemented
-	.SearchedItemRequest
-		None
-	.OutputType
-		String
-	.Author
-		Smorkster
-	#>
-
-	return $IntMsgTable.GetTemp1StrInfo
-}
 
 function Get-ExoMail
 {
@@ -40,19 +22,21 @@ function Get-ExoMail
 		Get ExoMailbox
 	.SearchedItemRequest
 		Required
+	.ObjectClass
+		user
 	.OutputType
 		ObjectList
 	.Author
-		Smorkster
+		Smorkster (smorkster)
 	#>
 
 	param ( $Item )
 
-	return Get-EXOMailbox $Item.Name
+	return Get-EXOMailbox $Item.Name | Select-Object *
 }
 
 $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function *
+Export-ModuleMember -Function Get-ExoMail
