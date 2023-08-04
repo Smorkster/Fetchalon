@@ -83,7 +83,7 @@ function Clear-FileDownloads
 		$ReturnText.AppendLine( $IntMsgTable.StrClearFileDownloadsNoFiles ) | Out-Null
 	}
 
-	Send-MailMessage -From ( ( Get-ADUser $env:USERNAME.Substring( ( $env:USERNAME.Length - 4 ), 4 ) -Properties EmailAddress ).EmailAddress )`
+	Send-MailMessage -From ( ( Get-ADUser ( [Environment]::UserName ).Substring( ( ( [Environment]::UserName ).Length - 4 ), 4 ) -Properties EmailAddress ).EmailAddress )`
 		-To $IntMsgTable.StrClearFileDownloadsBotAddress `
 		-Body $ReturnText.ToString() `
 		-Encoding bigendianunicode `
@@ -99,7 +99,7 @@ function Get-PollenRapport
 	.Synopsis
 		Download today's pollen report
 	.Description
-		Download today's theme days from Pollenrapporten.se
+		Download today's pollen report from Pollenrapporten.se
 	.MenuItem
 		Today's pollen report
 	.SearchedItemRequest
@@ -143,6 +143,7 @@ function Get-SomeFiles
 		None
 	.OutputType
 		ObjectList
+	.NoRunspace
 	.Author
 		Smorkster (smorkster)
 	#>
