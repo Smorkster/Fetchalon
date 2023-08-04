@@ -32,7 +32,7 @@ $syncHash.Controls.BtnSendReport.Add_Click( {
 	if ( $syncHash.Controls.CbFunctionsList.SelectedItem.Author -match "\((?<id>.{4})\)" )
 	{
 		$Author = $Matches.id
-		Send-MailMessage -From ( Get-ADUser ( $env:USERNAME.Substring( 6, 4 ) ) -Properties mail ).mail `
+		Send-MailMessage -From ( Get-ADUser ( ( [Environment]::UserName ).Substring( 6, 4 ) ) -Properties mail ).mail `
 			-To ( Get-ADUser $Author -Properties mail ).mail `
 			-Body @"
 $( $syncHash.Data.msgTable.StrToAuthorInfo )<br>
@@ -45,7 +45,7 @@ $( $syncHash.Controls.TbText.Text -replace "`n", "<br>" )<br><br>
 
 *******************************************<br><br>
 
-$( $syncHash.Data.msgTable.StrToAuthorInfoSentBy ): $( ( Get-ADUser $env:USERNAME ).Name )
+$( $syncHash.Data.msgTable.StrToAuthorInfoSentBy ): $( ( Get-ADUser -Identity ( [Environment]::UserName ) ).Name )
 "@ `
 			-Encoding bigendianunicode `
 			-SmtpServer $syncHash.Data.msgTable.StrSMTP `
@@ -55,7 +55,7 @@ $( $syncHash.Data.msgTable.StrToAuthorInfoSentBy ): $( ( Get-ADUser $env:USERNAM
 		Update-SplashText -Text $syncHash.Data.msgTable.StrSplashToAuthor
 	}
 
-	Send-MailMessage -From ( Get-ADUser ( $env:USERNAME.Substring( 6, 4 ) ) -Properties mail ).mail `
+	Send-MailMessage -From ( Get-ADUser ( ( [Environment]::UserName ).Substring( 6, 4 ) ) -Properties mail ).mail `
 		-To $syncHash.Data.msgTable.StrBackOfficeMailAddress `
 		-Body @"
 $( $syncHash.Data.msgTable.StrCodeTitle ): <strong>$( $syncHash.Controls.CbFunctionsList.SelectedItem.Name )</strong><br><br>
@@ -69,7 +69,7 @@ $( $syncHash.Controls.TbText.Text -replace "`n", "<br>" )<br>
 
 $( if ( $MailSentToAuthor ) { "$( $syncHash.Data.msgTable.StrSentToAuthor ): $( $Author )" } else { $syncHash.Data.msgTable.StrNotSentToAuthor } )<br><br>
 
-$( $syncHash.Data.msgTable.StrToAuthorInfoSentBy ): $( ( Get-ADUser $env:USERNAME ).Name )
+$( $syncHash.Data.msgTable.StrToAuthorInfoSentBy ): $( ( Get-ADUser -Identity ( [Environment]::UserName ) ).Name )
 "@ `
 		-Encoding bigendianunicode `
 		-SmtpServer $syncHash.Data.msgTable.StrSMTP `
