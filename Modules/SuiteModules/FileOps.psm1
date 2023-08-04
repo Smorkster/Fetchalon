@@ -67,7 +67,7 @@ class ErrorLog
 	[string] ToJson()
 	{
 		$this.LogDate = ( Get-Date -Format "yyyy-MM-dd HH:mm:ss" )
-		$this.Operator = $env:USERNAME
+		$this.Operator = ( [Environment]::UserName )
 		return $this | ConvertTo-Json -Compress
 	}
 }
@@ -131,7 +131,7 @@ class Log
 	[string] ToJson()
 	{
 		$this.LogDate = ( Get-Date -Format "yyyy-MM-dd HH:mm:ss" )
-		$this.Operator = $env:USERNAME
+		$this.Operator = ( [Environment]::UserName )
 		return $this | ConvertTo-Json -Compress
 	}
 }
@@ -192,7 +192,7 @@ class Survey
 	[string] ToJson()
 	{
 		$this.LogDate = ( Get-Date -Format "yyyy-MM-dd HH:mm:ss" )
-		$this.Operator = $env:USERNAME
+		$this.Operator = ( [Environment]::UserName )
 		return $this | ConvertTo-Json -Compress
 	}
 
@@ -247,7 +247,7 @@ function EndScript
 	{
 		$mtx = [System.Threading.Mutex]::new( $false, "EndScript $( $CallingScript.Name )" )
 		$mtx.WaitOne()
-		Add-Content -Path "$RootDir\Logs\DummyQuitting.json" -Value ( [pscustomobject]@{ Date = $nudate; Operator = $env:USERNAME; Text = $( $CallingScript.BaseName ) - $dummy } | ConvertTo-Json )
+		Add-Content -Path "$RootDir\Logs\DummyQuitting.json" -Value ( [pscustomobject]@{ Date = $nudate; Operator = ( [Environment]::UserName ); Text = $( $CallingScript.BaseName ) - $dummy } | ConvertTo-Json )
 		$mtx.ReleaseMutex()
 	}
 }
@@ -426,7 +426,7 @@ function GetUserInput
 
 	param ( [string] $DefaultText )
 
-	$InputFilePath = "$RootDir\Input\$env:USERNAME\$( $CallingScript.BaseName ).txt"
+	$InputFilePath = "$RootDir\Input\$( [Environment]::UserName )\$( $CallingScript.BaseName ).txt"
 	if ( Test-Path -Path $InputFilePath ) { Clear-Content $InputFilePath }
 	else { New-Item -Path $InputFilePath -ItemType File -Force | Out-Null }
 
@@ -674,7 +674,7 @@ function WriteOutput
 		[string] $FileName
 	)
 
-	if ( $Scoreboard ) { $Folder = "Scoreboard" } else { $Folder = $env:USERNAME }
+	if ( $Scoreboard ) { $Folder = "Scoreboard" } else { $Folder = ( [Environment]::UserName ) }
 
 	$FileName = "{0} {1}, {2}.{3}" -f $FileName, "$( if ( $FileNameAddition ) { "$FileNameAddition " } )", ( Get-Date -Format "yyyy-MM-dd HH.mm.ss" ), $FileExtension
 
