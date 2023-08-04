@@ -315,6 +315,38 @@ function Close-SplashScreen
 	$Script:SplashShell.EndInvoke( $SplashHandle ) | Out-Null
 }
 
+function Set-SplashTopMost
+{
+	<#
+	.Synopsis
+		Set if splash screen is topmost window
+	.Parameter TopMost
+		The splash screen should be topmost
+	.Parameter NotTopMost
+		The splash screen should not be topmost
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param (
+	[Parameter( Mandatory, ParameterSetName = "Enabled" )]
+		[switch] $TopMost,
+	[Parameter( Mandatory, ParameterSetName = "Disabled" )]
+		[switch] $NotTopMost
+	)
+
+	if ( $TopMost )
+	{
+		$Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action]{ $Script:SplashHash.Window.TopMost = $true } )
+	}
+	else
+	{
+	$Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action]{ $Script:SplashHash.Window.TopMost = $false } )
+	}
+}
+
 function Show-CustomMessageBox
 {
 	<#
@@ -413,6 +445,10 @@ function Show-MessageBox
 		What icon is to be displayed in the messagebox
 	.Outputs
 		Returns which button in the messagebox was clicked
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
 	#>
 
 	param (
@@ -795,6 +831,6 @@ $CallingScript = try { ( Get-Item $MyInvocation.PSCommandPath ) } catch { [pscus
 try { $Host.UI.RawUI.WindowTitle = "$( $IntMsgTable.ConsoleWinTitlePrefix ): $( ( ( Get-Item $MyInvocation.PSCommandPath ).FullName -split "Script" )[1] )" } catch {}
 
 Export-ModuleMember -Function BindControls, CreateWindow, CreatePage, CreateWindowExt,
-							Close-SplashScreen, Show-Splash, Update-SplashProgress, Update-SplashText,
+							Close-SplashScreen, Set-SplashTopMost, Show-Splash, Update-SplashProgress, Update-SplashText,
 							Show-CustomMessageBox, Show-MessageBox
 Export-ModuleMember -Variable Converters
