@@ -202,8 +202,17 @@
                                     Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnRefetchGroups}" />
                             <Setter Property="Grid.Column"
                                     Value="1" />
+                            <Setter Property="IsEnabled"
+                                    Value="True" />
                             <Setter Property="Margin"
                                     Value="5,0,0,0" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=CbApp, Path=SelectedIndex}"
+                                             Value="-1">
+                                    <Setter Property="IsEnabled"
+                                            Value="False" />
+                                </DataTrigger>
+                            </Style.Triggers>
                         </Style>
                     </Button.Style>
                 </Button>
@@ -434,11 +443,27 @@
                     </Style>
                 </ScrollViewer.Style>
                 <ItemsControl x:Name="IcLog">
+                    <ItemsControl.Resources>
+                        <Style TargetType="Border"
+                               x:Key="BrdClick">
+                            <EventSetter Event="PreviewMouseDown" />
+                            <Setter Property="Background"
+                                    Value="Transparent" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
+                                             Value="True">
+                                    <Setter Property="Background"
+                                            Value="LightCyan" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Resources>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border>
                                 <Border.Style>
-                                    <Style TargetType="Border">
+                                    <Style TargetType="Border"
+                                           BasedOn="{StaticResource BrdClick}">
                                         <Setter Property="Background"
                                                 Value="White" />
                                         <Setter Property="BorderBrush"
