@@ -172,12 +172,15 @@ function CreateLogText
 		Create text for the log in the GUI
 	#>
 
+	param ( $Message )
+
 	$LogText = [pscustomobject]@{
 		DateTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
 		Groups = [System.Collections.ArrayList]::new()
 		AddedUsers = [System.Collections.ArrayList]::new()
 		RemovedUsers = [System.Collections.ArrayList]::new()
 		ErrorUsers = [System.Collections.ArrayList]::new()
+		Message = $Message
 	}
 
 	$syncHash.DC.LbGroupsChosen[1].Name | ForEach-Object { $LogText.Groups.Add( $_ ) }
@@ -235,6 +238,7 @@ function CreateMessage
 	$Message += $syncHash.Signatur
 	$OutputEncoding = [System.Text.UnicodeEncoding]::new( $False, $False ).psobject.BaseObject
 	$Message | clip
+	return $Message
 }
 
 function GeneratePassword
@@ -388,8 +392,7 @@ function PerformPermissions
 					}
 				}
 			}
-			CreateLogText
-			CreateMessage
+			CreateLogText ( CreateMessage )
 			WriteToLogFile
 			Show-MessageBox -Text "$( $syncHash.DC.LbGroupsChosen[1].Count * ( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) ) $( $syncHash.Data.msgTable.StrFinishMessage )" -Title "$( $syncHash.Data.msgTable.StrFinishMessageTitle )"
 
@@ -443,14 +446,14 @@ function SetUserSettings
 
 	try
 	{
-		$a = Get-ADPrincipalGroupMembership $env:USERNAME
+		$a = Get-ADPrincipalGroupMembership -Identity ( [Environment]::UserName )
 		$syncHash.Signatur = "`n$( $syncHash.Data.msgTable.StrSigGen )"
 		if ( $a.SamAccountName -match $syncHash.Data.msgTable.StrOpGrp )
 		{
 			$syncHash.LogFilePath = $syncHash.Data.msgTable.StrOpLogPath
-			$syncHash.ErrorLogFilePath = "$( $syncHash.Data.msgTable.StrOpLogPath )\Errorlogs\$env:USERNAME-Errorlog.txt"
+			$syncHash.ErrorLogFilePath = "$( $syncHash.Data.msgTable.StrOpLogPath )\Errorlogs\$( [Environment]::UserName )-Errorlog.txt"
 		}
-		elseif ( ( Get-ADGroupMember $syncHash.Data.msgTable.StrBORoleGrp ).Name -contains ( Get-ADUser $env:USERNAME ).Name )
+		elseif ( ( Get-ADGroupMember $syncHash.Data.msgTable.StrBORoleGrp ).Name -contains ( Get-ADUser -Identity ( [Environment]::UserName ) ).Name )
 		{
 			$syncHash.Signatur = "`n$( $msgTable.StrSigSD )"
 		}
@@ -473,7 +476,7 @@ function UpdateAppList
 	#>
 
 	$apps = @()
-	if ( $syncHash.Data.msgTable.StrBORoleGrp -in ( ( Get-ADUser $env:USERNAME -Properties MemberOf ).MemberOf | Get-ADGroup | Select-Object -ExpandProperty Name ) )
+	if ( $syncHash.Data.msgTable.StrBORoleGrp -in ( ( Get-ADUser -Identity ( [Environment]::UserName ) -Properties MemberOf ).MemberOf | Get-ADGroup | Select-Object -ExpandProperty Name ) )
 	{
 		$apps += [pscustomobject]@{ Text = "App 1"
 			Tag = @{ AppFilter = "(|(Name=App_1*)(Name=App1*))"
@@ -488,7 +491,7 @@ function UpdateAppList
 			split = "_"
 			index = 2 }
 
-	$apps | Where-Object { $_ } |  Sort-Object Text | ForEach-Object { $syncHash.DC.CbApp[0].Add( $_ ) }
+	$apps | Where-Object { $_ } | Sort-Object Text | ForEach-Object { $syncHash.DC.CbApp[0].Add( $_ ) }
 }
 
 function UpdateAppGroupList
@@ -580,6 +583,11 @@ $syncHash.Data.ErrorHashes = @()
 $syncHash.ErrorLogFilePath = ""
 $syncHash.HandledFolders = @()
 $syncHash.LogFilePath = ""
+[System.Windows.Input.MouseButtonEventHandler] $syncHash.Code.LogItemClickHandler = {
+	param ( $SenderObject, $e )
+
+	$SenderObject.DataContext.Message | clip
+}
 ResetVariables
 SetUserSettings
 
@@ -604,6 +612,8 @@ $syncHash.Controls.BtnRefetchGroups.Add_Click( {
 $syncHash.Controls.BtnPerform.Add_Click( { PerformPermissions } )
 
 $syncHash.Controls.BtnUndo.Add_Click( { UndoInput } )
+
+$syncHash.Controls.IcLog.Resources['BrdClick'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.LogItemClickHandler
 
 $syncHash.Controls.LbAppGroupList.Add_MouseDoubleClick( { GroupSelected } )
 
