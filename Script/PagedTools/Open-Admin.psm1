@@ -775,7 +775,7 @@ function UpdateFiles
 		else
 		{
 			$RollbackPath = "$( $syncHash.Data.RollbackRoot )\$( ( Get-Date ).Year )\$( ( Get-Date ).Month )\"
-			$RollbackName = "$( $File.ProdFile.Name ) ($( $syncHash.Data.msgTable.StrRollbackName ) $( Get-Date $File.ProdFile.LastWriteTime -Format $syncHash.Data.CultureInfo.DateTimeFileStringFormat ), $( $env:USERNAME ))$( $File.ProdFile.Extension )" -replace ":","."
+			$RollbackName = "$( $File.ProdFile.Name ) ($( $syncHash.Data.msgTable.StrRollbackName ) $( Get-Date $File.ProdFile.LastWriteTime -Format $syncHash.Data.CultureInfo.DateTimeFileStringFormat ), $( ( [Environment]::UserName ) ))$( $File.ProdFile.Extension )" -replace ":","."
 			$RollbackValue = [string]( Get-Content -Path $File.ProdFile.FullName -Encoding UTF8 )
 			$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 			New-Item -Path $RollbackPath -Name $RollbackName -ItemType File -Value $RollbackValue -Force | Out-Null
