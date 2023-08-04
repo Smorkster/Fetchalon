@@ -633,18 +633,18 @@ function SetUserSettings
 
 	try
 	{
-		$a = Get-ADPrincipalGroupMembership $env:USERNAME
+		$a = Get-ADPrincipalGroupMembership -Identity ( [Environment]::UserName )
 		if ( $a.SamAccountName -match $syncHash.Data.msgTable.StrOpGroup )
 		{
 			$syncHash.LogFilePath = $syncHash.Data.msgTable.StrOpLogPath
-			$syncHash.ErrorLogFilePath = "$( $syncHash.Data.msgTable.StrOpLogPath )$( $syncHash.Data.msgTable.StrOpErrLogFile )$( $env:USERNAME ).log"
+			$syncHash.ErrorLogFilePath = "$( $syncHash.Data.msgTable.StrOpLogPath )$( $syncHash.Data.msgTable.StrOpErrLogFile )$( ( [Environment]::UserName ) ).log"
 
 			$syncHash.HandledFolders = $syncHash.Data.KatalogHandledFolders
 			$syncHash.Signatur += "`n`n$( $syncHash.Data.msgTable.StrSignOp )"
 		}
 		elseif ( $a.SamAccountName -match $syncHash.Data.msgTable.StrSDGroup )
 		{
-			$syncHash.ErrorLogFilePath = ( ( Get-Item $PSScriptRoot ).Parent.FullName ) + "\ErrorLogs\" + ( Get-Item $PSCommandPath ).BaseName + "\" + $env:USERNAME + " ErrorLog.txt"
+			$syncHash.ErrorLogFilePath = ( ( Get-Item $PSScriptRoot ).Parent.FullName ) + "\ErrorLogs\" + ( Get-Item $PSCommandPath ).BaseName + "\" + ( [Environment]::UserName ) + " ErrorLog.txt"
 			$syncHash.LogFilePath = ( ( Get-Item $PSScriptRoot ).Parent.FullName) + "\Log\" + $( [datetime]::Now.Year ) + "\" + [datetime]::Now.Month + "\" + ( Get-Item $PSCommandPath ).BaseName + "\"
 
 			$syncHash.HandledFolders = $syncHash.Data.ServicedeskHandledFolders
@@ -656,7 +656,7 @@ function SetUserSettings
 	catch
 	{
 		Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrNoPerm )`n$( $_.Exception.Message )" -Title $syncHash.Data.msgTable.StrNoPermTitle -Icon "Stop"
-		WriteErrorLogTest -LogText "SetUserSettings:`n$_" -UserInput $env:USERNAME -Severity -1 | Out-Null
+		WriteErrorLogTest -LogText "SetUserSettings:`n$_" -UserInput ( [Environment]::UserName ) -Severity -1 | Out-Null
 	}
 }
 
