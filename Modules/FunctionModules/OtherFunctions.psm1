@@ -29,6 +29,7 @@ function Clear-FileDownloads
 		Smorkster (smorkster)
 	#>
 
+	Import-Module ActiveDirectory -Force
 	$Files = Get-ChildItem $IntMsgTable.StrClearFileDownloadsCodeDirPath -File -Recurse -Force
 	$Removed = [System.Collections.ArrayList]::new()
 	$ReturnText = [System.Text.StringBuilder]::new()
@@ -83,13 +84,24 @@ function Clear-FileDownloads
 		$ReturnText.AppendLine( $IntMsgTable.StrClearFileDownloadsNoFiles ) | Out-Null
 	}
 
-	Send-MailMessage -From ( ( Get-ADUser ( [Environment]::UserName ).Substring( ( ( [Environment]::UserName ).Length - 4 ), 4 ) -Properties EmailAddress ).EmailAddress )`
-		-To $IntMsgTable.StrClearFileDownloadsBotAddress `
-		-Body $ReturnText.ToString() `
-		-Encoding bigendianunicode `
-		-SmtpServer $IntMsgTable.StrSMTP `
-		-Subject "BotFlow1" `
-		-BodyAsHtml
+	try
+	{
+		$Sender = ( ( Get-ADUser -Identity ( [Environment]::UserName ).Substring( ( ( [Environment]::UserName ).Length - 4 ), 4 ) -Properties EmailAddress ).EmailAddress )
+		Send-MailMessage -From $Sender `
+			-To $IntMsgTable.StrClearFileDownloadsBotAddress `
+			-Body $ReturnText.ToString() `
+			-Encoding bigendianunicode `
+			-SmtpServer $IntMsgTable.StrSMTP `
+			-Subject "BotFlow1" `
+			-BodyAsHtml
+	}
+	catch
+	{
+		$ReturnText.AppendLine() | Out-Null
+		$ReturnText.AppendLine( $IntMsgTable.StrClearFileDownloadsNoMail ) | Out-Null
+		$ReturnText.AppendLine( $_.Exception.Message ) | Out-Null
+	}
+
 	return $ReturnText.ToString()
 }
 
