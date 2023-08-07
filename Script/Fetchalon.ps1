@@ -138,7 +138,7 @@ function GetExtraInfoComputer
 	} )
 	$syncHash.Jobs.PSysManFetch.AddArgument( $syncHash )
 	$syncHash.Jobs.PSysManFetch.AddArgument( $syncHash.Data.SearchedItem.Name )
-	$syncHash.Jobs.PSysManFetch.AddArgument( ( Get-Module ) )
+	$syncHash.Jobs.PSysManFetch.AddArgument( ( Get-Module | Where-Object { Test-Path $_.Path } ) )
 	$syncHash.Jobs.PSysManFetch.AddArgument( $syncHash.ChBGetFromSysMan.IsChecked )
 	$syncHash.Jobs.PSysManFetch.AddArgument( $syncHash.ChBGetFromComputerProcesses.IsChecked )
 
@@ -211,7 +211,7 @@ function GetExtraInfoPrintQueue
 	$syncHash.Jobs.PSysManFetch.AddArgument( $syncHash.Data.SearchedItem.Name )
 	$syncHash.Jobs.PSysManFetch.AddArgument( $syncHash.ChBGetFromSysMan.IsChecked )
 	$syncHash.Jobs.PSysManFetch.AddArgument( $syncHash.ChBGetFromPrintQueuePrintJobs.IsChecked )
-	$syncHash.Jobs.PSysManFetch.AddArgument( ( Get-Module ) )
+	$syncHash.Jobs.PSysManFetch.AddArgument( ( Get-Module | Where-Object { Test-Path $_.Path } ) )
 
 	$syncHash.Jobs.HSysManFetch = $syncHash.Jobs.PSysManFetch.BeginInvoke()
 }
@@ -318,7 +318,7 @@ function OpenTool
 	} )
 	[void] $SenderObject.DataContext.Process.RunspaceP.AddArgument( $SenderObject.DataContext.Ps )
 	[void] $SenderObject.DataContext.Process.RunspaceP.AddArgument( $SenderObject.DataContext.BaseDir )
-	[void] $SenderObject.DataContext.Process.RunspaceP.AddArgument( ( Get-Module ) )
+	[void] $SenderObject.DataContext.Process.RunspaceP.AddArgument( ( Get-Module | Where-Object { Test-Path $_.Path } ) )
 	$SenderObject.DataContext.Process.RunspaceH = $SenderObject.DataContext.Process.RunspaceP.BeginInvoke()
 
 	$SenderObject.DataContext.Process.EventListenerPsInitializer = Register-ObjectEvent -InputObject $SenderObject.DataContext.Process.RunspaceP -EventName InvocationStateChanged -MessageData @( $SenderObject, $syncHash ) -Action {
@@ -357,7 +357,7 @@ function PrepareToRunScript
 		$syncHash.Jobs.ExecuteFunction.P.AddScript( $syncHash.Code.SBlockExecuteFunction ) | Out-Null
 		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "syncHash", $syncHash ) | Out-Null
 		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "ScriptObject", $ScriptObject ) | Out-Null
-		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "Modules", ( Get-Module ) ) | Out-Null
+		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "Modules", ( Get-Module | Where-Object { Test-Path $_.Path } ) ) | Out-Null
 
 		$ItemToSend = $null
 		# SearchedItem is not required in the function
@@ -513,11 +513,11 @@ function RunScriptNoRunspace
 	$syncHash.GridFunctionOp.DataContext.InputData | ForEach-Object { $EnteredInput."$( $_.Name )" = $_.EnteredValue }
 	if ( "None" -eq $ScriptObject.SearchedItemRequest )
 	{
-		. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module ) $null $EnteredInput
+		. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module | Where-Object { Test-Path $_.Path } ) $null $EnteredInput
 	}
 	else
 	{
-		. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module ) $syncHash.Data.SearchedItem $EnteredInput
+		. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module | Where-Object { Test-Path $_.Path } ) $syncHash.Data.SearchedItem $EnteredInput
 	}
 
 	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $msgTable.StrDefaultMainTitle } )
@@ -844,7 +844,7 @@ function StartSearch
 		}, [System.Windows.Threading.DispatcherPriority]::Send )
 	} )
 	$syncHash.Jobs.SearchJob.AddArgument( $syncHash )
-	$syncHash.Jobs.SearchJob.AddArgument( ( Get-Module ) )
+	$syncHash.Jobs.SearchJob.AddArgument( ( Get-Module | Where-Object { Test-Path $_.Path } ) )
 	$syncHash.Jobs.SearchJob.AddArgument( $syncHash.Window.DataContext.O365Connected )
 	$syncHash.Jobs.SearchJob.Runspace = $syncHash.Jobs.SearchRunspace
 	$syncHash.Jobs.SearchJobHandle = $syncHash.Jobs.SearchJob.BeginInvoke()
@@ -2425,8 +2425,10 @@ catch
 	{
 		Connect-ExchangeOnline -UserPrincipalName $AzureAdAccount.Account.Id -ErrorAction Stop -WarningAction SilentlyContinue
 	} catch {}
+	$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Collapsed
 	Set-SplashTopMost -TopMost
 }
+Import-Module ActiveDirectory -Force
 Update-SplashText -Text "$( $msgTable.StrSplashCheckO365Roles )`n$( ( Get-AzureADCurrentSessionInfo ).Account.Id )"
 CheckO365Roles
 
