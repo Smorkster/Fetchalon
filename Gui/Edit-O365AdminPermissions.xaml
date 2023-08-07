@@ -16,12 +16,9 @@
         <CollectionViewSource x:Key="CvsDgAdminPermissions">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="RecipientTypeDetails"/>
+                <componentmodel:SortDescription Direction="Ascending"
                                                 PropertyName="DisplayName"/>
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsLbAdminPermissions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <Thickness x:Key="StdMargin">5</Thickness>
@@ -47,6 +44,19 @@
             <Setter Property="ScrollViewer.VerticalScrollBarVisibility"
                     Value="Auto" />
         </Style>
+        <Style TargetType="RadioButton"
+               x:Key="RbBaseStyle">
+            <Setter Property="GroupName"
+                    Value="Perm" />
+            <Setter Property="IsEnabled"
+                    Value="{Binding ElementName=BtnAddAdminPermission, Path=IsEnabled}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="{StaticResource StdPadding}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
         <Style x:Key="TbBaseStyle"
                TargetType="TextBox">
             <Setter Property="Margin"
@@ -55,6 +65,15 @@
                     Value="{StaticResource StdPadding}" />
             <Setter Property="VerticalContentAlignment"
                     Value="Center" />
+        </Style>
+        <Style x:Key="TblTitleStyle"
+               TargetType="TextBlock">
+            <Setter Property="FontSize"
+                    Value="15" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="{StaticResource StdPadding}" />
         </Style>
     </Page.Resources>
     <Grid>
@@ -65,8 +84,9 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -109,22 +129,61 @@
                 </Style>
             </Button.Style>
         </Button>
-        <ListBox x:Name="LbAdminPermissions">
-            <ListBox.Style>
-                <Style TargetType="ListBox">
+        <StackPanel Name="SpPermissionTypes">
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Grid.Row"
+                            Value="2" />
+                    <Setter Property="Orientation"
+                            Value="Horizontal" />
+                </Style>
+            </StackPanel.Style>
+            <RadioButton Name="RbPermissionFull">
+                <RadioButton.Style>
+                    <Style TargetType="RadioButton"
+                           BasedOn="{StaticResource RbBaseStyle}">
+                        <Setter Property="Content"
+                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbPermissionFull}" />
+                    </Style>
+                </RadioButton.Style>
+            </RadioButton>
+            <RadioButton Name="RbPermissionRead">
+                <RadioButton.Style>
+                    <Style TargetType="RadioButton"
+                           BasedOn="{StaticResource RbBaseStyle}">
+                        <Setter Property="Content"
+                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbPermissionRead}" />
+                    </Style>
+                </RadioButton.Style>
+            </RadioButton>
+        </StackPanel>
+        <StackPanel>
+            <StackPanel.Style>
+                <Style TargetType="StackPanel">
                     <Setter Property="Grid.ColumnSpan"
                             Value="2" />
                     <Setter Property="Grid.Row"
-                            Value="2" />
-                    <Setter Property="ItemsSource"
-                            Value="{Binding Source={StaticResource CvsLbAdminPermissions}}" />
-                    <Setter Property="Margin"
-                            Value="{StaticResource StdMargin}" />
-                    <Setter Property="SelectionMode"
-                            Value="Extended" />
+                            Value="3" />
+                    <Setter Property="Orientation"
+                            Value="Horizontal" />
                 </Style>
-            </ListBox.Style>
-        </ListBox>
+            </StackPanel.Style>
+            <TextBlock Name="TblAdminTitle">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock"
+                           BasedOn="{StaticResource TblTitleStyle}" />
+                </TextBlock.Style>
+            </TextBlock>
+            <TextBlock Name="TblAdminAddr">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock"
+                           BasedOn="{StaticResource TblTitleStyle}">
+                        <Setter Property="FontWeight"
+                                Value="Bold" />
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </StackPanel>
         <DataGrid Name="DgAdminPermissions">
             <DataGrid.Style>
                 <Style TargetType="DataGrid">
@@ -141,7 +200,7 @@
                     <Setter Property="Grid.ColumnSpan"
                             Value="2" />
                     <Setter Property="Grid.Row"
-                            Value="2" />
+                            Value="4" />
                     <Setter Property="IsReadOnly"
                             Value="True" />
                     <Setter Property="ItemsSource"
@@ -153,12 +212,14 @@
                 </Style>
             </DataGrid.Style>
             <DataGrid.Columns>
-                <DataGridTextColumn Binding="{Binding Path=DisplayName}"
+                <DataGridTextColumn Binding="{Binding Path=MailBox.DisplayName}"
                                     Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgAdminPermissionsColDisplayName}" />
-                <DataGridTextColumn Binding="{Binding Path=PrimarySmtpAddress}"
+                <DataGridTextColumn Binding="{Binding Path=MailBox.PrimarySmtpAddress}"
                                     Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgAdminPermissionsColPrimarySmtpAddress}" />
-                <DataGridTextColumn Binding="{Binding Path=RecipientTypeDetails}"
+                <DataGridTextColumn Binding="{Binding Path=MailBox.RecipientTypeDetails}"
                                     Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgAdminPermissionsColRecipientTypeDetails}" />
+                <DataGridTextColumn Binding="{Binding Path=Permission}"
+                                    Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgAdminPermissionsColPermission}" />
             </DataGrid.Columns>
         </DataGrid>
         <ItemsControl x:Name="IcRecipientTypes">
@@ -167,7 +228,7 @@
                     <Setter Property="Grid.ColumnSpan"
                             Value="2" />
                     <Setter Property="Grid.Row"
-                            Value="4" />
+                            Value="5" />
                     <Setter Property="ItemsSource"
                             Value="{Binding Source={StaticResource CvsIcRecipientTypes}}" />
                     <Setter Property="Margin"
@@ -262,7 +323,7 @@
                     <Setter Property="Content"
                             Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSearchAdminPermission}" />
                     <Setter Property="Grid.Row"
-                            Value="5" />
+                            Value="6" />
                     <Setter Property="IsEnabled"
                             Value="True" />
                 </Style>
@@ -277,13 +338,20 @@
                     <Setter Property="Grid.Column"
                             Value="1" />
                     <Setter Property="Grid.Row"
-                            Value="5" />
+                            Value="6" />
                     <Setter Property="IsEnabled"
                             Value="True" />
                     <Setter Property="ToolTip"
                             Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnRemoveAdminPermissionTT}" />
                     <Setter Property="ToolTipService.ShowOnDisabled"
                             Value="False" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=BtnSearchAdminPermission, Path=IsEnabled}"
+                                     Value="False">
+                            <Setter Property="IsEnabled"
+                                    Value="False" />
+                        </DataTrigger>
+                    </Style.Triggers>
                 </Style>
             </Button.Style>
         </Button>

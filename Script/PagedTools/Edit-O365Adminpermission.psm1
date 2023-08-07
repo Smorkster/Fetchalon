@@ -19,8 +19,9 @@ $syncHash = $args[0]
 function SetLocalizations
 {
 	$syncHash.Controls.Window.Resources['CvsIcRecipientTypes'].Source = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
-	$syncHash.Controls.Window.Resources['CvsLbAdminPermissions'].Source = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 	$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+	$syncHash.Controls.Window.Resources['StrAdm'] = ( Get-AzureADCurrentSessionInfo ).Account.Id
+
 	$syncHash.Controls.IcRecipientTypes.Resources['StrSearchTime'] = $syncHash.Data.msgTable.StrSearchTime
 	$syncHash.Controls.IcRecipientTypes.Resources['StrPermCount'] = $syncHash.Data.msgTable.StrPermCount
 	$syncHash.Controls.IcRecipientTypes.Resources['StrPermPercentage'] = $syncHash.Data.msgTable.StrPermPercentage
@@ -29,11 +30,17 @@ function SetLocalizations
 	$syncHash.Controls.DgAdminPermissions.Columns[0].Header = $syncHash.Data.msgTable.ContentDgAdminPermissionsColDisplayName
 	$syncHash.Controls.DgAdminPermissions.Columns[1].Header = $syncHash.Data.msgTable.ContentDgAdminPermissionsColPrimarySmtpAddress
 	$syncHash.Controls.DgAdminPermissions.Columns[2].Header = $syncHash.Data.msgTable.ContentDgAdminPermissionsColRecipientTypeDetails
+	$syncHash.Controls.DgAdminPermissions.Columns[3].Header = $syncHash.Data.msgTable.ContentDgAdminPermissionsColPermission
+
+	$syncHash.Controls.RbPermissionFull.Tag = "FullAccess"
+	$syncHash.Controls.RbPermissionRead.Tag = "ReadPermission"
 }
 
 ################### Start script
 $controls = [System.Collections.ArrayList]::new()
 [void] $controls.Add( @{ CName = "BtnSearchAdminPermission" ; Props = @( @{ PropName = "IsEnabled"; PropVal = $true } ) } )
+[void] $controls.Add( @{ CName = "TblAdminAddr" ; Props = @( @{ PropName = "Text"; PropVal = ( Get-AzureADCurrentSessionInfo ).Account.Id } ) } )
+[void] $controls.Add( @{ CName = "TblAdminTitle" ; Props = @( @{ PropName = "Text"; PropVal = $syncHash.Data.msgTable.ContentTblAdminTitle } ) } )
 
 BindControls $syncHash $controls
 SetLocalizations
@@ -53,9 +60,13 @@ $syncHash.Controls.BtnAddAdminPermission.Add_Click( {
 	{
 		try
 		{
-			Add-MailboxPermission -Identity $syncHash.Data.FoundRecipient.PrimarySmtpAddress -User ( Get-AzureADCurrentSessionInfo ).Account.Id -AccessRights FullAccess
-			Add-Content -Value $syncHash.Data.FoundRecipient.PrimarySmtpAddress -Path "$( $env:USERPROFILE )\O365Admin.txt"
-			$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Add( $syncHash.Data.FoundRecipient ) | Out-Null
+			Add-MailboxPermission -Identity $syncHash.Data.FoundRecipient.PrimarySmtpAddress -User ( Get-AzureADCurrentSessionInfo ).Account.Id -AccessRights ( $syncHash.Controls.SpPermissionTypes.Children | Where-Object { $_.IsChecked } | Select-Object -First 1 -ExpandProperty Tag )
+
+			$MailBox = Get-EXORecipient $syncHash.Data.FoundRecipient.PrimarySmtpAddress
+			$MBP = Get-EXOMailboxPermission -Identity $MailBox -ErrorAction SilentlyContinue
+			$ListObject = [pscustomobject]@{ MailBox = ( Get-EXORecipient $MailBox ) ; Permission = [string]$MBP.Where( { $_.User -eq ( Get-AzureADCurrentSessionInfo ).Account.Id } )[0].AccessRights }
+			$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Add( $ListObject ) | Out-Null
+
 			$syncHash.Controls.TbAddAdminPermission.Text = ""
 		}
 		catch
@@ -66,32 +77,32 @@ $syncHash.Controls.BtnAddAdminPermission.Add_Click( {
 	}
 	else
 	{
-		
+		ShowMessageBox -Text $syncHash.Data.msgTable.ErrAddingWrongRecipientType -Icon "Error" | Out-Null
 	}
 } )
 
 # Remove permission to the selected mailboxes
 $syncHash.Controls.BtnRemoveAdminPermission.Add_Click( {
 
-	$AccountsToRemove = $syncHash.Controls.DgAdminPermissions.SelectedItems.PrimarySmtpAddress
+	$AccountsToRemove = $syncHash.Controls.DgAdminPermissions.SelectedItems | Select-Object Mailbox, Permission
 	$AccountsToRemove | `
 		ForEach-Object {
+			$Account = $_
 			try
 			{
-				Remove-MailboxPermission -Identity $_ -User ( Get-AzureADCurrentSessionInfo ).Account.Id -AccessRights FullAccess -Confirm:$false -ErrorAction Stop
-				
+				$Account.Permission -split "," | `
+					ForEach-Object {
+						Remove-MailboxPermission -Identity $Account.Mailbox.PrimarySmtpAddress -User ( Get-AzureADCurrentSessionInfo ).Account.Id -AccessRights $_ -Confirm:$false -BypassMasterAccountSid -ErrorAction Stop
+					}
+				$RemovedAccount = $syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Where( { $_.MailBox.PrimarySmtpAddress -eq $Account.Mailbox.PrimarySmtpAddress } )[0]
+				$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Remove( $RemovedAccount )
 			}
 			catch
 			{
-				$eh += WriteErrorlogTest -LogText "$( $syncHash.Data.msgTable.ErrLogRemovePerm )`n$_" -UserInput $syncHash.lbAdminPermissions.SelectedItems[$i] -Severity "OtherFail"
+				$eh += WriteErrorlogTest -LogText "$( $syncHash.Data.msgTable.ErrLogRemovePerm )`n$_" -UserInput $Account -Severity "OtherFail"
 			}
 		}
-	Set-Content -Value ( $syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Where( { $_.PrimarySmtpAddress -notin $AccountsToRemove } ) ) -Path "$( $env:USERPROFILE )\O365Admin.txt"
-	$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Clear()
-	Get-Content -Path "$( $env:USERPROFILE )\O365Admin.txt" | `
-		ForEach-Object {
-			$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Add( ( Get-EXORecipient -Identity $_ ) ) | Out-Null
-		}
+	$syncHash.Controls.DgAdminPermissions.SelectedIndex = -1
 } )
 
 # Start searching all available recipients for full permissions
@@ -105,7 +116,6 @@ $syncHash.Controls.BtnSearchAdminPermission.Add_Click( {
 			Import-Module $Modules
 
 			$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-				$syncHash.Controls.Window.Resources['CvsLbAdminPermissions'].Source.Clear()
 				$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Clear()
 			} )
 
@@ -133,6 +143,7 @@ $syncHash.Controls.BtnSearchAdminPermission.Add_Click( {
 					$P.AddScript( {
 						param ( $syncHash, $Modules, $RTD, $AdminId )
 						Import-Module $Modules
+						$OFS = ","
 
 						Get-EXORecipient -ResultSize Unlimited -RecipientTypeDetails $RTD | `
 							ForEach-Object `
@@ -143,10 +154,12 @@ $syncHash.Controls.BtnSearchAdminPermission.Add_Click( {
 							} `
 							-Process {
 								$MailBox = $_
-								if ( ( Get-EXOMailboxPermission -Identity $MailBox.PrimarySmtpAddress -ErrorAction SilentlyContinue ).User -match $AdminId )
+								$MBP = Get-EXOMailboxPermission -Identity $MailBox -ErrorAction SilentlyContinue
+								if ( $MBP.User -match $AdminId )
 								{
 									$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-										$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Add( $MailBox ) | Out-Null
+										$ListObject = [pscustomobject]@{ MailBox = $MailBox ; Permission = [string]$MBP.Where( { $_.User -eq $AdminId } )[0].AccessRights }
+										$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Add( $ListObject ) | Out-Null
 									} )
 									$PermCount += 1
 								}
@@ -220,7 +233,7 @@ $syncHash.Controls.DgAdminPermissions.Add_SelectionChanged( {
 } )
 
 # Click occured where no item is located, unselect items
-$syncHash.Controls.LbAdminPermissions.Add_MouseLeftButtonUp( {
+$syncHash.Controls.DgAdminPermissions.Add_MouseLeftButtonUp( {
 	if ( $args[1].OriginalSource -ne "" )
 	{
 		if ( $this.SelectedItems.Count -lt 1 )
@@ -238,25 +251,32 @@ $syncHash.Controls.TbAddAdminPermission.Add_TextChanged( {
 		{
 			$syncHash.Data.FoundRecipient = Get-EXORecipient -Identity $this.Text -ErrorAction Stop
 			$syncHash.Controls.BtnAddAdminPermission.IsEnabled = $true -and $syncHash.Controls.BtnSearchAdminPermission.IsEnabled
+			$syncHash.Controls.RbPermissionFull.IsChecked = $true
 		}
 	}
 	catch
 	{
 		$syncHash.Controls.BtnAddAdminPermission.IsEnabled = $false
+		$syncHash.Controls.RbPermissionFull.IsChecked = $false
+		$syncHash.Controls.RbPermissionRead.IsChecked = $false
 	}
 } )
 
 # The GUI is loaded the first time
 $syncHash.Controls.Window.Add_Loaded( {
+	$OFS = ","
 	Get-Content -Path "$( $env:USERPROFILE )\O365Admin.txt" | `
 		Where-Object { $_ } | `
 		ForEach-Object {
-			$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Add( ( Get-EXORecipient $_ ) ) | Out-Null
+			$MailBox = Get-EXORecipient $_
+			$MBP = Get-EXOMailboxPermission -Identity $MailBox -ErrorAction SilentlyContinue
+			$ListObject = [pscustomobject]@{ MailBox = ( Get-EXORecipient $_ ) ; Permission = [string]$MBP.Where( { $_.User -eq ( Get-AzureADCurrentSessionInfo ).Account.Id } )[0].AccessRights }
+			$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Add( $ListObject ) | Out-Null
 		}
 
 	$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.Add_CollectionChanged( {
 		$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].View.Refresh()
-		Set-Content -Value $syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.PrimarySmtpAddress -Path "$( $env:USERPROFILE )\O365Admin.txt"
+		Set-Content -Value $syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].Source.MailBox.PrimarySmtpAddress -Path "$( $env:USERPROFILE )\O365Admin.txt"
 	} )
 
 	$syncHash.Controls.Window.Resources['CvsDgAdminPermissions'].View.Refresh()
