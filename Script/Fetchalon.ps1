@@ -11,6 +11,11 @@
 
 function CheckO365Connection
 {
+	<#
+	.Synopsis
+		Check if there is an active connection to Office365 services
+	#>
+
 	try
 	{
 		Get-AcceptedDomain -ErrorAction Stop | Out-Null
@@ -28,6 +33,14 @@ function CheckO365Connection
 
 function CheckO365Roles
 {
+	<#
+	.Synopsis
+		Check AzureAD roles for connected user
+	.Description
+		Verify which roles the connected user are assigned to.
+		This is mainly used to make menuitems dependent on specific roles, visible/collapsed
+	#>
+
 	if ( ( Get-AzureADDirectoryRole -Filter "DisplayName eq 'Exchange Administrator'" | Get-AzureADDirectoryRoleMember ).UserPrincipalName -match ( Get-AzureADCurrentSessionInfo ).Account.Id )
 	{
 		$syncHash.Window.Resources['ExchangeAdministrator'] = [System.Windows.Visibility]::Visible
@@ -499,11 +512,21 @@ function ResetInfo
 
 function RunScript
 {
+	<#
+	.Synopsis
+		Start the runspace for function
+	#>
+
 	$syncHash.Jobs.ExecuteFunction.H = $syncHash.Jobs.ExecuteFunction.P.BeginInvoke()
 }
 
 function RunScriptNoRunspace
 {
+	<#
+	.Synopsis
+		Run a function without connecting it to a runspace
+	#>
+
 	param ( $ScriptObject, $EnteredInput )
 
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
@@ -634,6 +657,7 @@ function StartSearch
 		elseif ( ( Test-Mail -Address $syncHash.DC.TbSearch[0].Trim() ) )
 		{
 			$Objects = [System.Collections.ArrayList]::new()
+
 			Get-ADUser -LDAPFilter "(Mail=$( $syncHash.DC.TbSearch[0].Trim() ))" | `
 				ForEach-Object {
 					$Objects.Add( $_ ) | Out-Null
@@ -844,7 +868,7 @@ function StartSearch
 		}, [System.Windows.Threading.DispatcherPriority]::Send )
 	} )
 	$syncHash.Jobs.SearchJob.AddArgument( $syncHash )
-	$syncHash.Jobs.SearchJob.AddArgument( ( Get-Module | Where-Object { Test-Path $_.Path } ) )
+	$syncHash.Jobs.SearchJob.AddArgument( ( Get-Module | Where-Object { ( Test-Path $_.Path ) -and ( $_.Name -notmatch "^tmpEXO" ) } ) )
 	$syncHash.Jobs.SearchJob.AddArgument( $syncHash.Window.DataContext.O365Connected )
 	$syncHash.Jobs.SearchJob.Runspace = $syncHash.Jobs.SearchRunspace
 	$syncHash.Jobs.SearchJobHandle = $syncHash.Jobs.SearchJob.BeginInvoke()
@@ -931,6 +955,7 @@ $syncHash.Window.DataContext = $syncHash.BindData
 
 Update-SplashText -Text $msgTable.StrSplash2
 
+$syncHash.Jobs.JobErrors = [System.Collections.ArrayList]@{}
 $syncHash.Jobs.RunspacesForTools = [System.Collections.ArrayList]::new()
 $syncHash.Jobs.SearchRunspace = [runspacefactory]::CreateRunspace()
 $syncHash.Jobs.SearchRunspace.ThreadOptions = "ReuseThread"
@@ -941,8 +966,6 @@ $syncHash.Jobs.ScriptsRunspace = [runspacefactory]::CreateRunspace()
 $syncHash.Jobs.ScriptsRunspace.ThreadOptions = "ReuseThread"
 $syncHash.Jobs.ScriptsRunspace.ApartmentState = "STA"
 $syncHash.Jobs.ScriptsRunspace.Open()
-
-$syncHash.Jobs.JobErrors = [System.Collections.ArrayList]@{}
 
 Update-SplashText -Text $msgTable.StrSplashCreatingHandlers
 
@@ -976,6 +999,7 @@ $syncHash.Code.ListItem =
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Organisation" -Value $Matches.org
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ProcessList" -Value ( [System.Collections.ArrayList]::new() )
 				$syncHash.Data.SearchedItem.ExtraInfo.Other.ProcessList.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrPHComputerOtherProcessListColName = $syncHash.Data.msgTable.StrPropDataNotFetched ; $syncHash.Data.msgTable.StrPHComputerOtherProcessListColId = 0 } ) ) | Out-Null
+				break
 			}
 			"Group"
 			{
@@ -989,6 +1013,7 @@ $syncHash.Code.ListItem =
 					[array]::Reverse( $b )
 					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "OrgDn" -Value ( [string] $b ).TrimStart( "> " )
 				}
+				break
 			}
 			"PrintQueue"
 			{
@@ -996,7 +1021,11 @@ $syncHash.Code.ListItem =
 				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
 				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
 
-				if ( $syncHash.Data.SearchedItem.portName -ne $null ) { $syncHash.Data.ItemportName = ( $syncHash.Data.SearchedItem.portName | Select-Object -First 1 | Sort-Object ).Trim() }
+				if ( $syncHash.Data.SearchedItem.portName -ne $null )
+				{
+					$syncHash.Data.SearchedItem.portName = ( $syncHash.Data.SearchedItem.portName | Select-Object -First 1 | Sort-Object ).Trim()
+				}
+				break
 			}
 			"User"
 			{
@@ -1082,6 +1111,7 @@ $syncHash.Code.ListItem =
 							}
 						}
 				}
+				break
 			}
 			"DirectoryInfo"
 			{
@@ -1096,6 +1126,7 @@ $syncHash.Code.ListItem =
 				Get-ChildItem2 $syncHash.Data.SearchedItem.FullName | ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.DirectoryList.Add( ( [pscustomobject]@{ Name = $_.Name ; Type = $_.GetType().Name ; Item = $_ } ) ) }
 
 				$syncHash.Data.SearchedItem.ExtraInfo.Other.DirectoryInventory = "$( $syncHash.Data.SearchedItem.ExtraInfo.Other.DirectoryList.Count ) $( $syncHash.Data.msgTable.StrDirItemsCount )`n$( ( $syncHash.Data.SearchedItem.ExtraInfo.Other.DirectoryList.Type -match "DirectoryInfo" ).Count ) $( $syncHash.Data.msgTable.StrDirFolderCount ), $( ( $syncHash.Data.SearchedItem.ExtraInfo.Other.DirectoryList.Type -match "DirectoryInfo" ).Count ) $( $syncHash.Data.msgTable.StrDirFileCount ) "
+				break
 			}
 			"FileInfo"
 			{
@@ -1132,6 +1163,7 @@ $syncHash.Code.ListItem =
 					} | ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.DataStreams.Add( $_ ) }
 
 				$syncHash.Data.SearchedItem.VersionInfo | Get-Member -MemberType Property | ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.FileVersionInfo.Add( ( [pscustomobject]@{ "Name" = $_.Name ; "Value" = $syncHash.Data.SearchedItem.VersionInfo."$( $_.Name )" } ) ) }
+				break
 			}
 			"O365User"
 			{
@@ -1139,6 +1171,7 @@ $syncHash.Code.ListItem =
 				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
 				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
 				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
+				break
 			}
 			"O365SharedMailbox"
 			{
@@ -1146,6 +1179,7 @@ $syncHash.Code.ListItem =
 				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
 				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
 				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
+				break
 			}
 			"O365Resource"
 			{
@@ -1153,6 +1187,7 @@ $syncHash.Code.ListItem =
 				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
 				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
 				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
+				break
 			}
 			"O365Room"
 			{
@@ -1160,6 +1195,7 @@ $syncHash.Code.ListItem =
 				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
 				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
 				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
+				break
 			}
 			"O365Distributionlist"
 			{
@@ -1167,6 +1203,7 @@ $syncHash.Code.ListItem =
 				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
 				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
 				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
+				break
 			}
 			default
 			{
@@ -1374,6 +1411,7 @@ $syncHash.Code.ListExtraInfo =
 	Invoke-Command $syncHash.Code.ListProperties -ArgumentList ( "Visible" -eq $syncHash.IcObjectDetailed.Visibility )
 }
 
+# Get properties to display and enter into IcPropsList
 $syncHash.Code.ListProperties =
 {
 	param ( $Detailed )
@@ -1394,12 +1432,13 @@ $syncHash.Code.ListProperties =
 						Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
 						ForEach-Object {
 							$Key = $_
-							if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -match "(AD)|(Exchange)" -and $_.Name -eq $Key } ) -or `
+							if (
+								$syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -match "(AD)|(Exchange)" -and $_.Name -eq $Key } ) -or `
 								$OtherObjectClass -or `
 								$Detailed
 							)
 							{
-								if ( $syncHash.Data.SearchedItem.ObjectClass -match "O365(SharedMailbox)|(Room)|(Resource)|(Distributionlist)|(User)" )
+								if ( $syncHash.Data.SearchedItem.ObjectClass -match "^O365((SharedMailbox)|(Room)|(Resource)|(Distributionlist)|(User))" )
 								{
 									[pscustomobject]@{ Name = $Key ; Value = $syncHash.Data.SearchedItem."$( $Key )" ; Source = "Exchange" }
 								}
@@ -2037,6 +2076,7 @@ $syncHash.ChBGetFromSysMan.Add_UnChecked( { EnableExtraSearch } )
 $syncHash.ChBGetFromUserLockOut.Add_Checked( { EnableExtraSearch } )
 $syncHash.ChBGetFromUserLockOut.Add_UnChecked( { EnableExtraSearch } )
 
+# Set control focus depending on key pressed
 $syncHash.DgSearchResults.Add_KeyDown( {
 	if ( $this.SelectedIndex -eq 0 )
 	{
@@ -2078,7 +2118,7 @@ $syncHash.DgSearchResults.Add_MouseDoubleClick( {
 	Invoke-Command -ScriptBlock $syncHash.Code.ListItem -ArgumentList $syncHash.DgSearchResults.SelectedItem -NoNewScope
 } )
 
-#
+# Output data from function is added, close its runspace
 $syncHash.IcOutputObjects.ItemsSource.Add_CollectionChanged( {
 	if ( $this.Count -gt 0 )
 	{
@@ -2187,16 +2227,6 @@ $syncHash.TbSearch.Add_GotFocus( {
 $syncHash.TbSearch.Add_GotKeyboardFocus( {
 	$syncHash.PopupMenu.IsOpen = $true
 	$this.SelectAll()
-} )
-
-# Hide popup when text box looses focus
-$syncHash.TbSearch.Add_LostFocus( {
-	$syncHash.PopupMenu.IsOpen = $false
-} )
-
-# Hide popup when text box looses keyboardfocus
-$syncHash.TbSearch.Add_LostKeyboardFocus( {
-	$syncHash.PopupMenu.IsOpen = $false
 } )
 
 # Key was pressed in the search textbox
@@ -2419,7 +2449,7 @@ catch
 		}
 	try
 	{
-		$AzureAdAccount = Connect-AzureAD -ErrorAction Stop -WarningAction SilentlyContinue
+		$AzureAdAccount = Connect-AzureAD -ErrorAction Stop -WarningAction SilentlyContinue -InformationAction SilentlyContinue
 	} catch {}
 	try
 	{
@@ -2430,6 +2460,7 @@ catch
 }
 Import-Module ActiveDirectory -Force
 Update-SplashText -Text "$( $msgTable.StrSplashCheckO365Roles )`n$( ( Get-AzureADCurrentSessionInfo ).Account.Id )"
+CheckO365Connection
 CheckO365Roles
 
 [void] $syncHash.Window.ShowDialog()
