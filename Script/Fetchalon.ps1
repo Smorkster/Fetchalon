@@ -586,7 +586,11 @@ function SetLocalizations
 	$syncHash.Window.Resources['CvsMiAbout'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Window.Resources['CvsMiComputerFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Window.Resources['CvsMiGroupFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365Functions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Window.Resources['CvsMiO365DistributionlistFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Window.Resources['CvsMiO365ResourceFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Window.Resources['CvsMiO365RoomFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Window.Resources['CvsMiO365SharedMailboxFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Window.Resources['CvsMiO365UserFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Window.Resources['CvsMiOtherFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Window.Resources['CvsMiOutputHistory'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Window.Resources['CvsMiPrintQueueFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
@@ -594,11 +598,6 @@ function SetLocalizations
 	$syncHash.Window.Resources['CvsMiTools'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Window.Resources['CvsMiUserFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Window.Resources['CvsPropsList'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365UserFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365SharedMailboxFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365DistributionlistFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365ResourceFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365RoomFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
 	"DgSearchResults", "IcObjectDetailed", "IcPropsList", "MiOutputHistory" | `
 		ForEach-Object {
@@ -1998,14 +1997,21 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 						elseif (
 							$null -ne $MiObject.ObjectOperations -and `
 							"None" -ne $MiObject.ObjectOperations -and `
-							$null -eq ( $syncHash.Window.Resources.Keys | Where-Object { $_ -cmatch "CvsMi$( $MiObject.ObjectOperations )Functions" } )
+							$null -ne ( $syncHash.Window.Resources.Keys | Where-Object { $_ -match "CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions" } )
 						)
 						{
-							$syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "^CvsMi$( $MiObject.ObjectOperations )Functions$" } | ForEach-Object { $_.Value.Source.Add( $MiObject ) }
+							( $syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "^CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions$" } ).Value.Source.Add( $MiObject )
 						}
 						else
 						{
-							$syncHash.Window.Resources['CvsMiTools'].Source.Add( $MiObject )
+							if ( $MiObject.Name -match "^\w+-O365" )
+							{
+								$syncHash.MiO365.Items.Add( $MiObject )
+							}
+							else
+							{
+								$syncHash.Window.Resources['CvsMiTools'].Source.Add( $MiObject )
+							}
 						}
 					}
 				}
