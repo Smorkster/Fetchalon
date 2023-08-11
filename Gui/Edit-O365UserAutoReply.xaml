@@ -1,0 +1,371 @@
+<Page Name="Window"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
+    <Page.Resources>
+        <Thickness x:Key="StdMargin">5</Thickness>
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="{x:Type CheckBox}"
+               x:Key="ChbBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="CheckBox"
+               x:Key="ChbScheduledSettingsActivateStyle"
+               BasedOn="{StaticResource ChbBaseStyle}">
+            <Setter Property="IsEnabled"
+                    Value="{Binding ElementName=CbScheduled, Path=IsChecked}" />
+            <Setter Property="ToolTip"
+                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrScheduledAutoReplyNotSet}" />
+            <Setter Property="ToolTipService.ShowOnDisabled"
+                    Value="True" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ElementName=CbScheduled, Path=IsChecked}"
+                             Value="False">
+                    <Setter Property="IsChecked"
+                            Value="False" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding ElementName=CbActivate, Path=IsChecked}"
+                             Value="False">
+                    <Setter Property="ToolTip"
+                            Value="{x:Null}" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="ComboBox"
+               x:Key="CbBaseStyle">
+            <Setter Property="Margin"
+                    Value="10,0,0,0" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+            <Setter Property="Width"
+                    Value="50" />
+        </Style>
+        <Style TargetType="DatePicker"
+               x:Key="DpBaseStyle">
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+            <Setter Property="Width"
+                    Value="120" />
+        </Style>
+        <Style TargetType="GroupBox"
+               x:Key="GbBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="{x:Type RadioButton}">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="{x:Type TextBox}"
+               x:Key="TbBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="5" />
+        </Style>
+        <Style TargetType="{x:Type TextBox}"
+               x:Key="TbMessageStyle"
+               BasedOn="{StaticResource TbBaseStyle}">
+            <Setter Property="AcceptsReturn"
+                    Value="True" />
+            <Setter Property="AcceptsTab"
+                    Value="True" />
+        </Style>
+    </Page.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <TextBlock Name="TblIdTitle"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblIdTitle}" />
+            <TextBox Name="TbId"
+                     Grid.Column="1"
+                     Style="{StaticResource TbBaseStyle}"
+                     VerticalContentAlignment="Center" />
+            <TextBlock Name="TblFoundUserTitle"
+                       Grid.Row="1"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFoundUserTitle}" />
+            <TextBlock Name="TblFoundUser"
+                       FontWeight="Bold"
+                       Grid.Column="1"
+                       Grid.Row="1" />
+        </Grid>
+        <Grid Name="GridUser"
+              Grid.Row="1"
+              Margin="{StaticResource StdMargin}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="1*" />
+            </Grid.RowDefinitions>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="2*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Button Name="BtnSet"
+                        Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSet}"
+                        Grid.RowSpan="2"
+                        Padding="5,10" />
+                <TextBlock Name="TbSummaryTitle"
+                           FontSize="13"
+                           FontWeight="Bold"
+                           Grid.Column="1"
+                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTbSummaryTitle}"
+                           TextWrapping="Wrap" />
+                <TextBlock Name="TbSummary"
+                           Grid.Column="1"
+                           Grid.Row="1"
+                           Height="100"
+                           TextWrapping="Wrap" />
+            </Grid>
+            <CheckBox Name="CbActivate"
+                      Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbActivate}"
+                      Grid.Row="3"
+                      Style="{StaticResource ChbBaseStyle}" />
+            <ScrollViewer CanContentScroll="False"
+                          Grid.Row="4"
+                          VerticalScrollBarVisibility="Auto"
+                          VirtualizingPanel.IsVirtualizing="True">
+                <Grid Name="GridAutoReply"
+                      Grid.Row="4"
+                      IsEnabled="{Binding ElementName=CbActivate, Path=IsChecked}">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="1*" />
+                        <RowDefinition Height="2*" />
+                    </Grid.RowDefinitions>
+                    <GroupBox Grid.Row="0"
+                              Style="{StaticResource GbBaseStyle}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <GroupBox Name="GbInternalAutoReply"
+                                      Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbInternalAutoReply}"
+                                      Style="{StaticResource GbBaseStyle}">
+                                <TextBox Name="TbInternalAutoReply"
+                                         Style="{StaticResource TbMessageStyle}" />
+                            </GroupBox>
+                            <GroupBox Name="GbExternalAutoReply"
+                                      Grid.Column="1"
+                                      Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbExternalAutoReply}"
+                                      Style="{StaticResource GbBaseStyle}">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="1*" />
+                                    </Grid.RowDefinitions>
+                                    <CheckBox Name="CbSendExternal"
+                                              Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbSendExternal}"
+                                              Style="{StaticResource ChbBaseStyle}" />
+                                    <StackPanel Grid.Row="1"
+                                                IsEnabled="{Binding ElementName=CbSendExternal, Path=IsChecked}"
+                                                Orientation="Horizontal">
+                                        <RadioButton Name="RbExternalReplyContacts"
+                                                     Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbExternalReplyContacts}"
+                                                     GroupName="External" />
+                                        <RadioButton Name="RbExternalReplyAll"
+                                                     Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbExternalReplyAll}"
+                                                     GroupName="External" />
+                                    </StackPanel>
+                                    <TextBox Name="TbExternalAutoReply"
+                                             Grid.Row="2"
+                                             Style="{StaticResource TbMessageStyle}" />
+                                </Grid>
+                            </GroupBox>
+                        </Grid>
+                    </GroupBox>
+                    <GroupBox Grid.Row="1"
+                              Style="{StaticResource GbBaseStyle}">
+                        <GroupBox.Header>
+                            <CheckBox Name="CbScheduled"
+                                      Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbScheduled}"
+                                      Style="{StaticResource ChbBaseStyle}" />
+                        </GroupBox.Header>
+                        <Grid IsEnabled="{Binding ElementName=CbScheduled, Path=IsChecked}">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <Grid Grid.Row="0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <GroupBox Name="GbStart"
+                                          Grid.Row="1"
+                                          Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbStart}"
+                                          Style="{StaticResource GbBaseStyle}">
+                                    <Grid Margin="{StaticResource StdMargin}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <DatePicker Name="DpStart"
+                                                    VerticalContentAlignment="Center" />
+                                        <ComboBox Name="CbStartHour"
+                                                  Grid.Column="1"
+                                                  Style="{StaticResource CbBaseStyle}" />
+                                        <ComboBox Name="CbStartMinute"
+                                                  Grid.Column="2"
+                                                  Style="{StaticResource CbBaseStyle}" />
+                                    </Grid>
+                                </GroupBox>
+                                <GroupBox Name="GbEnd"
+                                          Grid.Column="1"
+                                          Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbEnd}"
+                                          Style="{StaticResource GbBaseStyle}">
+                                    <Grid IsEnabled="{Binding ElementName=CbScheduled, Path=IsChecked}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition Width="9*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <StackPanel Name="SpSetEndTime"
+                                                    Grid.ColumnSpan="2"
+                                                    Grid.Row="2"
+                                                    Margin="5,5,5,5"
+                                                    Orientation="Horizontal">
+                                            <DatePicker Name="DpEnd"
+                                                        Style="{StaticResource DpBaseStyle}" />
+                                            <ComboBox Name="CbEndHour"
+                                                      Style="{StaticResource CbBaseStyle}" />
+                                            <ComboBox Name="CbEndMinute"
+                                                      Style="{StaticResource CbBaseStyle}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </GroupBox>
+                            </Grid>
+                            <GroupBox Grid.Row="1"
+                                      Style="{StaticResource GbBaseStyle}">
+                                <GroupBox.Header>
+                                    <CheckBox Name="CbCreateOOFEvent"
+                                              Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbCreateOOFEvent}"
+                                              Grid.Row="3"
+                                              Style="{StaticResource ChbScheduledSettingsActivateStyle}" />
+                                </GroupBox.Header>
+                                <Grid Name="GridOOFEvent"
+                                      IsEnabled="{Binding ElementName=CbCreateOOFEvent, Path=IsChecked}">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="3*" />
+                                        <ColumnDefinition Width="82*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Name="TblOOFEventSubjectTitle"
+                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblOOFEventSubjectTitle}"
+                                               Grid.ColumnSpan="2"
+                                               Grid.Row="0"
+                                               Margin="5,5,5,5" />
+                                    <TextBox Name="TbOOFEventSubject"
+                                             Grid.ColumnSpan="2"
+                                             Grid.Row="1"
+                                             Style="{StaticResource TbBaseStyle}"
+                                             Margin="5,5,5,5" />
+                                </Grid>
+                            </GroupBox>
+                            <GroupBox Grid.Row="2"
+                                      Style="{StaticResource GbBaseStyle}">
+                                <GroupBox.Header>
+                                    <CheckBox Name="CbDeclineRequests"
+                                              Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbDeclineRequests}"
+                                              Grid.Row="5"
+                                              Style="{StaticResource ChbScheduledSettingsActivateStyle}" />
+                                </GroupBox.Header>
+                                <Grid Name="GridDeclineRequests"
+                                      IsEnabled="{Binding ElementName=CbDeclineRequests, Path=IsChecked}">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Name="TblDeclineMeetingMessageTitle"
+                                               Margin="{StaticResource StdMargin}"
+                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblDeclineMeetingMessageTitle}" />
+                                    <TextBox Name="TbDeclineMeetingMessage"
+                                             Grid.Row="1"
+                                             Style="{StaticResource TbMessageStyle}" />
+                                    <CheckBox Name="CbDeclineEventsForScheduledOOF"
+                                              Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbDeclineEventsForScheduledOOF}"
+                                              Grid.Row="2"
+                                              IsEnabled="{Binding ElementName=CbScheduled, Path=IsChecked}">
+                                        <CheckBox.Style>
+                                            <Style TargetType="CheckBox"
+                                                   BasedOn="{StaticResource ChbBaseStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ElementName=CbScheduled, Path=IsChecked}"
+                                                                 Value="False">
+                                                        <Setter Property="IsChecked"
+                                                                Value="False" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CheckBox.Style>
+                                    </CheckBox>
+                                    <CheckBox Name="CbDeclineAllEventsForScheduledOOF"
+                                              Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbDeclineAllEventsForScheduledOOF}"
+                                              Grid.Row="3"
+                                              IsEnabled="{Binding ElementName=CbDeclineEventsForScheduledOOF, Path=IsChecked}"
+                                              ToolTip="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbDeclineAllEventsForScheduledOOFTT}"
+                                              ToolTipService.ShowOnDisabled="False">
+                                        <CheckBox.Style>
+                                            <Style TargetType="CheckBox"
+                                                   BasedOn="{StaticResource ChbBaseStyle}">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding ElementName=CbDeclineEventsForScheduledOOF, Path=IsChecked}"
+                                                                 Value="False">
+                                                        <Setter Property="IsChecked"
+                                                                Value="False" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </CheckBox.Style>
+                                    </CheckBox>
+                                </Grid>
+                            </GroupBox>
+                        </Grid>
+                    </GroupBox>
+                </Grid>
+            </ScrollViewer>
+        </Grid>
+    </Grid>
+</Page>
