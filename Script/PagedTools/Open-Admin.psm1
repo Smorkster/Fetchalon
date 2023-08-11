@@ -788,6 +788,10 @@ function UpdateFiles
 			$DevFilePublishedFullName = Get-ChildItem -File -Path $syncHash.Data.PublishedDev -Recurse | `
 				Where-Object { $_.Name -eq $File.DevFile.Name } | `
 				Select-Object -ExpandProperty FullName
+			if ( $null -eq $DevFilePublishedFullName )
+			{
+				$DevFilePublishedFullName = $File.DevFile.FullName.Replace( $syncHash.Data.DevRoot , $syncHash.Data.PublishedDev )
+			}
 			Copy-Item -Path $File.DevFile.FullName -Destination $DevFilePublishedFullName -Force
 
 			$ProdFilePublishedFullName = Get-ChildItem -Directory -Path $syncHash.Data.PublishedProd -Exclude "Development", "ErrorLogs", "Logs", "Output", "Tests" | `
@@ -796,6 +800,10 @@ function UpdateFiles
 					Where-Object { $_.Name -eq $File.DevFile.Name } | `
 					Select-Object -ExpandProperty FullName
 				}
+			if ( $null -eq $ProdFilePublishedFullName )
+			{
+				$ProdFilePublishedFullName = $File.DevFile.FullName.Replace( $syncHash.Data.DevRoot , $syncHash.Data.PublishedProd )
+			}
 			Copy-Item -Path $File.DevFile.FullName -Destination $ProdFilePublishedFullName -Force
 		}
 		$syncHash.Updated += $File
