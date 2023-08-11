@@ -176,6 +176,7 @@
         <sys:String x:Key="StrDateFormat">x</sys:String>
         <sys:String x:Key="StrFullDateTimeFormat">x</sys:String>
         <sys:String x:Key="StrTimeFormat">x</sys:String>
+        <GridLength x:Key="MiIconWidth">40</GridLength>
         <Thickness x:Key="StdMargin">5</Thickness>
         <Thickness x:Key="StdPadding">3</Thickness>
         <TransformGroup x:Key="TgMirrored">
@@ -765,7 +766,8 @@
                     <Setter Property="Visibility"
                             Value="Visible" />
                 </DataTrigger>
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.Depends}" Value="ExchangeAdministrator">
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.Depends}"
+                             Value="ExchangeAdministrator">
                     <Setter Property="Visibility"
                             Value="{DynamicResource ExchangeAdministrator}" />
                 </DataTrigger>
@@ -875,7 +877,8 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style TargetType="DataGridRow" x:Key="DgrFuncOutputStyle">
+        <Style TargetType="DataGridRow"
+               x:Key="DgrFuncOutputStyle">
             <EventSetter Event="Control.RequestBringIntoView" />
         </Style>
         <Style TargetType="{x:Type Thumb}"
@@ -971,17 +974,10 @@
                 </componentmodel:SortDescription>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiO365Functions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem">
-                </componentmodel:SortDescription>
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
         <CollectionViewSource x:Key="CvsMiO365UserFunctions">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="Name">
+                                                PropertyName="MenuItem">
                 </componentmodel:SortDescription>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
@@ -3217,6 +3213,31 @@
                                 </Setter>
                                 <Setter Property="Visibility"
                                         Value="Visible" />
+                                <Setter Property="ItemTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="{StaticResource MiIconWidth}" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock>
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource TblFunctionMenuStyle}">
+                                                            <Setter Property="Grid.Column"
+                                                                    Value="1" />
+                                                            <Setter Property="Padding"
+                                                                    Value="0,8" />
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding Path=MenuItem}" />
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding ElementName=MiO365Connect, Path=Visibility}"
                                                  Value="Visible">
@@ -3234,7 +3255,7 @@
                                         <Setter.Value>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="{StaticResource MiIconWidth}" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <Path>
@@ -3298,7 +3319,7 @@
                                         <Setter.Value>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="{StaticResource MiIconWidth}" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <Path>
@@ -3352,7 +3373,7 @@
                                         <Setter.Value>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="{StaticResource MiIconWidth}" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <Path>
@@ -3406,7 +3427,7 @@
                                         <Setter.Value>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="{StaticResource MiIconWidth}" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <Path>
@@ -3460,7 +3481,7 @@
                                         <Setter.Value>
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition />
+                                                    <ColumnDefinition Width="{StaticResource MiIconWidth}" />
                                                     <ColumnDefinition Width="Auto" />
                                                 </Grid.ColumnDefinitions>
                                                 <Path>
