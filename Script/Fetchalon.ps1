@@ -1804,7 +1804,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 
 	$Error.Clear()
 	Add-Type -AssemblyName PresentationFramework
-	Import-Module $Modules -Force
+	Import-Module ( $Modules | Where-Object { Test-Path $_.Path } ) -Force
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
 
 	$Info = [pscustomobject]@{ Finished = $null ; Data = $null ; Script = $ScriptObject ; Error = [System.Collections.ArrayList]::new() ; Item = $ItemToSend ; OutputType = $ScriptObject.OutputType }
