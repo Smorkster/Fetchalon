@@ -1,0 +1,31 @@
+ConvertFrom-StringData @'
+ContentBtnExport = Export
+ContentBtnReset = Reset
+ContentBtnSearch = Search
+ContentDgColReceived = Received
+ContentDgColReceiver = Receiver
+ContentDgColSender = Sender
+ContentDgColSubject = Subject
+ContentTblEndTitle = End date
+ContentTblFromIpTitle = From IP
+ContentTblFromIpTitleTt = For incoming messages, the value of FromIP is the public IP address of the SMTP email server that sent the message
+ContentTblPageSizeTitle = Page Size
+ContentTblReceiver = Receiver
+ContentTblSender = Sender
+ContentTblStart = Start date
+ContentTblStatusTitle = Receive status
+ContentTblToIpTitle = To IP
+ContentTblToIpTitleTt = The ToIP parameter filters the results by the destination IP address. For outgoing messages, the value of ToIP is the public IP address in the resolved MX record for the destination domain. For incoming messages to Exchange Online, the value is blank.
+LogExported = Export data
+LogSearchDates = Search dates
+LogTraceCount = mail was found
+StrDone = Messagetrace received
+StrExportDateFormat = YYYY-MM-DD tt:mm:ss
+StrExportDefaultFileName = Messagetrace export
+StrExportFileNameDates = Searchdate
+StrExportFileNameFo = To
+StrExportFileNameFrom = From
+StrExportSaved = Excel-file was saved
+StrInvalidEmail = Invalid e-mail address
+StrOutputFileNamePrefix = O365 Messagetrace
+'@
