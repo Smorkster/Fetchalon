@@ -8,6 +8,7 @@ CodeConverterADDomainName = domain.test.com
 ConsoleWinTitlePrefix = Skript
 CreateWindowErrReadingXaml = Ett fel uppstod vid läsning av XAML-filen.
 CreateWindowErrReadingXamlExit = Tryck Enter för att avsluta
+ErrMsgInvalidXaml = Det finns fel i XAML-filen. Koden kan inte läsas.
 ShowCustomMessageBoxDefaultTitle = Fråga från
 ShowSplashStrDefaultMainTitle = Fetchalon
 '@
