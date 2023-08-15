@@ -89,14 +89,14 @@ function BindControls
 				catch
 				{
 					[void] $GenErrors.Add( "$n$( $IntMsgTable.BindControlsErrNoProperty ) '$p'")
-					$syncHash.GenErrors.Add($_)
+					$syncHash.GenErrors.Add( $_ )
 				}
 			}
 		}
 		else
 		{
 			[void] $GenErrors.Add( "$( $IntMsgTable.BindControlsErrNoControl ) $n" )
-			$syncHash.GenError.Add( $_ )
+			$syncHash.GenErrors.Add( $control.CName ) | Out-Null
 		}
 	}
 
@@ -141,7 +141,17 @@ function CreateWindow
 		$inputXML = $inputXML -replace 'FetchalonConverterAssembly', $AssemblyName
 	}
 	$inputXML = $inputXML -replace "x:Name", 'Name'
-	[XML]$Xaml = $inputXML
+	try
+	{
+		[XML]$Xaml = $inputXML
+	}
+	catch
+	{
+		if ( $_ -match "(?s)^Cannot convert value .* to type ""System\.Xml\.XmlDocument" )
+		{
+			Show-MessageBox -Text $IntMsgTable.ErrMsgInvalidXaml
+		}
+	}
 
 	$reader = ( [System.Xml.XmlNodeReader]::new( $Xaml ) )
 	try
