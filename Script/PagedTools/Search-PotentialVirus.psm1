@@ -444,6 +444,17 @@ $controls = New-Object Collections.ArrayList
 
 BindControls $syncHash $controls
 
+$Apps = @()
+$Apps += Get-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*" # 32 Bit
+$Apps += Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+$syncHash.Data.Editor = $Apps | `
+	Where-Object { $_.DisplayName -match "Notepad\+\+" } | `
+	Select-Object -ExpandProperty DisplayIcon
+if ( $null -eq $syncHash.Data.Editor )
+{
+	$syncHash.Data.Editor = "notepad"
+}
+
 $syncHash.Controls.Window.Resources['CvsFolderList'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 $syncHash.Controls.Window.Resources['CvsAllFiles'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 $syncHash.Data.AllFilesGroupingDescription = $syncHash.Controls.Window.Resources['CvsAllFiles'].GroupDescriptions[0]
@@ -513,7 +524,7 @@ $syncHash.Controls.BtnCreateQuestion.Add_Click( {
 	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $false, $false ).psobject.BaseObject
 	$syncHash.DC.TbQuestion[0] | clip
 	Show-MessageBox $syncHash.Data.msgTable.StrQuestionCopied
-	WriteLogTest -Text "$( $syncHash.Data.msgTable.StrLogQuestionCopied )`n**************`n$( $syncHash.DC.TbQuestion[0] )`n**************" -UserInput $syncHash.DC.GridInput[1] | Out-Null
+	WriteLog -Text "$( $syncHash.Data.msgTable.StrLogQuestionCopied )`n**************`n$( $syncHash.DC.TbQuestion[0] )`n**************" -UserInput $syncHash.DC.GridInput[1] | Out-Null
 } )
 
 # Opens the folder selected file is located in
@@ -523,11 +534,13 @@ $syncHash.Controls.BtnOpenFolder.Add_Click( {
 		else { $Path = $_ }
 		Start-Process explorer -ArgumentList "/select, $Path"
 	}
-	WriteLogTest -Text $syncHash.Data.msgTable.StrLogMsgOpenFolder -UserInput "$( $syncHash.DC.GridInput[1] )`n$( $syncHash.ActiveListView.SelectedItems.TT )" -Success $true
+	WriteLog -Text $syncHash.Data.msgTable.StrLogMsgOpenFolder -UserInput "$( $syncHash.DC.GridInput[1] )`n$( $syncHash.ActiveListView.SelectedItems.TT )" -Success $true
 } )
 
 # Opens the summaryfile
-$syncHash.Controls.BtnOpenSummary.Add_Click( { & 'C:\Program Files (x86)\Notepad++\notepad++.exe' $syncHash.DC.TblSummary[0] } )
+$syncHash.Controls.BtnOpenSummary.Add_Click( {
+	Start-Process $syncHash.Data.Editor -ArgumentList """$( $syncHash.DC.TblSummary[0] )"""
+} )
 
 # Prepare for filesearch by creating jobs and retrieving folderlist
 $syncHash.Controls.BtnPrep.Add_Click( {
@@ -584,7 +597,7 @@ $syncHash.Controls.BtnRunVirusScan.Add_Click( {
 				[void] $syncHash.Data.ScannedForVirus.Add( [pscustomobject]@{ Path = $PathToScan.FullName ; Time = ( Get-Date ) } )
 			}
 		}
-		WriteLogTest -Text $syncHash.Data.msgTable.LogScannedFile -UserInput "$( $syncHash.DC.GridInput[1] )`n$( $syncHash.Data.msgTable.LogScannedFileTitle ) $( $syncHash.ActiveListView.SelectedItems.TT )" -Success $true | Out-Null
+		WriteLog -Text $syncHash.Data.msgTable.LogScannedFile -UserInput "$( $syncHash.DC.GridInput[1] )`n$( $syncHash.Data.msgTable.LogScannedFileTitle ) $( $syncHash.ActiveListView.SelectedItems.TT )" -Success $true | Out-Null
 		$OFS = "`n"
 		Set-Content -Value @"
 $( $syncHash.OutputContent.Item( 0 ) )
@@ -604,7 +617,7 @@ $syncHash.Controls.BtnSearchExt.Add_Click( {
 	{
 		Start-Process chrome "https://www.google.com/search?q=fileextension+$( $Ext )"
 	}
-	WriteLogTest -Text $syncHash.Data.msgTable.StrLogMsgSearchExt -UserInput "$( $syncHash.DC.GridInput[1] )`n$SelectedExtensions" -Success $true
+	WriteLog -Text $syncHash.Data.msgTable.StrLogMsgSearchExt -UserInput "$( $syncHash.DC.GridInput[1] )`n$SelectedExtensions" -Success $true
 } )
 
 # Search on Google for the filename
@@ -614,7 +627,7 @@ $syncHash.Controls.BtnSearchFileName.Add_Click( {
 	{
 		Start-Process chrome "https://www.google.com/search?q=`"$( $Name )`""
 	}
-	WriteLogTest -Text $syncHash.Data.msgTable.StrLogMsgSearchFileName -UserInput "$( $syncHash.DC.GridInput[1] )`n$SelectedNames" -Success $true
+	WriteLog -Text $syncHash.Data.msgTable.StrLogMsgSearchFileName -UserInput "$( $syncHash.DC.GridInput[1] )`n$SelectedNames" -Success $true
 } )
 
 # List filestreams
