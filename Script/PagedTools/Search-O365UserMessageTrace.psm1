@@ -87,7 +87,6 @@ function Reset
 	$syncHash.DC.TblExportSavePath[1] = ""
 
 	$syncHash.DC.BtnExport[0] = $false
-	$syncHash.DC.BtnSearch[0] = $false
 	$syncHash.DC.DpStart[0] = ( Get-Date ).AddDays( -10 )
 	$syncHash.DC.DpEnd[0] = Get-Date
 	$syncHash.Controls.DpEnd.DisplayDateEnd = Get-Date
@@ -99,13 +98,14 @@ function Reset
 	$syncHash.Controls.DpStart.Text = $syncHash.Controls.DpStart.DisplayDate.ToShortDateString()
 
 
-	$syncHash.DC.DgResult[0].Clear()
+	$syncHash.Controls.Window.Resources['CvsTrace'].Source.Clear()
 	try { $syncHash.Data.Trace.Clear() } catch {}
 
 	$syncHash.Controls.Window.Resources['CvsStatus'].Source.Clear()
-	"None","GettingStatus","Failed","Pending","Delivered","Expanded","Quarantined","FilteredAsSpam" | `
+	$syncHash.Data.msgTable.GetEnumerator() | `
+		Where-Object { $_.Key -match "^StrStatus" } | `
 		ForEach-Object {
-			$syncHash.Controls.Window.Resources['CvsStatus'].Source.Add( ( [pscustomobject]@{ Name = $_ ; Active = $true } ) )
+			$syncHash.Controls.Window.Resources['CvsStatus'].Source.Add( ( [pscustomobject]@{ Name = ( $_.Key -replace "StrStatus" ) ; ToolTip = $_.Value ; Active = $true } ) )
 		}
 	$syncHash.Controls.Window.Resources['CvsStatus'].View.Refresh()
 }
@@ -113,15 +113,15 @@ function Reset
 ##################### Scriptstart
 $controls = New-Object System.Collections.ArrayList
 [void]$controls.Add( @{ CName = "BtnExport" ; Props = @( @{ PropName = "IsEnabled" ; PropVal = $false } ) } )
-[void]$controls.Add( @{ CName = "BtnSearch" ; Props = @( @{ PropName = "IsEnabled" ; PropVal = $false } ) } )
 [void]$controls.Add( @{ CName = "DpEnd" ; Props = @( @{ PropName = "SelectedDate"; PropVal = Get-Date } ) } )
-[void]$controls.Add( @{ CName = "DgResult" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[Object]]::new( ) } ) } )
 [void]$controls.Add( @{ CName = "DpStart" ; Props = @( @{ PropName = "SelectedDate"; PropVal = ( Get-Date ).AddDays( -10 ) } ) } )
 [void]$controls.Add( @{ CName = "TblExportSavePath" ; Props = @( @{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Collapsed } ; @{ PropName = "Text" ; PropVal = "" } ) } )
 
 BindControls $syncHash $controls
 $syncHash.Data.Admin = ( Get-AzureADCurrentSessionInfo ).Account.Id
 $syncHash.Controls.Window.Resources['CvsStatus'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+$syncHash.Controls.Window.Resources['CvsTrace'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+$syncHash.Controls.Window.Resources['CvsTraceDetails'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 $syncHash.Data.Test = [system.collections.arraylist]::new()
 
 # Subtract PageSize number
@@ -148,6 +148,24 @@ $syncHash.Controls.BtnExport.Add_Click( {
 	}
 } )
 
+# Get message trace details about selected mail
+$syncHash.Controls.BtnGetInfo.Add_Click( {
+	$syncHash.Controls.Window.Resources['CvsTraceDetails'].Source.Clear()
+	Get-MessageTraceDetail -MessageTraceId $syncHash.Controls.DgResult.SelectedItem.MessageTraceId `
+							-RecipientAddress $syncHash.Controls.DgResult.SelectedItem.RecipientAddress | `
+		ForEach-Object {
+			$syncHash.Controls.Window.Resources['CvsTraceDetails'].Source.Add( $_ ) | Out-Null
+		}
+
+	if ( 0 -eq $syncHash.Controls.Window.Resources['CvsTraceDetails'].Source.Count )
+	{
+		$syncHash.Controls.Window.Resources['CvsTraceDetails'].Source.Add( ( [pscustomobject]@{ Detail = $syncHash.Data.msgTable.ErrNoMessageTraceDetails ; Date = ( Get-Date ) } ) ) | Out-Null
+	}
+
+	$syncHash.Controls.Window.Resources['CvsTraceDetails'].View.Refresh()
+	$syncHash.Controls.TcTraceInfo.SelectedIndex = 1
+} )
+
 # Reset default values
 $syncHash.Controls.BtnReset.Add_Click( {
 	Reset
@@ -158,7 +176,7 @@ $syncHash.Controls.BtnSearch.Add_Click( {
 	$syncHash.DC.TblExportSavePath[0] = [System.Windows.Visibility]::Collapsed
 	$syncHash.DC.TblExportSavePath[1] = ""
 	$syncHash.Data.Trace = $null
-	$syncHash.DC.DgResult[0].Clear()
+	$syncHash.Controls.Window.Resources['CvsTrace'].Source.Clear()
 	$param = @{}
 
 	if ( $syncHash.Data.SenderEmail )
@@ -200,22 +218,23 @@ $syncHash.Controls.BtnSearch.Add_Click( {
 	}
 
 	$param.PageSize = [int]$syncHash.Controls.TbPageSize.Text
-	if ( @( 0, $syncHash.Controls.Window.Resources['CvsStatus'].Source.Count ) -contains $syncHash.Controls.Window.Resources['CvsStatus'].Source.Where( { $_.Active } ).Count )
-	{
-		$param.Status = ( $syncHash.Controls.Window.Resources['CvsStatus'].Source.Name -join "," )
-	}
-	else
-	{
-		$param.Status = ( $syncHash.Controls.Window.Resources['CvsStatus'].Source.Where( { $_.Active } ).Name -join "," )
-	}
 
+	$param.Status = @()
+	if ( 0 -eq $syncHash.Controls.Window.Resources['CvsStatus'].Source.Where( { $_.Active } ).Count )
+	{
+		$syncHash.Controls.Window.Resources['CvsStatus'].Source.ForEach( { $_.Active } )
+	}
+	$syncHash.Controls.Window.Resources['CvsStatus'].Source | `
+		ForEach-Object {
+			$param.Status += "$( $_.Name )"
+		}
+
+	$syncHash.Data.Test = $param
 	$syncHash.Data.Trace = Get-MessageTrace @param
-	$syncHash.DC.DgResult[0] = $syncHash.Data.Trace | `
-		Select-Object Received, `
-			SenderAddress, `
-			RecipientAddress, `
-			Subject, `
-			@{ Name = "ToolTip"; Expression = { "Message Trace ID: $( $_.MessageTraceID )" } }
+	$syncHash.Data.Trace | `
+		ForEach-Object {
+			$syncHash.Controls.Window.Resources['CvsTrace'].Source.Add( $_ ) | Out-Null
+		}
 	TextToSpeech -Text ( $syncHash.Data.msgTable.StrDone )
 
 	$syncHash.Data.SearchName = @( $syncHash.Data.msgTable.StrExportDefaultFileName )
@@ -236,6 +255,7 @@ $syncHash.Controls.BtnSearch.Add_Click( {
 	$outputFile = WriteOutput -Output "$( [string]( $syncHash.Data.Trace | Out-String ) )" -FileName "$( $syncHash.Data.msgTable.StrOutputFileNamePrefix ) $( $param.SenderAddress ) $( $param.RecipientAddress )"
 	WriteLog -Text "$( $syncHash.Data.Trace.Count ) $( $syncHash.Data.msgTable.LogTraceCount )" -UserInput "$( $syncHash.Data.msgTable.LogSearchDates )" -Success $true -OutputPath $outputFile | Out-Null
 	$syncHash.DC.BtnExport[0] = $syncHash.Data.Trace.Count -gt 0
+	$syncHash.Controls.TcTraceInfo.SelectedIndex = 0
 } )
 
 # Add to PageSize number
@@ -299,14 +319,14 @@ $syncHash.Controls.TbPageSize.Add_TextChanged( {
 } )
 
 # Verify that entered text is a valid mailaddress
-$syncHash.Controls.TbReceiver.Add_TextChanged( {
-	$syncHash.Controls.Window.Resources['InvalidReceiver'] = [System.Windows.Visibility]::Hidden
+$syncHash.Controls.TbReceiver.Add_LostFocus( {
 	if (
 		( Test-MailAddress -Address $this.Text ) -or `
 		( 0 -eq $this.Text.Length )
 	)
 	{
 		$syncHash.Data.ReceiverEmail = $this.Text
+		$syncHash.Controls.Window.Resources['InvalidReceiver'] = [System.Windows.Visibility]::Hidden
 	}
 	else
 	{
@@ -315,24 +335,49 @@ $syncHash.Controls.TbReceiver.Add_TextChanged( {
 	}
 } )
 
-# Stop Space from being entered
-$syncHash.Controls.TbSender.Add_KeyDown( {
-	$syncHash.Test = $args
-	if ( "Space" -match $args[1].Key )
+# Verify that entered text is a valid mailaddress
+$syncHash.Controls.TbReceiver.Add_LostKeyboardFocus( {
+	if (
+		( Test-MailAddress -Address $this.Text ) -or `
+		( 0 -eq $this.Text.Length )
+	)
 	{
-		$args[1].Handled = $true
+		$syncHash.Data.ReceiverEmail = $this.Text
+		$syncHash.Controls.Window.Resources['InvalidReceiver'] = [System.Windows.Visibility]::Hidden
+	}
+	else
+	{
+		$syncHash.Data.ReceiverEmail = $null
+		$syncHash.Controls.Window.Resources['InvalidReceiver'] = [System.Windows.Visibility]::Visible
 	}
 } )
 
 # Verify that entered text is a valid mailaddress
-$syncHash.Controls.TbSender.Add_TextChanged( {
-	$syncHash.Controls.Window.Resources['InvalidSender'] = [System.Windows.Visibility]::Hidden
+$syncHash.Controls.TbSender.Add_LostFocus( {
 	if (
 		( Test-MailAddress -Address $this.Text ) -or `
 		( 0 -eq $this.Text.Length )
 	)
 	{
 		$syncHash.Data.SenderEmail = $this.Text
+		$syncHash.Controls.Window.Resources['InvalidSender'] = [System.Windows.Visibility]::Hidden
+	}
+	else
+	{
+		$syncHash.Data.SenderEmail = $null
+		$syncHash.Controls.Window.Resources['InvalidSender'] = [System.Windows.Visibility]::Visible
+	}
+} )
+
+# Verify that entered text is a valid mailaddress
+$syncHash.Controls.TbSender.Add_LostKeyboardFocus( {
+	if (
+		( Test-MailAddress -Address $this.Text ) -or `
+		( 0 -eq $this.Text.Length )
+	)
+	{
+		$syncHash.Data.SenderEmail = $this.Text
+		$syncHash.Controls.Window.Resources['InvalidSender'] = [System.Windows.Visibility]::Hidden
 	}
 	else
 	{
@@ -356,6 +401,7 @@ $syncHash.Controls.Window.Add_Loaded( {
 	$syncHash.Controls.DgResult.Columns[1].Header = $syncHash.Data.msgTable.ContentDgColSender
 	$syncHash.Controls.DgResult.Columns[2].Header = $syncHash.Data.msgTable.ContentDgColReceiver
 	$syncHash.Controls.DgResult.Columns[3].Header = $syncHash.Data.msgTable.ContentDgColSubject
+	$syncHash.Controls.DgResult.Columns[4].Header = $syncHash.Data.msgTable.ContentDgColStatus
 
 	Reset
 } )
