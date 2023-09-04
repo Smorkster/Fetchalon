@@ -16,18 +16,26 @@ function CheckO365Connection
 		Check if there is an active connection to Office365 services
 	#>
 
+	[CmdletBinding()]
+	param()
+
+	$temp = $ErrorActionPreference
+	$ErrorActionPreference = "Stop"
 	try
 	{
 		Get-AcceptedDomain -ErrorAction Stop | Out-Null
 
 		$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Collapsed
-		$syncHash.Window.DataContext.O365Connected = $true
+		$syncHash.Window.Resources['MiO365TopVisible'] = [System.Windows.Visibility]::Visible
+		$syncHash.Data.O365Connected = $true
+		return $true
 	}
 	catch
 	{
 		$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Visible
-		$syncHash.Window.DataContext.O365Connected = $false
-		throw $_
+		$syncHash.Window.Resources['MiO365TopVisible'] = [System.Windows.Visibility]::Collapsed
+		$syncHash.Data.O365Connected = $false
+		return $false
 	}
 }
 
@@ -41,10 +49,39 @@ function CheckO365Roles
 		This is mainly used to make menuitems dependent on specific roles, visible/collapsed
 	#>
 
-	if ( ( Get-AzureADDirectoryRole -Filter "DisplayName eq 'Exchange Administrator'" | Get-AzureADDirectoryRoleMember ).UserPrincipalName -match ( Get-AzureADCurrentSessionInfo ).Account.Id )
+	try
 	{
-		$syncHash.Window.Resources['ExchangeAdministrator'] = [System.Windows.Visibility]::Visible
+		if ( ( Get-AzureADDirectoryRole -Filter "DisplayName eq 'Exchange Administrator'" -ErrorAction Stop | Get-AzureADDirectoryRoleMember ).UserPrincipalName -match ( Get-AzureADCurrentSessionInfo ).Account.Id )
+		{
+			$syncHash.Window.Resources['ExchangeAdministrator'] = [System.Windows.Visibility]::Visible
+		}
 	}
+	catch
+	{}
+}
+
+function ConnectO365
+{
+	<#
+	.Synopsis
+		Connect to O365 services
+	#>
+
+	"AzureAD", "ExchangeOnlineManagement" | `
+		ForEach-Object {
+			Import-Module -Name $_ -Force -ErrorAction Stop
+		}
+	try
+	{
+		$AzureAdAccount = Connect-AzureAD -ErrorAction Stop -WarningAction SilentlyContinue -InformationAction SilentlyContinue
+	} catch {}
+	try
+	{
+		Connect-ExchangeOnline -UserPrincipalName $AzureAdAccount.Account.Id -ErrorAction Stop -WarningAction SilentlyContinue
+	} catch {}
+	Import-Module -Name ActiveDirectory -Force -ErrorAction SilentlyContinue
+	CheckO365Connection | Out-Null
+	CheckO365Roles
 }
 
 function DisplayView
@@ -370,7 +407,15 @@ function PrepareToRunScript
 		$syncHash.Jobs.ExecuteFunction.P.AddScript( $syncHash.Code.SBlockExecuteFunction ) | Out-Null
 		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "syncHash", $syncHash ) | Out-Null
 		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "ScriptObject", $ScriptObject ) | Out-Null
-		$syncHash.Jobs.ExecuteFunction.P.AddParameter( "Modules", ( Get-Module | Where-Object { Test-Path $_.Path } ) ) | Out-Null
+
+		if ( $ScriptObject.ObjectClass -match "^O365" )
+		{
+			$syncHash.Jobs.ExecuteFunction.P.AddParameter( "Modules", ( Get-Module | Where-Object { Test-Path $_.Path } ) ) | Out-Null
+		}
+		else
+		{
+			$syncHash.Jobs.ExecuteFunction.P.AddParameter( "Modules", ( Get-Module | Where-Object { $_.Name -notmatch "^tmpEXO" } ) ) | Out-Null
+		}
 
 		$ItemToSend = $null
 		# SearchedItem is not required in the function
@@ -868,7 +913,7 @@ function StartSearch
 	} )
 	$syncHash.Jobs.SearchJob.AddArgument( $syncHash )
 	$syncHash.Jobs.SearchJob.AddArgument( ( Get-Module | Where-Object { ( Test-Path $_.Path ) -and ( $_.Name -notmatch "^tmpEXO" ) } ) )
-	$syncHash.Jobs.SearchJob.AddArgument( $syncHash.Window.DataContext.O365Connected )
+	$syncHash.Jobs.SearchJob.AddArgument( $syncHash.Data.O365Connected )
 	$syncHash.Jobs.SearchJob.Runspace = $syncHash.Jobs.SearchRunspace
 	$syncHash.Jobs.SearchJobHandle = $syncHash.Jobs.SearchJob.BeginInvoke()
 }
@@ -1049,67 +1094,6 @@ $syncHash.Code.ListItem =
 					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.LogonWorkstations = @( $syncHash.Data.SearchedItem.LogonWorkstations -split "," | Sort-Object )
 				}
 
-				if ( $syncHash.Window.DataContext.O365Connected -eq $true )
-				{
-					$syncHash.GridO365Status.Visibility = [System.Windows.Visibility]::Visible
-					$syncHash.Window.DataContext.O365AccountStatus.ADCheck = $true
-					$syncHash.Window.DataContext.O365AccountStatus.ADActiveCheck = $syncHash.Data.SearchedItem.Enabled
-					$syncHash.Window.DataContext.O365AccountStatus.ADLockCheck = -not $syncHash.Data.SearchedItem.LockedOut
-					$syncHash.Window.DataContext.O365AccountStatus.ADMailCheck = $null -ne $syncHash.Data.SearchedItem.EmailAddress
-					$syncHash.Window.DataContext.O365AccountStatus.ADmsECheck = $null -eq $syncHash.Data.SearchedItem.msExchMailboxGuid
-
-					try
-					{
-						Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "O365Account" -Value ( Get-AzureADUser -Filter "mail eq '$( $syncHash.Data.SearchedItem.EmailAddress )'" -ErrorAction Stop )
-						$syncHash.Window.DataContext.O365AccountStatus.OAccountCheck = $true
-						if ( $syncHash.Data.SearchedItem.O365Account.AccountEnabled )
-						{
-							$syncHash.Window.DataContext.O365AccountStatus.OLoginCheck = $true
-						}
-						if ( ( $syncHash.Data.SearchedItem.EmailAddress | Get-AzureADUserMembership ).DisplayName -match "O365-MigPilots" )
-						{
-							$syncHash.Window.DataContext.O365AccountStatus.OMigCheck = $true
-						}
-						if ( $syncHash.Data.SearchedItem.DistinguishedName -match $syncHash.Data.msgTable.CodeMsExchIgnoreOrg )
-						{
-							$syncHash.Window.DataContext.O365AccountStatus.OLicCheck = $null
-						}
-						else
-						{
-							if ( $syncHash.Data.SearchedItem.O365Account.AssignedLicenses.SkuId -match ( Get-AzureADSubscribedSku | Where-Object { $_.SkuPartNumber -match "EnterprisePack" } ).SkuId )
-							{
-								$syncHash.Window.DataContext.O365AccountStatus.OLicCheck = $true
-							}
-							else
-							{
-								$syncHash.Window.DataContext.O365AccountStatus.OLicCheck = $false
-							}
-						}
-
-						try
-						{
-							Get-EXOMailbox -Identity $syncHash.Data.SearchedItem.EmailAddress -ErrorAction Stop
-							$syncHash.Window.DataContext.O365AccountStatus.OExchCheck = $true
-						}
-						catch
-						{
-							$syncHash.Window.DataContext.O365AccountStatus.OExchCheck = $false
-						}
-					}
-					catch {}
-					$syncHash.GridO365Status.Children | `
-						Where-Object { $_ -is [System.Windows.Shapes.Ellipse] } | `
-						ForEach-Object {
-							if ( $null -eq $syncHash.Window.DataContext.O365AccountStatus."$( $_.Name -replace "ElUser" )" )
-							{
-								$_.Fill = "LightGray"
-							}
-							elseif ( $syncHash.Window.DataContext.O365AccountStatus."$( $_.Name -replace "ElUser" )" )
-							{
-								$_.Fill = "LightGreen"
-							}
-						}
-				}
 				break
 			}
 			"DirectoryInfo"
@@ -1352,7 +1336,7 @@ $syncHash.Code.ListItem =
 			$PsCmdLetData = $Object | Format-Table | Out-String
 		}
 		$ScriptObject = [pscustomobject]@{ OutputType = "String"; Name = $syncHash.Data.msgTable.StrPsGetCmdlet }
-		$Info = [pscustomobject]@{ Finished = Get-Date ; Data = $PsCmdLetData ; Script = $ScriptObject ; Error = $RunError ; Item = $null ; OutputType = "String" }
+		$Info = [pscustomobject]@{ Started = Get-Date ; Finished = Get-Date ; Data = $PsCmdLetData ; Script = $ScriptObject ; Error = $RunError ; Item = $null ; OutputType = "String" }
 		$syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $Info )
 	}
 	$syncHash.PopupMenu.IsOpen = $false
@@ -1593,9 +1577,10 @@ Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximu
 @"
 $( $syncHash.Data.msgTable.StrCopyOutputMessageP1 )$Item $( $syncHash.Data.msgTable.StrCopyOutputMessageP2 ) "$( $_.Script.Name )" $Synopsis
 $InputData
-$( $syncHash.Data.msgTable.StrCopyOutputMessagePTime ): $( Get-Date $SenderObject.DataContext.Finished -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] )
+$( $syncHash.Data.msgTable.StrCopyOutputMessagePStart ): $( Get-Date $SenderObject.DataContext.Started -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] )
+$( $syncHash.Data.msgTable.StrCopyOutputMessagePFinish ): $( Get-Date $SenderObject.DataContext.Finished -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] )
 
-Utdata:
+$( $syncHash.Data.msgTable.StrCopyOutputMessageDataTitle ):
 $(
 	if ( $null -eq $_.Data )
 	{
@@ -1633,7 +1618,7 @@ $(
 	param ( $SenderObject, $e )
 
 	Set-Clipboard -Value $SenderObject.Parent.DataContext.Value
-	Show-Splash -Text $syncHash.Data.msgTable.StrPropertyCopied -NoTitle -NoProgressBar
+	Show-Splash -Text "$( $SenderObject.Parent.DataContext.Name ) $( $syncHash.Data.msgTable.StrPropertyCopied )" -NoTitle -NoProgressBar
 }
 
 # WPF EventSetter handler to disable BringIntoView for datagridrow
@@ -1804,10 +1789,10 @@ $syncHash.Code.SBlockExecuteFunction = {
 
 	$Error.Clear()
 	Add-Type -AssemblyName PresentationFramework
-	Import-Module ( $Modules | Where-Object { Test-Path $_.Path } ) -Force
+	Import-Module ( $Modules | Where-Object { Test-Path $_.Path } ) -Force -WarningAction SilentlyContinue
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
 
-	$Info = [pscustomobject]@{ Finished = $null ; Data = $null ; Script = $ScriptObject ; Error = [System.Collections.ArrayList]::new() ; Item = $ItemToSend ; OutputType = $ScriptObject.OutputType }
+	$Info = [pscustomobject]@{ Started = Get-Date ; Finished = $null ; Data = $null ; Script = $ScriptObject ; Error = [System.Collections.ArrayList]::new() ; Item = $ItemToSend ; OutputType = $ScriptObject.OutputType }
 
 	try
 	{
@@ -1855,21 +1840,21 @@ $syncHash.Code.SBlockExecuteFunction = {
 		}
 		elseif ( $Info.Data -is [pscustomobject] )
 		{
-			<#if ( "List","ObjectList" -contains $Info.OutputType )
+			if ( "ObjectList" -eq $Info.OutputType )
 			{
 				$temp = [System.Collections.ArrayList]::new()
 				$temp.Add( $Info.Data ) | Out-Null
 				$Info.Data = $temp
 			}
 			else
-			{#>
+			{
 				$Info.Data | Get-Member -MemberType NoteProperty | `
 					ForEach-Object `
 						-Begin { $l = [System.Collections.ArrayList]::new() } `
 						-Process { $l.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrOutputPropName = $_.Name ; $syncHash.Data.msgTable.StrOutputPropValue = $Info.Data."$( $_.Name )" } ) ) | Out-Null } `
 						-End { $Info.Data = $l }
 				$Info.OutputType = "ObjectList"
-			#}
+			}
 		}
 
 		if ( $Info.Data -is [string] )
@@ -1926,7 +1911,7 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\*.psm1" | `
 		Get-Command -Module $ModuleName | `
 			ForEach-Object {
 				$CodeDefinition = $_.Definition
-				if ( $ModuleName -match "O365Functions" )
+				if ( $ModuleName -match "O365.*Functions" )
 				{
 					$MiObject = [pscustomobject]@{
 						Name = $_.Name
@@ -1944,9 +1929,28 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\*.psm1" | `
 
 				if ( $null -ne $MiObject )
 				{
-					if ( -not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or `
+					if ( $MiObject.State -eq "Dev" )
+					{
+						if ( $PSCommandPath -match "(Development)|(User)" )
+						{
+							$StateApproved = $true
+						}
+						else
+						{
+							$StateApproved = $false
+						}
+					}
+					else
+					{
+						$StateApproved = $true
+					}
+
+					if (
+						( -not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or `
 						$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or `
-						$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0 )
+						$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0 ) -and `
+						$StateApproved
+					)
 					{
 						$syncHash.Window.Resources["CvsMi$( $ModuleName )"].Source.Add( $MiObject )
 					}
@@ -2004,14 +2008,7 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 						}
 						else
 						{
-							if ( $MiObject.Name -match "^\w+-O365" )
-							{
-								$syncHash.MiO365.Items.Add( $MiObject )
-							}
-							else
-							{
-								$syncHash.Window.Resources['CvsMiTools'].Source.Add( $MiObject )
-							}
+							$syncHash.Window.Resources['CvsMiTools'].Source.Add( $MiObject )
 						}
 					}
 				}
@@ -2169,12 +2166,7 @@ $syncHash.MiCopyObj.Add_Click( {
 
 # If this menuitem is visible, connection at startup failed. Inform
 $syncHash.MiO365Connect.Add_Click( {
-	( $e = [System.Collections.ArrayList]::new() ).Add( $syncHash.Data.msgTable.ErrO365Connection )
-	$output = [pscustomobject]@{ Finished = Get-Date; Data = $null ; Script = ( [pscustomobject]@{ Name = $syncHash.Data.msgTable.StrConnectO365Title } ) ; Error = $e ; Item = $null ; OutputType = "String" }
-	[void] $syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $output )
-	$syncHash.Window.Resources['ExchangeAdministrator'] = [System.Windows.Visibility]::Collapsed
-
-	$syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "Cvs.*" } | ForEach-Object { $_.Value.View.Refresh() }
+	ConnectO365
 } )
 
 # Show a detailed overview of the object
@@ -2229,12 +2221,6 @@ $syncHash.TbSearch.Add_GotFocus( {
 	$this.SelectAll()
 } )
 
-# Show popup when text box gets keyboardfocus
-$syncHash.TbSearch.Add_GotKeyboardFocus( {
-	$syncHash.PopupMenu.IsOpen = $true
-	$this.SelectAll()
-} )
-
 # Key was pressed in the search textbox
 $syncHash.TbSearch.Add_KeyDown( {
 	if ( "Return" -eq $args[1].Key )
@@ -2242,6 +2228,17 @@ $syncHash.TbSearch.Add_KeyDown( {
 		$syncHash.DC.TbSearch[0] = $this.Text
 		$syncHash.DC.BrdAsterixWarning[0] = [System.Windows.Visibility]::Collapsed
 		StartSearch
+	}
+} )
+
+# Close popup when text box loses focus
+$syncHash.TbSearch.Add_LostFocus( {
+	if (
+		-not $syncHash.PopupMenu.IsOpen -and
+		-not $syncHash.PopupMenu.IsFocused
+	)
+	{
+		$syncHash.PopupMenu.IsOpen = $false
 	}
 } )
 
@@ -2363,9 +2360,10 @@ $syncHash.Window.Add_LocationChanged( {
 $syncHash.Window.Add_Closed( {
 	$syncHash.Data.UserSettings | ConvertTo-Json -Depth 5 | Set-Content $syncHash.Data.SettingsPath
 
-	# Close runspace for functions
+	# Disregard closing of runspaces if in development mode, to enable debugging
 	if ( $PSCommandPath -notmatch "Development" )
 	{
+		# Close runspace for functions
 		try
 		{
 			[void] $syncHash.Jobs.ExecuteFunction.P.EndInvoke( $syncHash.Jobs.ExecuteFunction.H )
@@ -2387,18 +2385,6 @@ $syncHash.Window.Add_Closed( {
 			$syncHash.Jobs.SearchRunspace.Dispose()
 		} catch {}
 
-		# Close all runspaces opened for tools
-		$syncHash.MiTools.Items |`
-			Where-Object { $_.Separate -eq $true } | `
-			ForEach-Object {
-				try
-				{
-					$_.Process.PObj.CloseMainWindow()
-					$_.Process.PObj.Close()
-				}
-				catch {}
-			}
-
 		# Unregister eventsubscribers created in tools
 		$syncHash.Window.Resources.GetEnumerator() | `
 			Where-Object { $_.Name -match "^Cvs" } | `
@@ -2414,6 +2400,18 @@ $syncHash.Window.Add_Closed( {
 			}
 
 	}
+
+	# Close runspaces and windows opened for tools
+	$syncHash.GetEnumerator() | `
+		Where-Object { $_.Name -match "^Mi.*(Functions)|(Tools)$" } | `
+		ForEach-Object { $_.Value.Items } | `
+		Where-Object { $_.Separate -and $null -ne $_.Process } | `
+		ForEach-Object {
+			$_.Process.PObj.CloseMainWindow()
+			$_.Process.PObj.Close()
+			$_.Process.RunspaceP.Runspace.Close()
+		}
+
 	[System.GC]::Collect()
 } )
 
@@ -2440,33 +2438,26 @@ $syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add_CollectionChanged( {
 } )
 
 # Connect to Office365 online services
-try
+if ( CheckO365Connection )
 {
-	CheckO365Connection
 	Update-SplashText -Text $msgTable.StrSplashConnectedO365
 }
-catch
+else
 {
 	Update-SplashText -Text $msgTable.StrSplashConnectO365
 	Set-SplashTopMost -NotTopMost
-	"AzureAD", "ExchangeOnlineManagement" | `
-		ForEach-Object {
-			Import-Module -Name $_ -Force -ErrorAction Stop
-		}
-	try
-	{
-		$AzureAdAccount = Connect-AzureAD -ErrorAction Stop -WarningAction SilentlyContinue -InformationAction SilentlyContinue
-	} catch {}
-	try
-	{
-		Connect-ExchangeOnline -UserPrincipalName $AzureAdAccount.Account.Id -ErrorAction Stop -WarningAction SilentlyContinue
-	} catch {}
-	$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Collapsed
+	ConnectO365
+	#$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Collapsed
 	Set-SplashTopMost -TopMost
 }
 Import-Module ActiveDirectory -Force
-Update-SplashText -Text "$( $msgTable.StrSplashCheckO365Roles )`n$( ( Get-AzureADCurrentSessionInfo ).Account.Id )"
-CheckO365Connection
-CheckO365Roles
+try
+{
+	Update-SplashText -Text "$( $msgTable.StrSplashCheckO365Roles )`n$( ( Get-AzureADCurrentSessionInfo -ErrorAction Stop ).Account.Id )"
+	#CheckO365Connection
+	CheckO365Roles
+}
+catch
+{}
 
 [void] $syncHash.Window.ShowDialog()
