@@ -21,6 +21,7 @@ ErrScriptPermissions = You lack the necessary permissions to run this script
 ErrSysManGenError = Error connecting to SysMan
 ErrSysManNoComputer = Computer not found in SysMan
 ErrSysManNoSystem = System not found in SysMan
+ErrUserNotFound = NotFound
 LogInputAdd = For additions:
 LogInputRemove = For removal:
 LogMessageAdd = Added permissions:
