@@ -119,6 +119,8 @@ function Get-PollenRapport
 	.NoRunspace
 	.OutputType
 		ObjectList
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -156,6 +158,8 @@ function Get-SomeFiles
 	.OutputType
 		ObjectList
 	.NoRunspace
+	.State
+		Dev
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -202,6 +206,8 @@ function Get-String
 		String
 	.Description
 		Get string. Used to show how output is displayed
+	.State
+		Dev
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -224,6 +230,8 @@ function Get-StringList
 		List
 	.Description
 		Get stringlist. Used to show how output is displayed
+	.State
+		Dev
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -248,6 +256,8 @@ function Get-TemaDagar
 		None
 	.OutputType
 		List
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -282,6 +292,8 @@ function Test-Error
 		String
 	.Description
 		Test for how errors are displayed
+	.State
+		Dev
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -302,6 +314,8 @@ function Test-WriteError
 		String
 	.Description
 		Test for using function to write to errorlog
+	.State
+		Dev
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -324,6 +338,8 @@ function Write-String
 		Write string as input. Used to show how output is displayed
 	.InputData
 		String String to write
+	.State
+		Dev
 	.Author
 		Smorkster (smorkster)
 	#>
