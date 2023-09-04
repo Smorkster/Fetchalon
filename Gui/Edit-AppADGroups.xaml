@@ -395,6 +395,8 @@
                                 Value="6" />
                         <Setter Property="IsEnabled"
                                 Value="False" />
+                        <Setter Property="Margin"
+                                Value="{StaticResource StdMargin}" />
                         <Setter Property="ToolTip"
                                 Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnRefetchGroupsTT}" />
                     </Style>
@@ -408,6 +410,8 @@
                                 Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUndo}" />
                         <Setter Property="Grid.Row"
                                 Value="7" />
+                        <Setter Property="Margin"
+                                Value="{StaticResource StdMargin}" />
                     </Style>
                 </Button.Style>
             </Button>

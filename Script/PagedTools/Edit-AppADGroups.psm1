@@ -49,15 +49,22 @@ function CheckUser
 
 	param ( [string] $Id )
 
-	if ( dsquery User -samid $Id )
+	try
 	{
-		return "User"
+		$O = Get-ADUser -Identity $Id  -Properties otherMailbox -ErrorAction Stop
+		return $O
 	}
-	else
+	catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]
 	{
-		$syncHash.ErrorUsers += $Id
+		$syncHash.ErrorUsers += @{ "Id" = $Id ; "Reason" = $syncHash.Data.msgTable.ErrUserNotFound }
 		$syncHash.Data.ErrorHashes += WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrMessageGetUser )" -UserInput $Id -Severity "UserInputFail"
 		return "NotFound"
+	}
+	catch
+	{
+		$syncHash.ErrorUsers += @{ "Id" = $Id ; "Reason" = $_.Exception.Message }
+		$syncHash.Data.ErrorHashes += WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrMessageGetUser )`n$( $_.Exception.Message )" -UserInput $Id -Severity "OtherFail"
+		return $_.Exception.Message
 	}
 }
 
@@ -89,6 +96,13 @@ function CollectEntries
 
 function CollectComputers
 {
+	<#
+	.Synopsis
+		Check if computers exists in AD
+	.Parameter Entries
+		Ids to verify as computer
+	#>
+
 	param (
 		[array] $Entries
 	)
@@ -138,14 +152,10 @@ function CollectUsers
 	{
 		$syncHash.Controls.Window.Title = "$( $msgTable.StrGettingUser ) $( [Math]::Floor( $loopCounter / $entries.Count * 100 ) )"
 		$User = CheckUser -Id $entry
-		if ( $User -eq "NotFound" )
-		{
-			$syncHash.ErrorUsers += @{ "Id" = $entry }
-		}
-		else
+		if ( $User -is [Microsoft.ActiveDirectory.Management.ADUser] )
 		{
 			$object = $null
-			$object = @{ "Id" = $entry.ToString().ToUpper(); "AD" = ( Get-ADUser -Identity $entry -Properties otherMailbox ); "PW" = GeneratePassword }
+			$object = @{ "Id" = $entry.ToString().ToUpper(); "AD" = $User ; "PW" = GeneratePassword }
 			if ( ( ( $syncHash.AddUsers | Where-Object { $_.Id -eq $object.Id } ).Count + ( $syncHash.RemoveUsers | Where-Object { $_.Id -eq $object.Id } ).Count ) -gt 1 )
 			{
 				$syncHash.Duplicates += $object.Id
@@ -197,7 +207,7 @@ function CreateLogText
 
 	if ( $syncHash.ErrorUsers )
 	{
-		$syncHash.ErrorUsers.Id | ForEach-Object { $LogText.ErrorUsers.Add( $_ ) }
+		$syncHash.ErrorUsers | ForEach-Object { $LogText.ErrorUsers.Add( "$( $_.Id ) ($( $_.Reason ))" ) }
 	}
 
 	$syncHash.Data.Test = $LogText
@@ -232,7 +242,7 @@ function CreateMessage
 	if ( $syncHash.ErrorUsers )
 	{
 		$Message += "`n$( $syncHash.Data.msgTable.MsgNoAccount ):"
-		$syncHash.ErrorUsers.Id | ForEach-Object { $Message += "`t$_" }
+		$syncHash.ErrorUsers | ForEach-Object { $Message += "`t$( $_.Id ) ($( $_.Reason ))" }
 	}
 	$Message += $syncHash.Data.msgTable.StrLogOut
 	$Message += $syncHash.Signatur
