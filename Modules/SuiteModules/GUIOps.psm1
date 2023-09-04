@@ -2,7 +2,7 @@
 .Synopsis
 	Functions for working with GUI's
 .Description
-	A module for functions creating and working with GUI's
+	A module for functions creating and working with GUI elements and windows
 .State
 	Prod
 .Author
@@ -287,9 +287,12 @@ function LoadConverters
 										System.Text.RegularExpressions, `
 										System.Windows, `
 										System.Xaml, `
+										System.Xml,`
+										System.Xml.Linq, `
 										'C:\Program Files\PowerShell\7\WindowsBase.dll', `
 										'C:\Program Files\PowerShell\7\System.ComponentModel.Primitives.dll' ,
-										'C:\Program Files\PowerShell\7\System.Collections.NonGeneric.dll' -TypeDefinition $Converters -ErrorAction Stop
+										'C:\Program Files\PowerShell\7\System.Collections.NonGeneric.dll',
+										C:\Windows\Microsoft.NET\assembly\GAC_64\PresentationCore\v4.0_4.0.0.0__31bf3856ad364e35\PresentationCore.dll -TypeDefinition $Converters -ErrorAction Stop
 	}
 	else
 	{
@@ -302,7 +305,10 @@ function LoadConverters
 										System.Text.RegularExpressions, `
 										System.Windows, `
 										System.Xaml, `
-										C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll -TypeDefinition $Converters -ErrorAction Stop
+										System.Xml, `
+										System.Xml.Linq, `
+										C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll,
+										C:\Windows\Microsoft.NET\assembly\GAC_32\PresentationCore\v4.0_4.0.0.0__31bf3856ad364e35\PresentationCore.dll -TypeDefinition $Converters -ErrorAction Stop
 	}
 }
 
@@ -618,6 +624,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Xaml;
+using System.Xml;
+using System.Xml.Linq;
 
 namespace FetchalonConverters
 {
@@ -740,11 +748,12 @@ namespace FetchalonConverters
 		}
 	}
 
-	public class MiVisible : IValueConverter
+	public class XmlFormater : IValueConverter
 	{
 		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
 		{
-			return double.Parse( value.ToString() ) < int.Parse( parameter.ToString() );
+			XDocument doc = XDocument.Parse( value.ToString() );
+			return doc.ToString();
 		}
 
 		public object ConvertBack ( object value, Type targetTypes, object parameter, CultureInfo culture )
