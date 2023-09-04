@@ -4,6 +4,12 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Page.Resources>
         <Brush x:Key="DefaultFontColor">#FF444444</Brush>
+        <CollectionViewSource x:Key="CvsAppsCore">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="Name" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
         <CollectionViewSource x:Key="CvsAppsLocal">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
@@ -24,6 +30,7 @@
                                                 PropertyName="Name" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
+        <Thickness x:Key="StdMargin">5</Thickness>
         <Style TargetType="Button"
                x:Key="BtnBaseStyle">
             <Setter Property="Foreground"
@@ -37,7 +44,7 @@
                                 Background="#FFDDDDDD"
                                 BorderBrush="#FF555555"
                                 BorderThickness="1"
-                                Margin="4,0"
+                                Margin="{StaticResource StdMargin}"
                                 Padding="5">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
@@ -87,26 +94,56 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style TargetType="ProgressBar"
+               x:Key="PbBaseStyle">
+            <Setter Property="Grid.Row"
+                    Value="1" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style x:Key="TblTitleStyle"
+               TargetType="TextBlock">
+            <Setter Property="Margin"
+                    Value="5" />
+        </Style>
+        <Style x:Key="TblMiTitleCountStyle"
+               TargetType="TextBlock">
+            <Setter Property="FontWeight"
+                    Value="Bold" />
+            <Setter Property="Margin"
+                    Value="5,0" />
+        </Style>
     </Page.Resources>
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="1*" />
-            <RowDefinition Height="Auto" MinHeight="30" />
+            <RowDefinition Height="Auto"
+                           MinHeight="40" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
         <TabControl Name="TcAppLists">
             <TabControl.Style>
                 <Style TargetType="TabControl">
-                    
+                    <Setter Property="Grid.ColumnSpan"
+                            Value="2" />
                 </Style>
             </TabControl.Style>
             <TabItem Name="TiAppListLocal">
-                <TabItem.Style>
-                    <Style TargetType="TabItem">
-                        <Setter Property="Header"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiAppListLocal}" />
-                    </Style>
-                </TabItem.Style>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiAppListLocal}" />
+                        <TextBlock Style="{StaticResource TblMiTitleCountStyle}">
+                            <Run Text="(" />
+                            <Run Text="{Binding ElementName=DgAppListLocal, Mode=OneWay, Path=ItemsSource.Count}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -114,7 +151,8 @@
                     </Grid.RowDefinitions>
                     <TextBlock Name="TblAppListLocalTitle">
                         <TextBlock.Style>
-                            <Style TargetType="TextBlock">
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblTitleStyle}">
                                 <Setter Property="Text"
                                         Value="{Binding ElementName=Window, Path=DataContext.MsgTable.TblAppListLocalTitle}" />
                             </Style>
@@ -146,7 +184,7 @@
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgLocalInstCol}" />
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgLocalNameCol}" />
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
@@ -158,7 +196,7 @@
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgLocalNameCol}" />
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgLocalInstCol}" />
                                             </Style>
                                         </TextBlock.Style>
                                     </TextBlock>
@@ -197,12 +235,16 @@
                 </Grid>
             </TabItem>
             <TabItem Name="TiAppListWrappers">
-                <TabItem.Style>
-                    <Style TargetType="TabItem">
-                        <Setter Property="Header"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiAppListWrappers}" />
-                    </Style>
-                </TabItem.Style>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiAppListWrappers}" />
+                        <TextBlock Style="{StaticResource TblMiTitleCountStyle}">
+                            <Run Text="(" />
+                            <Run Text="{Binding ElementName=DgAppListWrappers, Mode=OneWay, Path=ItemsSource.Count}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -210,7 +252,8 @@
                     </Grid.RowDefinitions>
                     <TextBlock Name="TblAppListWrappersTitle">
                         <TextBlock.Style>
-                            <Style TargetType="TextBlock">
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblTitleStyle}">
                                 <Setter Property="Text"
                                         Value="{Binding ElementName=Window, Path=DataContext.MsgTable.TblAppListWrappersTitle}" />
                             </Style>
@@ -277,12 +320,16 @@
                 </Grid>
             </TabItem>
             <TabItem Name="TiAppListSysMan">
-                <TabItem.Style>
-                    <Style TargetType="TabItem">
-                        <Setter Property="Header"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiAppListSysMan}" />
-                    </Style>
-                </TabItem.Style>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiAppListSysMan}" />
+                        <TextBlock Style="{StaticResource TblMiTitleCountStyle}">
+                            <Run Text="(" />
+                            <Run Text="{Binding ElementName=DgAppListSysMan, Mode=OneWay, Path=ItemsSource.Count}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -290,7 +337,8 @@
                     </Grid.RowDefinitions>
                     <TextBlock Name="TblAppListSysManTitle">
                         <TextBlock.Style>
-                            <Style TargetType="TextBlock">
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblTitleStyle}">
                                 <Setter Property="Text"
                                         Value="{Binding ElementName=Window, Path=DataContext.MsgTable.TblAppListSysManTitle}" />
                             </Style>
@@ -344,125 +392,128 @@
                     </DataGrid>
                 </Grid>
             </TabItem>
+            <TabItem Name="TiAppListCore">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiAppListCore}" />
+                        <TextBlock Style="{StaticResource TblMiTitleCountStyle}">
+                            <Run Text="(" />
+                            <Run Text="{Binding ElementName=DgAppListCore, Mode=OneWay, Path=ItemsSource.Count}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                    </StackPanel>
+                </TabItem.Header>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <StackPanel Margin="5"
+                                Orientation="Horizontal">
+                        <TextBlock Name="TblAppListCoreTitle">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock"
+                                       BasedOn="{StaticResource TblTitleStyle}">
+                                    <Setter Property="Text"
+                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblAppListCoreTitle}" />
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                        <TextBlock Name="TblAppListCoreDeploymentName">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock"
+                                       BasedOn="{StaticResource TblTitleStyle}">
+                                    <Setter Property="FontWeight"
+                                            Value="Bold" />
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </StackPanel>
+                    <DataGrid Name="DgAppListCore">
+                        <DataGrid.Style>
+                            <Style TargetType="DataGrid">
+                                <Setter Property="AutoGenerateColumns"
+                                        Value="False" />
+                                <Setter Property="Grid.Row"
+                                        Value="1" />
+                                <Setter Property="HeadersVisibility"
+                                        Value="Column" />
+                                <Setter Property="HorizontalScrollBarVisibility"
+                                        Value="Hidden" />
+                                <Setter Property="IsReadOnly"
+                                        Value="True" />
+                                <Setter Property="ItemsSource"
+                                        Value="{Binding Source={StaticResource CvsAppsCore}}" />
+                                <Setter Property="VerticalScrollBarVisibility"
+                                        Value="Auto" />
+                            </Style>
+                        </DataGrid.Style>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Binding="{Binding Path=Name}">
+                                <DataGridTextColumn.Header>
+                                    <TextBlock>
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgAppListCoreNameCol}" />
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataGridTextColumn.Header>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
         </TabControl>
-        <ProgressBar Name="PbProgress">
-            <ProgressBar.Style>
-                <Style TargetType="ProgressBar">
-                    <Setter Property="Grid.Row"
-                            Value="1" />
-                    <Setter Property="Margin"
-                            Value="5" />
-                </Style>
-            </ProgressBar.Style>
-        </ProgressBar>
-        <Grid>
+        <ProgressBar Name="PbProgressLocal"
+                     Style="{StaticResource PbBaseStyle}" />
+        <ProgressBar Name="PbProgressSysMan"
+                     Grid.Column="1"
+                     Style="{StaticResource PbBaseStyle}" />
+        <Grid Grid.Row="2">
             <Grid.Style>
                 <Style TargetType="Grid">
                     <Setter Property="Grid.Row"
-                            Value="3" />
+                            Value="1" />
+                    <Setter Property="VerticalAlignment"
+                            Value="Top" />
                 </Style>
             </Grid.Style>
             <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="1*" />
             </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="40" />
-                <RowDefinition Height="40" />
-            </Grid.RowDefinitions>
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="1*" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Name="TblComputerNameTitle">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="FontSize"
-                                    Value="15" />
-                            <Setter Property="FontWeight"
-                                    Value="Bold" />
-                            <Setter Property="Text"
-                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblComputerNameTitle}" />
-                            <Setter Property="VerticalAlignment"
-                                    Value="Center" />
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
-                <TextBox Name="TbComputerName">
-                    <TextBox.Style>
-                        <Style TargetType="TextBox">
-                            <Setter Property="Grid.Column"
-                                    Value="2" />
-                            <Setter Property="IsEnabled"
-                                    Value="True" />
-                            <Setter Property="Margin"
-                                    Value="5" />
-                            <Setter Property="VerticalContentAlignment"
-                                    Value="Center" />
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding ElementName=PbProgress, Path=Visibility}"
-                                             Value="Visible">
-                                    <Setter Property="IsEnabled"
-                                            Value="False" />
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBox.Style>
-                </TextBox>
-            </Grid>
-            <TextBlock Name="TbProgressInfo">
+            <TextBlock Name="TblComputerNameTitle">
                 <TextBlock.Style>
                     <Style TargetType="TextBlock">
-                        <Setter Property="Grid.Column"
-                                Value="1" />
-                        <Setter Property="Margin"
-                                Value="5" />
-                        <Setter Property="TextWrapping"
-                                Value="Wrap" />
+                        <Setter Property="FontSize"
+                                Value="15" />
+                        <Setter Property="FontWeight"
+                                Value="Bold" />
+                        <Setter Property="Text"
+                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblComputerNameTitle}" />
                         <Setter Property="VerticalAlignment"
                                 Value="Center" />
                     </Style>
                 </TextBlock.Style>
             </TextBlock>
-            <Button Name="BtnGetAppList">
-                <Button.Style>
-                    <Style TargetType="Button"
-                           BasedOn="{StaticResource BtnBaseStyle}">
-                        <Setter Property="Content"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnGetAppList}" />
-                        <Setter Property="IsEnabled"
-                                Value="True" />
-                        <Setter Property="Grid.Row"
-                                Value="1" />
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding ElementName=PbProgress, Path=Visibility}"
-                                         Value="Visible">
-                                <Setter Property="IsEnabled"
-                                        Value="False" />
-                            </DataTrigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
-            <Button Name="BtnUninstall">
-                <Button.Style>
-                    <Style TargetType="Button"
-                           BasedOn="{StaticResource BtnBaseStyle}">
-                        <Setter Property="Content"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUninstall}" />
+            <TextBox Name="TbComputerName">
+                <TextBox.Style>
+                    <Style TargetType="TextBox">
                         <Setter Property="Grid.Column"
-                                Value="1" />
-                        <Setter Property="Grid.Row"
-                                Value="1" />
+                                Value="2" />
+                        <Setter Property="Height"
+                                Value="30" />
                         <Setter Property="IsEnabled"
                                 Value="True" />
+                        <Setter Property="Margin"
+                                Value="5" />
+                        <Setter Property="MaxHeight"
+                                Value="30" />
+                        <Setter Property="VerticalContentAlignment"
+                                Value="Center" />
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding ElementName=DgAppList, Path=SelectedItems.Count}"
-                                         Value="0">
-                                <Setter Property="IsEnabled"
-                                        Value="False" />
-                            </DataTrigger>
                             <DataTrigger Binding="{Binding ElementName=PbProgress, Path=Visibility}"
                                          Value="Visible">
                                 <Setter Property="IsEnabled"
@@ -470,8 +521,54 @@
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
-                </Button.Style>
-            </Button>
+                </TextBox.Style>
+            </TextBox>
         </Grid>
+        <TextBlock Name="TbProgressInfo"
+                   Grid.Column="1"
+                   Grid.Row="2"
+                   Margin="{StaticResource StdMargin}"
+                   TextWrapping="Wrap"
+                   VerticalAlignment="Center" />
+        <Button Name="BtnGetAppList"
+                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnGetAppList}"
+                Grid.Row="3"
+                IsEnabled="True">
+            <Button.Style>
+                <Style TargetType="Button"
+                       BasedOn="{StaticResource BtnBaseStyle}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=PbProgress, Path=Visibility}"
+                                     Value="Visible">
+                            <Setter Property="IsEnabled"
+                                    Value="False" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
+        <Button Name="BtnUninstall"
+                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUninstall}"
+                Grid.Column="1"
+                Grid.Row="3"
+                IsEnabled="True">
+            <Button.Style>
+                <Style TargetType="Button"
+                       BasedOn="{StaticResource BtnBaseStyle}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=DgAppList, Path=SelectedItems.Count}"
+                                     Value="0">
+                            <Setter Property="IsEnabled"
+                                    Value="False" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding ElementName=PbProgress, Path=Visibility}"
+                                     Value="Visible">
+                            <Setter Property="IsEnabled"
+                                    Value="False" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
     </Grid>
 </Page>
