@@ -1,9 +1,14 @@
 ﻿<#
-.Synopsis Property handlers for computer objects
-.Description A collection of objects, as property handlers, to operate on objects with objectclass 'computer'
-.State Prod
-.Author Smorkster (smorkster)
+.Synopsis
+	Property handlers for computer objects
+.Description
+	A collection of objects, as property handlers, to operate on objects with objectclass 'computer'
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
+
 param ( $culture = "sv-SE" )
 
 $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
