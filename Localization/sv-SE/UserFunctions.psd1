@@ -1,4 +1,29 @@
 ﻿ConvertFrom-StringData @'
+GetO365AccountStatusCodeMsExchIgnoreOrg = OU=Org2
+GetO365AccountStatusNotConnected = Inte ansluten till O365 services
+GetO365AccountStatusParamADActiveCheck = AD Aktiv
+GetO365AccountStatusParamADActiveFalse = Ej aktiv
+GetO365AccountStatusParamADLockCheck = AD Olåst
+GetO365AccountStatusParamADLockFalse = Kontot är låst
+GetO365AccountStatusParamADMailCheck = Mailattribut angivet
+GetO365AccountStatusParamADMailFalse = Mailattribut ej angivet
+GetO365AccountStatusParamADmsECheck = msExchMailboxGuid är tomt
+GetO365AccountStatusParamADmsEFalse = msExchMailboxGuid ej tomt
+GetO365AccountStatusParamCheck = Finns i AD
+GetO365AccountStatusParamOAccountCheck = O365-konto skapat
+GetO365AccountStatusParamOAccountFalse = O365-konto inte skapat
+GetO365AccountStatusParamOExchCheck = Synkat till Exchange
+GetO365AccountStatusParamOExchFalse = Ej synkat till Exchange
+GetO365AccountStatusParamOLicCheck = Har E3-licens
+GetO365AccountStatusParamOLicFalse = Har ej E3-licens
+GetO365AccountStatusParamOLicFalseWrongOrg = Org tilldelas inte E3
+GetO365AccountStatusParamOLoginCheck = O365 inloggning aktiv
+GetO365AccountStatusParamOLoginFalse = Inloggning inaktiverat
+GetO365AccountStatusParamOMigCheck = Medlem i O365-MigPilots
+GetO365AccountStatusParamOMigFalse = Ej medlem
+GetO365AccountStatusParamTitleType = Kontroll
+GetO365AccountStatusParamTitleValue = Status
+GetO365AccountStatusValOk = OK
 RemoveProfileVKNotValidOrg = Organisationen använder inte vKlient
 RemoveProfileVKProfileRemoved = vKlient-profilen har nu tagits bort
 RemoveProfileVKQuestion = Vilken organisation arbetar användare i?

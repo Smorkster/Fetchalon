@@ -13,71 +13,6 @@
 
 param ( $culture = "sv-SE" )
 
-function Get-FolderMembership
-{
-	<#
-	.Synopsis
-		List folders with permissions
-	.Description
-		List all folders the user have permissions for, and what type of permission
-	.MenuItem
-		Folder permissions
-	.SearchedItemRequest
-		Required
-	.OutputType
-		ObjectList
-	.Author
-		Smorkster (smorkster)
-	#>
-
-	param ( $Item )
-
-	return Get-ADGroup -LDAPFilter ( "(member:1.2.840.113556.1.4.1941:={0})" -f ( Get-ADUser $Item.SamAccountName ).DistinguishedName ) -Properties Description | `
-		Where-Object { $_.Name -match ".*_Fil_.*User_(C|R)" -and $_.Name -notmatch $IntMsgTable.StrGetFolderMembershipPropCodeNotMatch } | `
-		Select-Object -Property `
-			@{ Name = "$( $IntMsgTable.StrGetFolderMembershipPropTitleGroup )"; Expression = { $_.Name } }, `
-			@{ Name = "$( $IntMsgTable.StrGetFolderMembershipPropTitleFolder )"; Expression = { ( ( $_.Description -split " $( $IntMsgTable.StrGetFolderMembershipPropCodeSplit1 ) " )[1] -split "\." )[0] -replace $IntMsgTable.StrGetFolderMembershipPropCodeReplace1, "G:" -replace $IntMsgTable.StrGetFolderMembershipPropCodeReplace2, "S:" } }, `
-			@{ Name = "$( $IntMsgTable.StrGetFolderMembershipPropTitlePermission )" ; Expression = { `
-				if ( $_.Name -match "_User_R$" ) { $IntMsgTable.StrGetFolderMembershipPropValRead }
-				elseif ( $_.Name -match "_User_C$" ) { $IntMsgTable.StrGetFolderMembershipPropValWrite }
-				else { "?" } } } | `
-		Sort-Object -Property `
-			@{ Expression = { $_."$( $IntMsgTable.StrGetFolderMembershipPropTitlePermission )" } ; Ascending = $true }, `
-			@{ Expression = { $_."$( $IntMsgTable.StrGetFolderMembershipPropTitleFolder )" } ; Ascending = $true }
-}
-
-function Get-FolderOwnership
-{
-	<#
-	.Synopsis
-		List folder ownership
-	.Description
-		List all folders the user have ownership for
-	.MenuItem
-		Folder ownership
-	.SearchedItemRequest
-		Required
-	.OutputType
-		List
-	.Author
-		Smorkster (smorkster)
-	#>
-
-	param ( $Item )
-
-	$List = [System.Collections.ArrayList]::new()
-	Get-ADGroup -LDAPFilter "(&(ManagedBy=$( $Item.DistinguishedName ))(&(Name=*_Fil_*_Grp_*_User_*)(|(Name=*User_C)(Name=*User_R))))" -Properties Description | Sort-Object Name | ForEach-Object { ( ( $_.Description -split "\." )[0] -split "\$" )[1] } | Select-Object -Unique | ForEach-Object { $List.Add( "G:$_" ) | Out-Null }
-
-	if ( $null -eq $List )
-	{
-		return $null
-	}
-	else
-	{
-		return $List
-	}
-}
-
 function Compare-UserGroups
 {
 	<#
@@ -91,9 +26,11 @@ function Compare-UserGroups
 		Allowed
 	.OutputType
 		ObjectList
+	.NoRunspace
 	.InputData
 		Users List of users, separated by spaces
-	.NoRunspace
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -169,6 +106,193 @@ function Compare-UserGroups
 	}
 }
 
+function Get-FolderMembership
+{
+	<#
+	.Synopsis
+		List folders with permissions
+	.Description
+		List all folders the user have permissions for, and what type of permission
+	.MenuItem
+		Folder permissions
+	.SearchedItemRequest
+		Required
+	.OutputType
+		ObjectList
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	return Get-ADGroup -LDAPFilter ( "(member:1.2.840.113556.1.4.1941:={0})" -f ( Get-ADUser $Item.SamAccountName ).DistinguishedName ) -Properties Description | `
+		Where-Object { $_.Name -match ".*_Fil_.*User_(C|R)" -and $_.Name -notmatch $IntMsgTable.StrGetFolderMembershipPropCodeNotMatch } | `
+		Select-Object -Property `
+			@{ Name = "$( $IntMsgTable.StrGetFolderMembershipPropTitleGroup )"; Expression = { $_.Name } }, `
+			@{ Name = "$( $IntMsgTable.StrGetFolderMembershipPropTitleFolder )"; Expression = { ( ( $_.Description -split " $( $IntMsgTable.StrGetFolderMembershipPropCodeSplit1 ) " )[1] -split "\." )[0] -replace $IntMsgTable.StrGetFolderMembershipPropCodeReplace1, "G:" -replace $IntMsgTable.StrGetFolderMembershipPropCodeReplace2, "S:" } }, `
+			@{ Name = "$( $IntMsgTable.StrGetFolderMembershipPropTitlePermission )" ; Expression = { `
+				if ( $_.Name -match "_User_R$" ) { $IntMsgTable.StrGetFolderMembershipPropValRead }
+				elseif ( $_.Name -match "_User_C$" ) { $IntMsgTable.StrGetFolderMembershipPropValWrite }
+				else { "?" } } } | `
+		Sort-Object -Property `
+			@{ Expression = { $_."$( $IntMsgTable.StrGetFolderMembershipPropTitlePermission )" } ; Ascending = $true }, `
+			@{ Expression = { $_."$( $IntMsgTable.StrGetFolderMembershipPropTitleFolder )" } ; Ascending = $true }
+}
+
+function Get-FolderOwnership
+{
+	<#
+	.Synopsis
+		List folder ownership
+	.Description
+		List all folders the user have ownership for
+	.MenuItem
+		Folder ownership
+	.SearchedItemRequest
+		Required
+	.OutputType
+		List
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	$List = [System.Collections.ArrayList]::new()
+	Get-ADGroup -LDAPFilter "(&(ManagedBy=$( $Item.DistinguishedName ))(&(Name=*_Fil_*_Grp_*_User_*)(|(Name=*User_C)(Name=*User_R))))" -Properties Description | Sort-Object Name | ForEach-Object { ( ( $_.Description -split "\." )[0] -split "\$" )[1] } | Select-Object -Unique | ForEach-Object { $List.Add( "G:$_" ) | Out-Null }
+
+	if ( $null -eq $List )
+	{
+		return $null
+	}
+	else
+	{
+		return $List
+	}
+}
+
+function Get-O365AccountStatus
+{
+	<#
+	.Synopsis
+		Check O365 account status
+	.Description
+		Check all the parts for the Office 365 account to be active and useful
+	.MenuItem
+		O365 account status
+	.SearchedItemRequest
+		Required
+	.OutputType
+		ObjectList
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	$List = [System.Collections.ArrayList]::new()
+
+	$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
+
+	if ( $Item.Enabled )
+	{
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADActiveCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
+	}
+	else
+	{
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADActiveCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamADActiveFalse } ) ) | Out-Null
+	}
+
+	if ( -not $Item.LockedOut )
+	{
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADLockCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
+	}
+	else
+	{
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADLockCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamADLockFalse } ) ) | Out-Null
+	}
+
+	if ( $null -ne $Item.EmailAddress )
+	{
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADMailCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
+	}
+	else
+	{
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADMailCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamADMailFalse } ) ) | Out-Null
+	}
+
+	if ( $null -eq $Item.msExchMailboxGuid )
+	{
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADmsECheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
+	}
+	else
+	{
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADmsECheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamADmsEFalse } ) ) | Out-Null
+	}
+
+	try
+	{
+		$O365Account = Get-AzureADUser -Filter "PrimarySMTPAddress eq '$( $Item.EmailAddress )'"
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOAccountCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
+
+		if ( $O365Account.AccountEnabled )
+		{
+			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOLoginCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
+		}
+		else
+		{
+			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOLoginCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamOLoginFalse } ) ) | Out-Null
+		}
+
+		if ( ( $Item.EmailAddress | Get-AzureADUserMembership ).DisplayName -match "O365-MigPilots" )
+		{
+			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOMigCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
+		}
+		else
+		{
+			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOMigCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamOMigFalse } ) ) | Out-Null
+		}
+
+		if ( $Item.DistinguishedName -match $IntMsgTable.GetO365AccountStatusCodeMsExchIgnoreOrg )
+		{
+			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOLicCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamOLicFalseWrongOrg } ) ) | Out-Null
+		}
+		else
+		{
+			if ( $O365Account.AssignedLicenses.SkuId -match ( Get-AzureADSubscribedSku | Where-Object { $_.SkuPartNumber -match "EnterprisePack" } ).SkuId )
+			{
+				$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOLicCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
+			}
+			else
+			{
+				$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOLicCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamOLicFalse } ) ) | Out-Null
+			}
+		}
+
+		try
+		{
+			Get-EXOMailbox -Identity $syncHash.Data.SearchedItem.EmailAddress -ErrorAction Stop | Out-Null
+			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOExchCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
+		}
+		catch
+		{
+			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOExchCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamOExchFalse } ) ) | Out-Null
+		}
+	}
+	catch [Microsoft.Exchange.Management.RestApiClient.RestClientException]
+	{
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADmsECheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamOAccountFalse } ) ) | Out-Null
+	}
+	catch
+	{
+		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusNotConnected ; $IntMsgTable.GetO365AccountStatusParamTitleValue = "-" } ) ) | Out-Null
+	}
+
+	return $List
+}
+
 function Open-SysManGroups
 {
 	<#
@@ -182,8 +306,10 @@ function Open-SysManGroups
 		Required
 	.OutputType
 		None
+	.State
+		Prod
 	.Author
-		Smorkster
+		Smorkster (smorkster)
 	#>
 
 	param ( $Item )
@@ -204,6 +330,8 @@ function Open-SysManMobileDevices
 		Required
 	.OutputType
 		None
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -226,6 +354,8 @@ function Remove-ProfileAria
 		Allowed
 	.OutputType
 		String
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -262,6 +392,8 @@ function Remove-ProfileVK
 		Allowed
 	.OutputType
 		String
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -322,6 +454,8 @@ function Remove-ProfileVKTC
 		Allowed
 	.OutputType
 		String
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -367,6 +501,7 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Get-FolderMembership, Get-FolderOwnership, Compare-UserGroups
+Export-ModuleMember -Function Compare-UserGroups
+Export-ModuleMember -Function Get-FolderMembership, Get-FolderOwnership, Get-O365AccountStatus
 Export-ModuleMember -Function Open-SysManGroups, Open-SysManMobileDevices
 Export-ModuleMember -Function Remove-ProfileAria, Remove-ProfileVK, Remove-ProfileVKTC
