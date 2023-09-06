@@ -251,9 +251,8 @@ function GetExtraInfoPrintQueue
 		$a = Get-Printer -Name $syncHash.Data.SearchedItem.ExtraInfo.Base.name.Trim() -ComputerName $syncHash.Data.SearchedItem.ExtraInfo.Base.server
 		$a | Get-Member -MemberType Property | ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.PrintConf."$( $_.Name )" = $a."$( $_.Name )" }
 
-		Invoke-Command $syncHash.Code.ListProperties
-
 		$syncHash.Window.Dispatcher.Invoke( [action] {
+			Invoke-Command $syncHash.Code.ListProperties
 			$syncHash.GridProgress.Visibility = [System.Windows.Visibility]::Hidden
 		} )
 	} )
@@ -532,10 +531,6 @@ function ResetInfo
 	#>
 
 	$syncHash.IcObjectDetailed.Visibility = [System.Windows.Visibility]::Collapsed
-	$syncHash.GridO365Status.Visibility = [System.Windows.Visibility]::Collapsed
-	$syncHash.GridO365Status.Children | `
-		Where-Object { $_ -is [System.Windows.Shapes.Ellipse] } | `
-		ForEach-Object { $_.Fill = "Red" }
 
 	$syncHash.Window.DataContext.SearchedItem = $null
 	$syncHash.MenuObject.IsEnabled = $false
@@ -1766,12 +1761,6 @@ $(
 		}
 		PrepareToRunScript $SenderObject.DataContext
 	}
-}
-
-# Start a O365-script
-[System.Windows.RoutedEventHandler] $syncHash.Code.O365Click =
-{
-	param ( $SenderObject, $e )
 }
 
 # View file/directory object in directorylist
