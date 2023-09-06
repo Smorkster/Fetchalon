@@ -24,9 +24,38 @@
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <CollectionViewSource x:Key="CvsFolderList">
+            <CollectionViewSource.IsLiveGroupingRequested>True</CollectionViewSource.IsLiveGroupingRequested>
             <CollectionViewSource.IsLiveSortingRequested>True</CollectionViewSource.IsLiveSortingRequested>
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="FileType" />
+            </CollectionViewSource.GroupDescriptions>
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription PropertyName="Path" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMultiDotsG">
+            <CollectionViewSource.IsLiveGroupingRequested>True</CollectionViewSource.IsLiveGroupingRequested>
+            <CollectionViewSource.IsLiveSortingRequested>True</CollectionViewSource.IsLiveSortingRequested>
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="FileType" />
+            </CollectionViewSource.GroupDescriptions>
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription PropertyName="Path" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMultiDotsH">
+            <CollectionViewSource.IsLiveGroupingRequested>True</CollectionViewSource.IsLiveGroupingRequested>
+            <CollectionViewSource.IsLiveSortingRequested>True</CollectionViewSource.IsLiveSortingRequested>
+            <CollectionViewSource.GroupDescriptions>
+                <PropertyGroupDescription PropertyName="FileType" />
+            </CollectionViewSource.GroupDescriptions>
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription PropertyName="Path" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsOtherFolderPermissions">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <GroupStyle x:Key="Gs">
@@ -74,7 +103,7 @@
                                                            Margin="5,2"
                                                            VerticalAlignment="Center">
                                                     <Run Text="[" />
-                                                    <Run Text="{Binding Path=ItemCount, Mode=OneWay}"/>
+                                                    <Run Text="{Binding Path=ItemCount, Mode=OneWay}" />
                                                     <Run Text="]" />
                                                 </TextBlock>
                                                 <TextBlock FontSize="14"
@@ -104,13 +133,6 @@
                             </ControlTemplate>
                         </Setter.Value>
                     </Setter>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding Path=Name}"
-                                     Value="Files matching filter">
-                            <Setter Property="Background"
-                                    Value="Red" />
-                        </DataTrigger>
-                    </Style.Triggers>
                 </Style>
             </GroupStyle.ContainerStyle>
         </GroupStyle>
@@ -240,8 +262,6 @@
                x:Key="LvBaseStyle">
             <Setter Property="IsEnabled"
                     Value="True" />
-            <Setter Property="ListView.View"
-                    Value="{DynamicResource View}" />
             <Setter Property="SelectionMode"
                     Value="Extended" />
             <Setter Property="VirtualizingPanel.IsVirtualizingWhenGrouping"
@@ -290,9 +310,9 @@
             <Setter Property="VerticalAlignment"
                     Value="Center" />
         </Style>
-        <Style x:Key="TblRbTextStyle"
-               BasedOn="{StaticResource TblBaseStyle}"
-               TargetType="TextBlock">
+        <Style TargetType="TextBlock"
+               x:Key="TblRbTextStyle"
+               BasedOn="{StaticResource TblBaseStyle}">
             <Setter Property="Grid.Column"
                     Value="1" />
         </Style>
@@ -309,6 +329,13 @@
                     Value="Bold" />
             <Setter Property="Margin"
                     Value="10,0,0,0" />
+        </Style>
+        <Style x:Key="TblTiTitleCountStyle"
+               TargetType="TextBlock">
+            <Setter Property="FontWeight"
+                    Value="Bold" />
+            <Setter Property="Margin"
+                    Value="5,0" />
         </Style>
         <Style TargetType="TextBox"
                x:Key="TbBaseStyle">
@@ -349,6 +376,14 @@
         <Window x:Key="StreamsList"
                 Name="StreamsList"
                 WindowStartupLocation="CenterScreen">
+            <Window.Resources>
+                <CollectionViewSource x:Key="CvsStreamsList">
+                    <CollectionViewSource.IsLiveSortingRequested>True</CollectionViewSource.IsLiveSortingRequested>
+                    <CollectionViewSource.SortDescriptions>
+                        <componentmodel:SortDescription PropertyName="Stream" />
+                    </CollectionViewSource.SortDescriptions>
+                </CollectionViewSource>
+            </Window.Resources>
             <Window.Style>
                 <Style TargetType="Window">
                     <Setter Property="Height"
@@ -393,6 +428,8 @@
                                     Value="2" />
                             <Setter Property="HeadersVisibility"
                                     Value="Column" />
+                            <Setter Property="ItemsSource"
+                                    Value="{Binding Source={StaticResource CvsStreamsList}}" />
                             <Setter Property="Margin"
                                     Value="0" />
                         </Style>
@@ -430,7 +467,7 @@
                         <Style TargetType="Button"
                                BasedOn="{StaticResource BtnBaseStyle}">
                             <Setter Property="Content"
-                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCloseStreamsList}" />
+                                    Value="{Binding ElementName=StreamsList, Path=DataContext.MsgTable.ContentBtnCloseStreamsList}" />
                             <Setter Property="Grid.Row"
                                     Value="3" />
                             <Setter Property="HorizontalAlignment"
@@ -811,32 +848,12 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <CheckBox Name="CbExpandGroups">
-                        <CheckBox.Style>
-                            <Style TargetType="CheckBox"
-                                   BasedOn="{StaticResource CbBaseStyle}">
-                                <Setter Property="Grid.Row"
-                                        Value="4" />
-                            </Style>
-                        </CheckBox.Style>
-                    </CheckBox>
-                    <TextBlock Name="TblCbExpandGroups">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock"
-                                   BasedOn="{StaticResource TblRbTextStyle}">
-                                <Setter Property="Grid.Row"
-                                        Value="4" />
-                                <Setter Property="Text"
-                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblCbExpandGroups}" />
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
                     <CheckBox Name="CbGroupExtensions">
                         <CheckBox.Style>
                             <Style TargetType="CheckBox"
                                    BasedOn="{StaticResource CbBaseStyle}">
                                 <Setter Property="Grid.Row"
-                                        Value="5" />
+                                        Value="4" />
                             </Style>
                         </CheckBox.Style>
                     </CheckBox>
@@ -845,9 +862,40 @@
                             <Style TargetType="TextBlock"
                                    BasedOn="{StaticResource TblRbTextStyle}">
                                 <Setter Property="Grid.Row"
-                                        Value="5" />
+                                        Value="4" />
                                 <Setter Property="Text"
                                         Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblCbGroupExtensions}" />
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                    <CheckBox Name="CbExpandGroups">
+                        <CheckBox.Style>
+                            <Style TargetType="CheckBox"
+                                   BasedOn="{StaticResource CbBaseStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="5" />
+                                <Setter Property="Visibility"
+                                        Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=CbGroupExtensions, Path=IsChecked}"
+                                                 Value="False">
+                                        <Setter Property="Visibility"
+                                                Value="Hidden" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </CheckBox.Style>
+                    </CheckBox>
+                    <TextBlock Name="TblCbExpandGroups">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblRbTextStyle}">
+                                <Setter Property="Grid.Row"
+                                        Value="5" />
+                                <Setter Property="Text"
+                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblCbExpandGroups}" />
+                                <Setter Property="Visibility"
+                                        Value="{Binding ElementName=CbExpandGroups, Path=Visibility}" />
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
@@ -1171,11 +1219,36 @@
                             <Setter Property="IsEnabled"
                                     Value="False" />
                             <Style.Triggers>
-                                <DataTrigger Binding="{Binding ElementName=LvAllFiles, Path=SelectedItems.Count}"
-                                                   Value="1" >
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding ElementName=LvAllFiles, Path=IsVisible}"
+                                                   Value="True" />
+                                        <Condition Binding="{Binding ElementName=LvAllFiles, Path=SelectedItems.Count}"
+                                                   Value="1" />
+                                    </MultiDataTrigger.Conditions>
                                     <Setter Property="IsEnabled"
                                             Value="True" />
-                                </DataTrigger>
+                                </MultiDataTrigger>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding ElementName=LvMultiDotsH, Path=IsVisible}"
+                                                   Value="True" />
+                                        <Condition Binding="{Binding ElementName=LvMultiDotsH, Path=SelectedItems.Count}"
+                                                   Value="1" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="IsEnabled"
+                                            Value="True" />
+                                </MultiDataTrigger>
+                                <MultiDataTrigger>
+                                    <MultiDataTrigger.Conditions>
+                                        <Condition Binding="{Binding ElementName=LvMultiDotsG, Path=IsVisible}"
+                                                   Value="True" />
+                                        <Condition Binding="{Binding ElementName=LvMultiDotsG, Path=SelectedItems.Count}"
+                                                   Value="1" />
+                                    </MultiDataTrigger.Conditions>
+                                    <Setter Property="IsEnabled"
+                                            Value="True" />
+                                </MultiDataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Button.Style>
@@ -1192,11 +1265,18 @@
             </TabControl.Style>
             <TabItem Name="TiFiles">
                 <TabItem.Style>
-                    <Style TargetType="TabItem">
-                        <Setter Property="Header"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiFilesHeader}" />
-                    </Style>
+                    <Style TargetType="TabItem" />
                 </TabItem.Style>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiFilesHeader}" />
+                        <TextBlock Style="{StaticResource TblTiTitleCountStyle}">
+                            <Run Text="(" />
+                            <Run Text="{Binding ElementName=LvAllFiles, Mode=OneWay, Path=ItemsSource.Count}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
@@ -1230,7 +1310,7 @@
                                 </GridViewColumn>
                                 <GridViewColumn>
                                     <GridViewColumn.DisplayMemberBinding>
-                                        <Binding Path="Size" />
+                                        <Binding Path="SizeText" />
                                     </GridViewColumn.DisplayMemberBinding>
                                     <GridViewColumn.Width>100</GridViewColumn.Width>
                                     <GridViewColumnHeader Name="LvAS">
@@ -1352,12 +1432,27 @@
             <TabItem Name="TiMDH">
                 <TabItem.Style>
                     <Style TargetType="TabItem">
-                        <Setter Property="Header"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiMDHHeader}" />
                         <Setter Property="Visibility"
-                                Value="Collapsed" />
+                                Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=LvMultiDotsH, Path=ItemsSource.Count}"
+                                         Value="0">
+                                <Setter Property="Visibility"
+                                        Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
                     </Style>
                 </TabItem.Style>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiMDHHeader}" />
+                        <TextBlock Style="{StaticResource TblTiTitleCountStyle}">
+                            <Run Text="(" />
+                            <Run Text="{Binding ElementName=LvMultiDotsH, Mode=OneWay, Path=ItemsSource.Count}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="30" />
@@ -1377,6 +1472,8 @@
                                    BasedOn="{StaticResource LvBaseStyle}">
                                 <Setter Property="Grid.Row"
                                         Value="1" />
+                                <Setter Property="ItemsSource"
+                                        Value="{Binding Source={StaticResource CvsMultiDotsH}}" />
                             </Style>
                         </ListView.Style>
                         <ListView.View>
@@ -1428,94 +1525,30 @@
                     </ListView>
                 </Grid>
             </TabItem>
-            <TabItem Name="TiFilterMatch">
-                <TabItem.Style>
-                    <Style TargetType="TabItem">
-                        <Setter Property="Header"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiFilterMatchHeader}" />
-                        <Setter Property="Visibility"
-                                Value="Collapsed" />
-                    </Style>
-                </TabItem.Style>
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="30" />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
-                    <TextBlock Name="TblFilterMatch">
-                        <TextBlock.Style>
-                            <Style TargetType="TextBlock">
-                                <Setter Property="Text"
-                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFilterMatch}" />
-                            </Style>
-                        </TextBlock.Style>
-                    </TextBlock>
-                    <ListView Name="LvFilterMatch">
-                        <ListView.Style>
-                            <Style TargetType="ListView"
-                                   BasedOn="{StaticResource LvBaseStyle}">
-                                <Setter Property="Grid.Row"
-                                        Value="1" />
-                            </Style>
-                        </ListView.Style>
-                        <ListView.View>
-                            <GridView>
-                                <GridViewColumn Width="{StaticResource ResourceKey=MCW}">
-                                    <GridViewColumn.DisplayMemberBinding>
-                                        <Binding Path="Name" />
-                                    </GridViewColumn.DisplayMemberBinding>
-                                    <GridViewColumnHeader Name="LvFMN">
-                                        <GridViewColumnHeader.Style>
-                                            <Style TargetType="GridViewColumnHeader">
-                                                <Setter Property="Content"
-                                                        Value="{Binding ElementName=LvAN, Path=Content}" />
-                                            </Style>
-                                        </GridViewColumnHeader.Style>
-                                    </GridViewColumnHeader>
-                                </GridViewColumn>
-                                <GridViewColumn Width="{StaticResource ResourceKey=CW}">
-                                    <GridViewColumn.DisplayMemberBinding>
-                                        <Binding Path="Created" />
-                                    </GridViewColumn.DisplayMemberBinding>
-                                    <GridViewColumnHeader Name="LvFMC">
-                                        <GridViewColumnHeader.Style>
-                                            <Style TargetType="GridViewColumnHeader">
-                                                <Setter Property="Content"
-                                                        Value="{Binding ElementName=LvAC, Path=Content}" />
-                                            </Style>
-                                        </GridViewColumnHeader.Style>
-                                    </GridViewColumnHeader>
-                                </GridViewColumn>
-                                <GridViewColumn Width="{StaticResource ResourceKey=CW}">
-                                    <GridViewColumn.DisplayMemberBinding>
-                                        <Binding Path="Updated" />
-                                    </GridViewColumn.DisplayMemberBinding>
-                                    <GridViewColumnHeader Name="LvFMU">
-                                        <GridViewColumnHeader.Style>
-                                            <Style TargetType="GridViewColumnHeader">
-                                                <Setter Property="Content"
-                                                        Value="{Binding ElementName=LvAU, Path=Content}" />
-                                            </Style>
-                                        </GridViewColumnHeader.Style>
-                                    </GridViewColumnHeader>
-                                </GridViewColumn>
-                            </GridView>
-                        </ListView.View>
-                        <ListView.GroupStyle>
-                            <StaticResource ResourceKey="Gs" />
-                        </ListView.GroupStyle>
-                    </ListView>
-                </Grid>
-            </TabItem>
             <TabItem Name="TiMDG">
                 <TabItem.Style>
                     <Style TargetType="TabItem">
-                        <Setter Property="Header"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiMDGHeader}" />
                         <Setter Property="Visibility"
-                                Value="Collapsed" />
+                                Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=LvMultiDotsG, Path=ItemsSource.Count}"
+                                         Value="0">
+                                <Setter Property="Visibility"
+                                        Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
                     </Style>
                 </TabItem.Style>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiMDGHeader}" />
+                        <TextBlock Style="{StaticResource TblTiTitleCountStyle}">
+                            <Run Text="(" />
+                            <Run Text="{Binding ElementName=LvMultiDotsG, Mode=OneWay, Path=ItemsSource.Count}" />
+                            <Run Text=")" />
+                        </TextBlock>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="30" />
@@ -1535,6 +1568,8 @@
                                    BasedOn="{StaticResource LvBaseStyle}">
                                 <Setter Property="Grid.Row"
                                         Value="1" />
+                                <Setter Property="ItemsSource"
+                                        Value="{Binding Source={StaticResource CvsMultiDotsG}}" />
                             </Style>
                         </ListView.Style>
                         <ListView.View>
@@ -1589,12 +1624,24 @@
             <TabItem Name="TiO">
                 <TabItem.Style>
                     <Style TargetType="TabItem">
-                        <Setter Property="Header"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiOHeader}" />
                         <Setter Property="Visibility"
-                                Value="Collapsed" />
+                                Value="Visible" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Source={StaticResource CvsOtherFolderPermissions}, Path=Count}"
+                                         Value="0">
+                                <Setter Property="Visibility"
+                                        Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
                     </Style>
                 </TabItem.Style>
+                <TabItem.Header>
+                    <Border BorderBrush="Red"
+                            BorderThickness="5,0">
+                        <TextBlock Margin="5,0"
+                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiOHeader}" />
+                    </Border>
+                </TabItem.Header>
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="30" />
@@ -1617,6 +1664,8 @@
                     <TextBlock Name="TblO">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
+                                <Setter Property="Margin"
+                                        Value="{StaticResource StdMargin}" />
                                 <Setter Property="Text"
                                         Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblO}" />
                             </Style>
@@ -1630,24 +1679,33 @@
                                         Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCreateQuestion}" />
                                 <Setter Property="Grid.Row"
                                         Value="1" />
+                                <Setter Property="IsEnabled"
+                                        Value="True" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=TblQuestion, Path=Text}"
+                                                 Value="{x:Static sys:String.Empty}">
+                                        <Setter Property="IsEnabled"
+                                                Value="False" />
+                                    </DataTrigger>
+                                </Style.Triggers>
                             </Style>
                         </Button.Style>
                     </Button>
-                    <TextBox Name="TbQuestion">
-                        <TextBox.Style>
-                            <Style TargetType="TextBox"
-                                   BasedOn="{StaticResource TbBaseStyle}">
-                                <Setter Property="AcceptsReturn"
-                                        Value="True" />
+                    <TextBlock Name="TblQuestion">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock"
+                                   BasedOn="{StaticResource TblBaseStyle}">
+                                <Setter Property="Background"
+                                        Value="White" />
                                 <Setter Property="Grid.Row"
                                         Value="2" />
-                                <Setter Property="VerticalContentAlignment"
+                                <Setter Property="VerticalAlignment"
                                         Value="Top" />
                                 <Setter Property="Width"
                                         Value="Auto" />
                             </Style>
-                        </TextBox.Style>
-                    </TextBox>
+                        </TextBlock.Style>
+                    </TextBlock>
                 </Grid>
             </TabItem>
         </TabControl>
