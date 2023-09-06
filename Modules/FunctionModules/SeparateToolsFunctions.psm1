@@ -22,6 +22,8 @@ function Open-ADUC
 		None
 	.OutputType
 		None
+	.State
+		Prod
 	.Author
 		Smorkster (Smorkster)
 	#>
@@ -40,6 +42,8 @@ function Open-ConfigurationManager
 		None
 	.OutputType
 		None
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -58,6 +62,8 @@ function Open-PrintConsole
 		None
 	.OutputType
 		None
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
