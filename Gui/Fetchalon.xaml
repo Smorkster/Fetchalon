@@ -795,6 +795,12 @@
         </Style>
         <Style TargetType="MenuItem"
                x:Key="MiTopLevelStyle">
+            <Setter Property="ContextMenuService.Placement"
+                    Value="Right" />
+            <Setter Property="ContextMenuService.HorizontalOffset"
+                    Value="50" />
+            <Setter Property="ContextMenuService.PlacementTarget"
+                    Value="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}}" />
             <Setter Property="FontWeight"
                     Value="Bold" />
             <Setter Property="FontSize"
@@ -1227,7 +1233,7 @@
             <Setter Property="Visibility"
                     Value="{DynamicResource MenuTextVisibility}" />
             <Style.Triggers>
-                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Menu}, Path=IsEnabled}"
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=IsEnabled}"
                              Value="False">
                     <Setter Property="Foreground"
                             Value="LightGray" />
