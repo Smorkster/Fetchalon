@@ -1,0 +1,222 @@
+<Page Name="Window"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Page.Resources>
+        <CollectionViewSource x:Key="CvsCurrentMembers">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="DisplayName" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMembersToReplace">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="DisplayName" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <Thickness x:Key="StdMargin">5</Thickness>
+        <Style TargetType="Button"
+               x:Key="BtnBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="5" />
+        </Style>
+        <Style TargetType="GridViewColumnHeader">
+            <Setter Property="OverridesDefaultStyle"
+                    Value="True" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+                        <DockPanel>
+                            <TextBlock Margin="3"
+                                       Text="{TemplateBinding Content}"
+                                       TextAlignment="Left" />
+                        </DockPanel>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="ListView">
+            <Setter Property="Grid.Row"
+                    Value="1" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="TextBlock"
+               x:Key="TblBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="TextBlock"
+               x:Key="TblTitleBigStyle"
+               BasedOn="{StaticResource TblBaseStyle}">
+            <Setter Property="FontSize"
+                    Value="14" />
+            <Setter Property="FontWeight"
+                    Value="Bold" />
+            <Setter Property="Grid.Row"
+                    Value="1" />
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="3" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+    </Page.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition />
+            <ColumnDefinition />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid Grid.ColumnSpan="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Name="TblDistIdTitle"
+                       Style="{StaticResource TblBaseStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblDistIdTitle}"
+                       VerticalAlignment="Center" />
+            <TextBox Name="TbDistId"
+                     Grid.Column="1" />
+            <Button Name="BtnGetDistList"
+                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnGetDistList}"
+                    Grid.Column="2"
+                    Style="{StaticResource BtnBaseStyle}" />
+        </Grid>
+        <TextBlock Name="TblDistListInfo"
+                   Grid.ColumnSpan="2"
+                   Grid.Row="1"
+                   FontSize="14"
+                   FontWeight="Bold"
+                   Margin="10"
+                   Visibility="Visible">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=GridListViews, Path=Visibility}"
+                                     Value="Visible">
+                            <Setter Property="Visibility"
+                                    Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
+        <Grid Name="GridListViews"
+              Grid.ColumnSpan="2"
+              Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Name="TblCurrentMembersTitle"
+                       Style="{StaticResource TblTitleBigStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblCurrentMembersTitle}" />
+            <TextBlock Name="TblMembersToReplaceTitle"
+                       Grid.Column="1"
+                       Style="{StaticResource TblTitleBigStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMembersToReplaceTitle}" />
+            <ListView Name="LvCurrentMembers"
+                      ItemsSource="{Binding Source={StaticResource CvsCurrentMembers}}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn DisplayMemberBinding="{Binding Path=DisplayName}"
+                                        Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLvCurrentMembersCol0}"
+                                        Width="530" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <ListView Name="LvMembersToReplace"
+                      Grid.Column="1"
+                      ItemsSource="{Binding Source={StaticResource CvsMembersToReplace}}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn DisplayMemberBinding="{Binding Path=DisplayName}"
+                                        Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLvMembersToReplaceCol0}" />
+                        <GridViewColumn Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLvMembersToReplaceCol1}"
+                                        Width="Auto">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Path=ExistsInExchange}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="FontWeight"
+                                                        Value="Normal" />
+                                                <Setter Property="Foreground"
+                                                        Value="Green" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Path=Contact}"
+                                                                 Value="{x:Null}">
+                                                        <Setter Property="Foreground"
+                                                                Value="Red" />
+                                                        <Setter Property="FontWeight"
+                                                                Value="Bold" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <Grid Grid.Column="1"
+                  Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox Name="TbAddSingle"
+                         VerticalContentAlignment="Center" />
+                <Button Name="BtnAddSingle"
+                        Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnAddSingle}"
+                        Grid.Column="1"
+                        Style="{StaticResource BtnBaseStyle}"
+                        ToolTip="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnAddSingleTT}" />
+            </Grid>
+        </Grid>
+        <Button Name="BtnStartReplacement"
+                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnStartReplacement}"
+                Grid.Row="2"
+                ToolTip="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnStartReplacementTT}">
+            <Button.Style>
+                <Style TargetType="Button"
+                       BasedOn="{StaticResource BtnBaseStyle}">
+                    <Setter Property="IsEnabled"
+                            Value="True" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=LvMembersToReplace, Path=ItemsSource.Count}"
+                                     Value="0">
+                            <Setter Property="IsEnabled"
+                                    Value="False" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
+        <Button Name="BtnImport"
+                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnImport}"
+                Grid.Column="1"
+                Grid.Row="2"
+                Style="{StaticResource BtnBaseStyle}" />
+    </Grid>
+</Page>
