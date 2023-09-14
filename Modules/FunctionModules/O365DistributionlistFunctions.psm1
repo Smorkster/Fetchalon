@@ -62,8 +62,45 @@ function Get-DLMembers
 	}
 }
 
+function Set-DLMailTip
+{
+	<#
+	.Synopsis
+		Set mailtip
+	.Description
+		Set mailtip for the distributionlist
+	.MenuItem
+		Set mailtip
+	.InputData
+		MailTip Text to be displayed as a mailtip, maximum length 175 characters
+	.SearchedItemRequest
+		Required
+	.ObjectClass
+		O365Distributionlist
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item, $InputData )
+
+	try
+	{
+		Set-Mailbox $Item.PrimarySmtpAddress -MailTip $InputData.MailTip
+		return $IntMsgTable.SetDLMailTipDone
+	}
+	catch
+	{
+		throw "$( $IntMsgTable.SetDLMailTipError ):`n$( $_.Exception.Message )"
+	}
+}
+
 $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 Export-ModuleMember -Function Get-DLMembers
+Export-ModuleMember -Function Set-DLMailTip

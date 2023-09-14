@@ -19,4 +19,6 @@ GetSharedMailboxMembershipNoMembership = Inga medlemskap
 GetSharedMailboxMembershipParamName = Funktionsbrevlåda
 GetSharedMailboxMembershipParamPerm = Behörighet
 GetSharedMailboxOwnershipNoOwnership = Inte ägare för någon funktionsbrevlåda
+SetUserMailTipDone = Mailtip har angivits utan problem
+SetUserMailTipError = Något gick fel
 '@

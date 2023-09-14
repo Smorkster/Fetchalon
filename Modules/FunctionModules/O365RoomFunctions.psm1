@@ -63,8 +63,45 @@ function Get-RoomMembers
 	}
 }
 
+function Set-RoomMailTip
+{
+	<#
+	.Synopsis
+		Set mailtip
+	.Description
+		Set mailtip for the room
+	.MenuItem
+		Set mailtip
+	.InputData
+		MailTip Text to be displayed as a mailtip, maximum length 175 characters
+	.SearchedItemRequest
+		Required
+	.ObjectClass
+		O365Room
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item, $InputData )
+
+	try
+	{
+		Set-Mailbox $Item.PrimarySmtpAddress -MailTip $InputData.MailTip
+		return $IntMsgTable.SetRoomMailTipDone
+	}
+	catch
+	{
+		throw "$( $IntMsgTable.SetRoomMailTipError ):`n$( $_.Exception.Message )"
+	}
+}
+
 $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 Export-ModuleMember -Function Get-RoomMembers
+Export-ModuleMember -Function Set-RoomMailTip

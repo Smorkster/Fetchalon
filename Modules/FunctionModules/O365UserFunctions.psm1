@@ -306,15 +306,51 @@ function Get-SharedMailboxOwnership
 	return $List
 }
 
+function Set-UserMailTip
+{
+	<#
+	.Synopsis
+		Set mailtip
+	.Description
+		Set mailtip for the user
+	.MenuItem
+		Set mailtip
+	.InputData
+		MailTip Text to be displayed as a mailtip, maximum length 175 characters
+	.SearchedItemRequest
+		Required
+	.ObjectClass
+		O365User
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item, $InputData )
+
+	try
+	{
+		Set-Mailbox $Item.PrimarySmtpAddress -MailTip $InputData.MailTip
+		return $IntMsgTable.SetUserMailTipDone
+	}
+	catch
+	{
+		throw "$( $IntMsgTable.SetUserMailTipError ):`n$( $_.Exception.Message )"
+	}
+}
+
 function Set-UserPasswordNeverExpires
 {
 	<#
 	.Synopsis
-		Sets the password to never expire
+		Sätt att giltighetstiden för lösenordet inte går ut
 	.Description
-		Sets the user's account password in Azure to not expire.
+		Sätter att giltighetstiden för lösenord på användares konto i Azure inte går ut.
 	.MenuItem
-		Set password failed
+		Sätt lösenord gåt inte ut
 	.SearchedItemRequest
 		Required
 	.ObjectClass
@@ -344,4 +380,4 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 Export-ModuleMember -Function Get-Delegates, Get-DistsMembership, Get-DistsOwnership, Get-ExoMail, Get-Logins, Get-SharedMailboxMembership, Get-SharedMailboxOwnership, Get-UserDevices
-Export-ModuleMember -Function Set-UserPasswordNeverExpires
+Export-ModuleMember -Function Set-UserMailTip, Set-UserPasswordNeverExpires
