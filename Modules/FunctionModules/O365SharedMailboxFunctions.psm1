@@ -69,8 +69,45 @@ function Get-SMMembers
 	}
 }
 
+function Set-SMMailTip
+{
+	<#
+	.Synopsis
+		Set mailtip
+	.Description
+		Set mailtip for the shared mailbox
+	.MenuItem
+		Set mailtip
+	.InputData
+		MailTip Text to be displayed as a mailtip, maximum length 175 characters
+	.SearchedItemRequest
+		Required
+	.ObjectClass
+		O365SharedMailbox
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item, $InputData )
+
+	try
+	{
+		Set-Mailbox $Item.PrimarySmtpAddress -MailTip $InputData.MailTip
+		return $IntMsgTable.SetSMMailTipDone
+	}
+	catch
+	{
+		throw "$( $IntMsgTable.SetSMMailTipError ):`n$( $_.Exception.Message )"
+	}
+}
+
 $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Get-SMMembers
+Export-ModuleMember -Function Get-SMDelegates, Get-SMMembers, Get-SMUnsynced
+Export-ModuleMember -Function Set-SMMailTip
