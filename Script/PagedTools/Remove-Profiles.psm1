@@ -310,7 +310,7 @@ function GetProfiles
 	$syncHash.DC.LbOutput[0].Add( $liProfiles )
 	Get-CimInstance -ComputerName $( $syncHash.Data.ComputerName ) -ClassName Win32_UserProfile | Where-Object { ( -not $_.Special ) `
 			-and ( $_.LocalPath -notmatch "default" ) `
-			-and ( $_.LocalPath -notmatch $env:USERNAME ) `
+			-and ( $_.LocalPath -notmatch ( [Environment]::UserName ) ) `
 			-and ( -not [string]::IsNullOrEmpty( $_.LocalPath ) ) } | Foreach-Object {
 		[pscustomobject]@{
 			P = $_.LocalPath
@@ -423,7 +423,7 @@ BindControls $syncHash $controls
 $syncHash.Log = [System.Collections.ArrayList]::new()
 $syncHash.WriteErrorLog = {
 	$f = New-Item -Path "$( $syncHash.Root )\ErrorLogs\$( ( Get-Date ).Year )\$( ( Get-Date ).Month )" -Name "$( ( ( Split-Path $PSCommandPath -Leaf ) -split "\." )[0] ) - ErrorLog $( Get-Date -Format "yyyy-MM-dd HH.mm.ss" ).txt" -ItemType File -Force
-	Add-Content -Value "$( Get-Date -f "yyyy-MM-dd HH:mm:ss" ) $( $env:USERNAME ) => $( $args[0] )" -Path $f.FullName }
+	Add-Content -Value "$( Get-Date -f "yyyy-MM-dd HH:mm:ss" ) $( [Environment]::UserName ) => $( $args[0] )" -Path $f.FullName }
 
 $syncHash.Controls.BtnConnect.Add_Click( { Connect } )
 $syncHash.Controls.BtnGetProfiles.Add_Click( { GetProfiles } )
