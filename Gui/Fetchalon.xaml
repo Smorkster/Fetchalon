@@ -795,12 +795,6 @@
         </Style>
         <Style TargetType="MenuItem"
                x:Key="MiTopLevelStyle">
-            <Setter Property="ContextMenuService.Placement"
-                    Value="Right" />
-            <Setter Property="ContextMenuService.HorizontalOffset"
-                    Value="50" />
-            <Setter Property="ContextMenuService.PlacementTarget"
-                    Value="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}}" />
             <Setter Property="FontWeight"
                     Value="Bold" />
             <Setter Property="FontSize"
@@ -1005,28 +999,28 @@
         <CollectionViewSource x:Key="CvsMiO365SharedMailboxFunctions">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="Name">
+                                                PropertyName="MenuItem">
                 </componentmodel:SortDescription>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <CollectionViewSource x:Key="CvsMiO365DistributionlistFunctions">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="Name">
+                                                PropertyName="MenuItem">
                 </componentmodel:SortDescription>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <CollectionViewSource x:Key="CvsMiO365ResourceFunctions">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="Name">
+                                                PropertyName="MenuItem">
                 </componentmodel:SortDescription>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <CollectionViewSource x:Key="CvsMiO365RoomFunctions">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="Name">
+                                                PropertyName="MenuItem">
                 </componentmodel:SortDescription>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
@@ -4320,6 +4314,8 @@
                                                                     Value="3" />
                                                             <Setter Property="Padding"
                                                                     Value="5,0" />
+                                                            <Setter Property="ToolTip"
+                                                                    Value="{Binding Path=Handler.Description}" />
                                                             <Setter Property="Visibility"
                                                                     Value="Visible" />
                                                             <Style.Triggers>

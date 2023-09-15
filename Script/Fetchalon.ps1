@@ -97,6 +97,7 @@ function DisplayView
 
 	param ( [string] $ViewName )
 
+	$syncHash.GridFunctionOp.DataContext = $null
 	$syncHash.GridViews.Children | `
 		ForEach-Object {
 			if ( $_.Name -eq $ViewName )
@@ -533,6 +534,7 @@ function ResetInfo
 	$syncHash.IcObjectDetailed.Visibility = [System.Windows.Visibility]::Collapsed
 
 	$syncHash.Window.DataContext.SearchedItem = $null
+	$syncHash.GridExtraInfo.Visibility = [System.Windows.Visibility]::Hidden
 	$syncHash.MenuObject.IsEnabled = $false
 	$syncHash.Data.SearchedItem = $null
 	$syncHash.DC.DgSearchResults[0].Clear()
@@ -1180,6 +1182,7 @@ $syncHash.Code.ListItem =
 				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
 				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
 				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+				$syncHash.Data.SearchedItem.ExtraInfo.DistGroup = Get-DistributionGroup $Object.PrimarySmtpAddress | Select-Object *
 				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
 				break
 			}
@@ -1394,59 +1397,21 @@ $syncHash.Code.ListProperties =
 {
 	param ( $Detailed )
 
-	$syncHash.Data.SearchedItem, $syncHash.Data.SearchedItem.ExtraInfo.Keys | `
-		ForEach-Object `
-			-Begin {
-				$c = 0
-				$OtherObjectClass = ( ( Get-Member -InputObject $syncHash.Data.UserSettings.VisibleProperties -MemberType NoteProperty ).Name -notcontains $syncHash.Data.SearchedItem.ObjectClass )
-				$syncHash.Window.Resources['CvsDetailedProps'].Source.Clear()
-				$syncHash.Window.Resources['CvsPropsList'].Source.Clear()
-			} `
-			-Process {
-				if ( 0 -eq $c )
+		$syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )" | `
+			ForEach-Object {
+				if ( $_.MandatorySource -match "(Exchange)|(AD)" )
 				{
-					( Get-Member -InputObject $_ -MemberType NoteProperty ).Name | `
-						Where-Object { $_ } | `
-						Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
-						ForEach-Object {
-							$Key = $_
-							if (
-								$syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -match "(AD)|(Exchange)" -and $_.Name -eq $Key } ) -or `
-								$OtherObjectClass -or `
-								$Detailed
-							)
-							{
-								if ( $syncHash.Data.SearchedItem.ObjectClass -match "^O365((SharedMailbox)|(Room)|(Resource)|(Distributionlist)|(User))" )
-								{
-									[pscustomobject]@{ Name = $Key ; Value = $syncHash.Data.SearchedItem."$( $Key )" ; Source = "Exchange" }
-								}
-								else
-								{
-									[pscustomobject]@{ Name = $Key ; Value = $syncHash.Data.SearchedItem."$( $Key )" ; Source = "AD" }
-								}
-							}
-						}
+					$v = $syncHash.Data.SearchedItem."$( $_.Name )"
 				}
 				else
 				{
-					$_ | ForEach-Object {
-						$Source = $_
-						( Get-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.$Source -MemberType NoteProperty ).Name | `
-							Where-Object { $_ } | `
-							Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
-							ForEach-Object {
-								$Key = $_
-								if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -eq $Source -and $_.Name -eq $Key } ) -or `
-									$OtherObjectClass -or `
-									$Detailed
-								)
-								{
-									[pscustomobject]@{ Name = $Key ; Value = $syncHash.Data.SearchedItem.ExtraInfo."$( $Source )"."$( $Key )" ; Source = $Source }
-								}
-							}
-						}
+					$v = $syncHash.Data.SearchedItem.ExtraInfo."$( $_.MandatorySource )"."$( $_.Name )"
 				}
-				$c += 1
+				[pscustomobject]@{
+					Name = $_.Name
+					Value = $v
+					Source = $_.MandatorySource
+				}
 			} | `
 				ForEach-Object {
 					$Prop = $_
@@ -1509,7 +1474,7 @@ $syncHash.Code.ListProperties =
 					{
 						Add-Member -InputObject $Prop -MemberType NoteProperty -Name "Handler" -Value $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."PH$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )"
 					}
-					Add-Member -InputObject $Prop -MemberType NoteProperty -Name "CheckedForVisible" -Value ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Name -contains $Prop.Name )
+					Add-Member -InputObject $Prop -MemberType NoteProperty -Name "CheckedForVisible" -Value ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.Name -eq $Prop.Name -and $_.MandatorySource -eq $Prop.Source } ).Count -gt 0 )
 
 					if ( $Detailed )
 					{
@@ -1953,6 +1918,7 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 	ForEach-Object {
 		Get-ChildItem $_.FullName | `
 			ForEach-Object {
+				$MiObject = $File = $null
 				$File = $_
 				$MiObject = GetScriptInfo -FilePath $File.FullName -NoErrorRecord
 				if (
@@ -2312,7 +2278,11 @@ $syncHash.Window.Add_ContentRendered( {
 
 	$syncHash.Window.Resources['UseConverters'] = $true
 	$this.Activate()
-	$this.Resources.GetEnumerator() | Where-Object { $_.Name -match "^Cvs" } | ForEach-Object { $_.Value.View.Refresh() }
+	$this.Resources.GetEnumerator() | `
+		Where-Object { $_.Name -match "^Cvs" } | `
+		ForEach-Object {
+			$_.Value.View.Refresh()
+		}
 } )
 
 # Catch keystrokes to see if the menu is to be opened
