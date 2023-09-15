@@ -39,9 +39,9 @@ function SetLocalizations
 	$syncHash.Controls.Window.Resources['CvsAppsSysMan'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Controls.Window.Resources['CvsAppsWrappers'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
-	"DgAppListSysMan","DgAppListLocal","DgAppListCore","DgAppListWrappers" | `
+	"DgAppListLocal","DgAppListWrappers","DgAppListSysMan","DgAppListCore" | `
 		ForEach-Object {
-			[System.Windows.Data.BindingOperations]::EnableCollectionSynchronization( $syncHash."$( $_ )".ItemsSource, $syncHash."$( $_ )" )
+			[System.Windows.Data.BindingOperations]::EnableCollectionSynchronization( $syncHash.Controls."$( $_ )".ItemsSource, $syncHash.Controls."$( $_ )" )
 		}
 
 	$syncHash.Controls.DgAppListLocal.Columns[0].Header = $syncHash.Data.msgTable.ContentDgLocalInstCol
@@ -338,7 +338,8 @@ $syncHash.Controls.BtnUninstall.Add_Click( {
 	{
 		$syncHash.Jobs.PUninstall = [powershell]::Create()
 		$syncHash.Jobs.PUninstall.AddScript( {
-			param ( $syncHash, $list )
+			param ( $syncHash, $Modules, $list )
+			Import-Module $Modules -Force
 
 			$syncHash.Window.Dispatcher.Invoke( [action] {
 				[System.Windows.Controls.Grid]::SetColumnSpan( $syncHash.Controls.PbProgressLocal , 2 )
@@ -381,6 +382,7 @@ $syncHash.Controls.BtnUninstall.Add_Click( {
 			} )
 		} )
 		$syncHash.Jobs.PUninstall.AddArgument( $syncHash )
+		$syncHash.Jobs.PUninstall.AddArgument( ( Get-Module ) )
 		$syncHash.Jobs.PUninstall.AddArgument( @( $syncHash.Controls.DgAppListLocal.SelectedItems | Where-Object { $_ } ) )
 		$syncHash.Jobs.HUninstall = $syncHash.Jobs.PUninstall.BeginInvoke()
 	}
