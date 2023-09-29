@@ -4,7 +4,7 @@
         xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        MinHeight="670"
+        MinHeight="910"
         MinWidth="1442"
         Title="{Binding ElementName=FrameTool, Path=Content.Title}">
     <WindowChrome.WindowChrome>
@@ -917,6 +917,10 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <componentmodel:SortDescriptionCollection x:Key="SdMiItems">
+            <componentmodel:SortDescription Direction="Ascending"
+                                            PropertyName="MenuItem" />
+        </componentmodel:SortDescriptionCollection>
         <CollectionViewSource x:Key="CvsMiAbout">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
@@ -933,6 +937,20 @@
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
                                                 PropertyName="Name">
+                </componentmodel:SortDescription>
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMiFileInfoFunctions">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="MenuItem">
+                </componentmodel:SortDescription>
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsMiDirectoryInfoFunctions">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Ascending"
+                                                PropertyName="MenuItem">
                 </componentmodel:SortDescription>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
@@ -2938,6 +2956,114 @@
                                                        Value="Required" />
                                             <Condition Binding="{Binding ElementName=Window, Path=DataContext.SearchedItem.ObjectClass}"
                                                        Value="user" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility"
+                                                Value="Visible" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </MenuItem.ItemContainerStyle>
+                    </MenuItem>
+                    <MenuItem Name="MiDirectoryInfoFunctions">
+                        <MenuItem.Style>
+                            <Style TargetType="MenuItem"
+                                   BasedOn="{StaticResource MiTopLevelStyle}">
+                                <Setter Property="Header">
+                                    <Setter.Value>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{StaticResource MiIconWidth}" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Path>
+                                                <Path.Style>
+                                                    <Style TargetType="Path"
+                                                           BasedOn="{StaticResource PathMenuIconStyle}">
+                                                        <Setter Property="Data"
+                                                                Value="{StaticResource FolderIcon}" />
+                                                    </Style>
+                                                </Path.Style>
+                                            </Path>
+                                            <TextBlock>
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock"
+                                                           BasedOn="{StaticResource TblFunctionMenuStyle}">
+                                                        <Setter Property="Text"
+                                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiDirectoryInfoFunctionsText}" />
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="ItemsSource"
+                                        Value="{Binding Source={StaticResource CvsMiDirectoryInfoFunctions}}" />
+                            </Style>
+                        </MenuItem.Style>
+                        <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem"
+                                   BasedOn="{StaticResource MiSubLevelFunctionsStyle}">
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.SearchedItemRequest}"
+                                                       Value="Required" />
+                                            <Condition Binding="{Binding ElementName=Window, Path=DataContext.SearchedItem.ObjectClass}"
+                                                       Value="DirectoryInfo" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="Visibility"
+                                                Value="Visible" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </MenuItem.ItemContainerStyle>
+                    </MenuItem>
+                    <MenuItem Name="MiFileInfoFunctions">
+                        <MenuItem.Style>
+                            <Style TargetType="MenuItem"
+                                   BasedOn="{StaticResource MiTopLevelStyle}">
+                                <Setter Property="Header">
+                                    <Setter.Value>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{StaticResource MiIconWidth}" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <Path>
+                                                <Path.Style>
+                                                    <Style TargetType="Path"
+                                                           BasedOn="{StaticResource PathMenuIconStyle}">
+                                                        <Setter Property="Data"
+                                                                Value="{StaticResource FileIcon}" />
+                                                    </Style>
+                                                </Path.Style>
+                                            </Path>
+                                            <TextBlock>
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock"
+                                                           BasedOn="{StaticResource TblFunctionMenuStyle}">
+                                                        <Setter Property="Text"
+                                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFileInfoText}" />
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </Grid>
+                                    </Setter.Value>
+                                </Setter>
+                                <Setter Property="ItemsSource"
+                                        Value="{Binding Source={StaticResource CvsMiFileInfoFunctions}}" />
+                            </Style>
+                        </MenuItem.Style>
+                        <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem"
+                                   BasedOn="{StaticResource MiSubLevelFunctionsStyle}">
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.SearchedItemRequest}"
+                                                       Value="Required" />
+                                            <Condition Binding="{Binding ElementName=Window, Path=DataContext.SearchedItem.ObjectClass}"
+                                                       Value="FileInfo" />
                                         </MultiDataTrigger.Conditions>
                                         <Setter Property="Visibility"
                                                 Value="Visible" />
