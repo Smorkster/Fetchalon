@@ -352,7 +352,7 @@ function OpenTool
 {
 	<#
 	.Synopsis
-		Start a tool from script
+		Start a tool
 	#>
 
 	param ( $SenderObject )
@@ -624,21 +624,12 @@ function SetLocalizations
 
 	$syncHash.MiOutputHistory.ItemContainerStyle.Setters[0].Handler = $syncHash.Code.ShowOutputItem
 
-	$syncHash.Window.Resources['CvsDetailedProps'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiAbout'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiComputerFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiGroupFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365DistributionlistFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365ResourceFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365RoomFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365SharedMailboxFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiO365UserFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiOtherFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiOutputHistory'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiPrintQueueFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiSeparateToolsFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiTools'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Window.Resources['CvsMiUserFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	'CvsDetailedProps', 'CvsMiAbout', 'CvsMiTools', 'CvsMiOutputHistory', 'CvsMiSeparateToolsFunctions',
+	'CvsMiComputerFunctions', 'CvsMiDirectoryInfoFunctions', 'CvsMiFileInfoFunctions', 'CvsMiGroupFunctions', 'CvsMiOtherFunctions', 'CvsMiPrintQueueFunctions', 'CvsMiUserFunctions',
+	'CvsMiO365DistributionlistFunctions', 'CvsMiO365ResourceFunctions', 'CvsMiO365RoomFunctions', 'CvsMiO365SharedMailboxFunctions', 'CvsMiO365UserFunctions' | `
+		ForEach-Object {
+			$syncHash.Window.Resources[$_].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+		}
 	$syncHash.Window.Resources['CvsPropsList'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
 	"DgSearchResults", "IcObjectDetailed", "IcPropsList", "MiOutputHistory" | `
@@ -1100,12 +1091,19 @@ $syncHash.Code.ListItem =
 				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
 				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
 
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "DirectoryList" -Value ( [System.Collections.ArrayList]::new() )
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "DirectoryInventory" -Value ""
+				try
+				{
+					$Grp = ( ( ( Get-Acl $syncHash.Data.SearchedItem.FullName ).Access | `
+						Where-Object { $_.IdentityReference -match $syncHash.Data.msgTable.CodeRegExAclIdentity } ).IdentityReference.Value -split "\\" )[1]
+					$Owner = ( Get-ADUser -Identity ( Get-ADGroup -Identity ( $Grp.Insert( $Grp.Length - 1 , "User_" ) ) -Properties ManagedBy ).ManagedBy ).Name
+					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value $Owner -Force
+				}
+				catch
+				{
+					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value $syncHash.Data.msgTable.StrNoOwner
+				}
 
-				Get-ChildItem2 $syncHash.Data.SearchedItem.FullName | ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.DirectoryList.Add( ( [pscustomobject]@{ Name = $_.Name ; Type = $_.GetType().Name ; Item = $_ } ) ) }
 
-				$syncHash.Data.SearchedItem.ExtraInfo.Other.DirectoryInventory = "$( $syncHash.Data.SearchedItem.ExtraInfo.Other.DirectoryList.Count ) $( $syncHash.Data.msgTable.StrDirItemsCount )`n$( ( $syncHash.Data.SearchedItem.ExtraInfo.Other.DirectoryList.Type -match "DirectoryInfo" ).Count ) $( $syncHash.Data.msgTable.StrDirFolderCount ), $( ( $syncHash.Data.SearchedItem.ExtraInfo.Other.DirectoryList.Type -match "DirectoryInfo" ).Count ) $( $syncHash.Data.msgTable.StrDirFileCount ) "
 				break
 			}
 			"FileInfo"
@@ -1189,78 +1187,6 @@ $syncHash.Code.ListItem =
 			default
 			{
 				[pscustomobject] $syncHash.Data.SearchedItem = $syncHash.DgSearchResults.SelectedItem | Select-Object *
-			}
-		}
-
-		if ( $syncHash.Data.SearchedItem.ObjectClass -match "(Directory)|(File)Info" )
-		{
-			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADGroups" -Value ( [System.Collections.ArrayList]::new() )
-			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ReadPermissions" -Value ( [System.Collections.ArrayList]::new() )
-			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "WritePermissions" -Value ( [System.Collections.ArrayList]::new() )
-
-			$acl = Get-Acl $syncHash.Data.SearchedItem.FullName
-			( $acl.Access | Where-Object { $_.IdentityReference -match $syncHash.Data.msgTable.CodeRegExAclIdentity } ).IdentityReference | `
-				Select-Object -Unique | `
-				ForEach-Object {
-					$PermType = if ( $_ -match "C$" )
-					{ "C" }
-					else
-					{ "R" }
-					Get-ADGroup ( $_ -split "\\" )[1]  | `
-						Get-ADGroupMember | `
-							ForEach-Object {
-								if ( "group" -eq $_.ObjectClass )
-								{
-									[void] $syncHash.Data.SearchedItem.ExtraInfo.Other.ADGroups.Add( $_.Name )
-
-									if ( $_.Name -match "C$" )
-									{
-										Get-ADGroupMember $_.SamAccountName | `
-											Sort-Object Name | `
-											ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $_.DistinguishedName ) | Out-Null }
-
-										try
-										{
-											Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value ( ( Get-ADUser ( Get-ADGroup $_.DistinguishedName -Properties managedBy ).managedBy ).Name )
-										}
-										catch
-										{
-											Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value $syncHash.Data.msgTable.StrNoOwner
-										}
-
-									}
-									else
-									{
-										Get-ADGroupMember $_.SamAccountName | `
-											Sort-Object Name | `
-											ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $_.DistinguishedName ) | Out-Null }
-									}
-								}
-								elseif ( "user" -eq $_.ObjectClass )
-								{
-									if ( "C" -eq $PermType )
-									{
-										$syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $_.DistinguishedName ) | Out-Null
-									}
-									elseif ( "R" -eq $PermType )
-									{
-										$syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $_.DistinguishedName ) | Out-Null
-									}
-								}
-							}
-				}
-
-			if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.ADGroups.Count )
-			{
-				$syncHash.Data.SearchedItem.ExtraInfo.Other.ADGroups.Add( $syncHash.Data.msgTable.ContentNoMembersOfList ) | Out-Null
-			}
-			if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Count )
-			{
-				$syncHash.Data.SearchedItem.ExtraInfo.Other.WritePermissions.Add( $syncHash.Data.msgTable.ContentNoMembersOfList ) | Out-Null
-			}
-			if ( 0 -eq $syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Count )
-			{
-				$syncHash.Data.SearchedItem.ExtraInfo.Other.ReadPermissions.Add( $syncHash.Data.msgTable.ContentNoMembersOfList ) | Out-Null
 			}
 		}
 
@@ -1397,22 +1323,83 @@ $syncHash.Code.ListProperties =
 {
 	param ( $Detailed )
 
-		$syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )" | `
-			ForEach-Object {
-				if ( $_.MandatorySource -match "(Exchange)|(AD)" )
-				{
-					$v = $syncHash.Data.SearchedItem."$( $_.Name )"
-				}
-				else
-				{
-					$v = $syncHash.Data.SearchedItem.ExtraInfo."$( $_.MandatorySource )"."$( $_.Name )"
-				}
-				[pscustomobject]@{
-					Name = $_.Name
-					Value = $v
-					Source = $_.MandatorySource
-				}
-			} | `
+		$Props = if ( $Detailed )
+			{
+				$syncHash.Data.SearchedItem, $syncHash.Data.SearchedItem.ExtraInfo.Keys | `
+					ForEach-Object `
+						-Begin {
+							$c = 0
+							$OtherObjectClass = ( ( Get-Member -InputObject $syncHash.Data.UserSettings.VisibleProperties -MemberType NoteProperty ).Name -notcontains $syncHash.Data.SearchedItem.ObjectClass )
+							$syncHash.Window.Resources['CvsDetailedProps'].Source.Clear()
+							$syncHash.Window.Resources['CvsPropsList'].Source.Clear()
+						} `
+						-Process {
+							if ( 0 -eq $c )
+							{
+								( Get-Member -InputObject $_ -MemberType NoteProperty ).Name | `
+									Where-Object { $_ } | `
+									Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
+									ForEach-Object {
+										$Key = $_
+										if (
+											$syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -match "(AD)|(Exchange)" -and $_.Name -eq $Key } ) -or `
+											$OtherObjectClass -or `
+											$Detailed
+										)
+										{
+											if ( $syncHash.Data.SearchedItem.ObjectClass -match "^O365((SharedMailbox)|(Room)|(Resource)|(Distributionlist)|(User))" )
+											{
+												[pscustomobject]@{ Name = $Key ; Value = $syncHash.Data.SearchedItem."$( $Key )" ; Source = "Exchange" }
+											}
+											else
+											{
+												[pscustomobject]@{ Name = $Key ; Value = $syncHash.Data.SearchedItem."$( $Key )" ; Source = "AD" }
+											}
+										}
+									}
+							}
+							else
+							{
+								$_ | ForEach-Object {
+									$Source = $_
+									( Get-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.$Source -MemberType NoteProperty ).Name | `
+										Where-Object { $_ } | `
+										Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
+										ForEach-Object {
+											$Key = $_
+											if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -eq $Source -and $_.Name -eq $Key } ) -or `
+												$OtherObjectClass -or `
+												$Detailed
+											)
+											{
+												[pscustomobject]@{ Name = $Key ; Value = $syncHash.Data.SearchedItem.ExtraInfo."$( $Source )"."$( $Key )" ; Source = $Source }
+											}
+										}
+									}
+							}
+							$c += 1
+						}
+			}
+			else
+			{
+				$syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )" | `
+						ForEach-Object {
+							if ( $_.MandatorySource -match "(Exchange)|(AD)" )
+							{
+								$v = $syncHash.Data.SearchedItem."$( $_.Name )"
+							}
+							else
+							{
+								$v = $syncHash.Data.SearchedItem.ExtraInfo."$( $_.MandatorySource )"."$( $_.Name )"
+							}
+							[pscustomobject]@{
+								Name = $_.Name
+								Value = $v
+								Source = $_.MandatorySource
+							}
+						}
+			}
+			$Props | `
 				ForEach-Object {
 					$Prop = $_
 					if ( $null -eq $Prop.Value )
@@ -1662,6 +1649,10 @@ $(
 								ForEach-Object { $_; $syncHash.Window.Resources[$name].Resources['CvsFunctions'].Source.Add( $_ ) }
 						}
 					}
+					elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
+					{
+						$syncHash.Window.Resources[$name].Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
+					}
 				}
 				catch
 				{
@@ -1697,9 +1688,14 @@ $(
 				# The tool has been opened, display that window
 				else
 				{
-					Add-Type -Namespace GuiNative -Name Win -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);'
-					[GuiNative.Win]::ShowWindow( ( ( $syncHash.MiTools.Items | Where-Object { $_.Ps -eq $SenderObject.DataContext.Ps } ).Process.MainWindowHandle.ToInt32() ), 2 )
-					[GuiNative.Win]::ShowWindow( ( ( $syncHash.MiTools.Items | Where-Object { $_.Ps -eq $SenderObject.DataContext.Ps } ).Process.MainWindowHandle.ToInt32() ), 9 )
+					try
+					{
+						Add-Type -Namespace GuiNative -Name Win -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);'
+					}
+					catch
+					{}
+					[GuiNative.Win]::ShowWindow( ( $SenderObject.DataContext.Process.MainWindowHandle.ToInt32() ), 2 )
+					[GuiNative.Win]::ShowWindow( ( $SenderObject.DataContext.Process.MainWindowHandle.ToInt32() ), 9 )
 				}
 			}
 			# Some error occured, start the tool-script
@@ -1760,11 +1756,11 @@ $syncHash.Code.SBlockExecuteFunction = {
 			{
 				if ( $ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass )
 				{
-					$ScriptOutput = . $ScriptObject.Name $null $InputData
+					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem $InputData
 				}
 				else
 				{
-					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem $InputData
+					$ScriptOutput = . $ScriptObject.Name $null $InputData
 				}
 			}
 		}
@@ -1949,7 +1945,7 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 
 					if ( $null -ne $MiObject )
 					{
-						if ( "Send-Feedback" -eq $MiObject.Name )
+						if ( "Suite" -eq $MiObject.ObjectOperations )
 						{
 							$syncHash.Window.Resources['CvsMiAbout'].Source.Add( $MiObject )
 						}
@@ -1959,7 +1955,14 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 							$null -ne ( $syncHash.Window.Resources.Keys | Where-Object { $_ -match "CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions" } )
 						)
 						{
-							( $syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "^CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions$" } ).Value.Source.Add( $MiObject )
+							try
+							{
+								( $syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "^CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions$" } ).Value.Source.Add( $MiObject )
+							}
+							catch
+							{
+								$_
+							}
 						}
 						else
 						{
