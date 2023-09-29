@@ -5,6 +5,8 @@
 	Send feedback to backoffice about any of the available functions or tools
 .MenuItem
 	Send feedback
+.ObjectOperations
+	Suite
 .State
 	Prod
 .Author
