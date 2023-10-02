@@ -8,7 +8,7 @@
 .State
 	Prod
 .ObjectOperations
-	None
+	Group
 .Author
 	Smorkster (smorkster)
 #>
@@ -439,7 +439,7 @@ function CreateMessage
 		$syncHash.Data.ErrorGroups | ForEach-Object { $Message += "`t$_" }
 	}
 
-	$Message += $Script:Signatur
+	$Message += "`n$( $Script:Signatur )"
 	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 	$Message | clip
 }
