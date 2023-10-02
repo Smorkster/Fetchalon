@@ -1,10 +1,10 @@
 <#
 .Synopsis
-    A collection of functions to run for a user object
+	A collection of functions to run for a user object
 .Description
-    A collection of functions to run for a user object
+	A collection of functions to run for a user object
 .State
-    Prod
+	Prod
 .Author
     Smorkster (smorkster)
 #>
@@ -59,19 +59,20 @@ function Get-LastLoggedIn
 	param ( $InputData )
 
 	$Output = [System.Collections.ArrayList]::new()
-	foreach ( $c in ( $InputData.ComputerName -split "\W" ) )
-	{
-		try
-		{
-			Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/?name=$c" -UseDefaultCredentials -Method Get -ContentType "application/json" | Out-Null
-			$u = ( ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/Health?targetName=$c&onlyLatest=true" -UseDefaultCredentials ).lastLoggedOnUser -split "\\" )[1]
+	$InputData.ComputerName -split "\W" | `
+		Where-Object { $_ } | `
+		ForEach-Object {
+			try
+			{
+				Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/?name=$_" -UseDefaultCredentials -Method Get -ContentType "application/json" | Out-Null
+				$u = ( ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/Health?targetName=$( $_ )&onlyLatest=true" -UseDefaultCredentials ).lastLoggedOnUser -split "\\" )[1]
+			}
+			catch
+			{
+				$u = $IntMsgTable.GetLastLoggedInStrCompNotFound
+			}
+			[void] $Output.Add( ( [pscustomobject]@{ $IntMsgTable.GetLastLoggedInStrCompTitle = $_ ; $IntMsgTable.GetLastLoggedInStrUserTitle = $u } ) )
 		}
-		catch
-		{
-			$u = $IntMsgTable.GetLastLoggedInStrCompNotFound
-		}
-		[void] $Output.Add( ( [pscustomobject]@{ $IntMsgTable.GetLastLoggedInStrCompTitle = $c ; $IntMsgTable.GetLastLoggedInStrUserTitle = $u } ) )
-	}
 	return $Output
 }
 
@@ -505,9 +506,9 @@ function Send-Toast
 		[Windows.UI.Notifications.ToastNotificationManager, Windows.UI.Notifications, ContentType = WindowsRuntime] | Out-Null
 		[Windows.Data.Xml.Dom.XmlDocument, Windows.Data.Xml.Dom.XmlDocument, ContentType = WindowsRuntime] | Out-Null
 
-		$AppId = $IntMsgTable.StrAppId
-		$Title = $InputData."$( $IntMsgTable.SendToastTitle )"
-		$Message = $InputData.Meddelande
+		$AppId = "$( $args[0].StrAppId )"
+		$Title = "$( $args[1].Title )"
+		$Message = "$( $args[1].Message )"
 		$ToastXml = @"
 		<toast>
 			<audio silent = "true" />
@@ -527,7 +528,15 @@ function Send-Toast
 		$ToastNotifier.Show( $Toast )
 	}
 
-	Invoke-Command -ComputerName $SearchedItem.Name -ScriptBlock $code
+	try
+	{
+		Invoke-Command -ComputerName $SearchedItem.Name -ScriptBlock $code -ArgumentList $IntMsgTable, $InputData
+		return $IntMsgTable.SendToastSuccess
+	}
+	catch
+	{
+		throw $_
+	}
 }
 
 function Start-RemoteControl
@@ -548,7 +557,7 @@ function Start-RemoteControl
 	.State
 		Prod
 	.Author
-		Smorkster
+		Smorkster (smorkster)
 	#>
 
 	param ( $Item )
