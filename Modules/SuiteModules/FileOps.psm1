@@ -600,8 +600,15 @@ function WriteLog
 		[string] $ComputerName
 	)
 
-	$ScriptName = ( Get-Item $MyInvocation.PSCommandPath ).BaseName
-	$mtx = [System.Threading.Mutex]::new( $false, "WriteLog $( $ScriptName )" )
+	try
+	{
+		$ScriptName = ( Get-Item $MyInvocation.PSCommandPath ).BaseName
+		$mtx = [System.Threading.Mutex]::new( $false, "WriteLog $( $ScriptName )" )
+	}
+	catch
+	{
+		$mtx = [System.Threading.Mutex]::new( $false, "WriteLog $( Get-Random )" )
+	}
 
 	if ( $MyInvocation.PSCommandPath -notmatch "Tools" )
 	{
