@@ -143,5 +143,6 @@ StrSplashJoke8 = Go och glad, kexchoklad
 StrSplashJoke9 = Ta alltid telefonnummer
 StrSplashReadingSettings = Läser in inställningar
 StrSysManApi = http://sysman.domain.com/SysMan/api/
+StrSysAdmSANPrefix = sys
 StrVerbVirusScan = Sök efter hot
 '@

@@ -143,5 +143,6 @@ StrSplashJoke8 = Your shoelace is undone
 StrSplashJoke9 = Remember the incident
 StrSplashReadingSettings = Loading settings
 StrSysManApi = http://sysman.domain.com/SysMan/api/
+StrSysAdmSANPrefix = sys
 StrVerbVirusScan = Search for threats
 '@
