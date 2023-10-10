@@ -19,14 +19,14 @@
 Add-Type -AssemblyName PresentationFramework
 $syncHash = $args[0]
 
-function CheckReady
+function Check-Ready
 {
 	<#
 	.Synopsis
 		Verify if operations is ready to perform
 	#>
 
-	if ( ( $syncHash.DC.LbGroupsChosen[1].Count -gt 0 ) -and ( ( $syncHash.Controls.TxtUsersAddPermission.Text.Length -ge 4 ) -or ( $syncHash.Controls.TxtUsersRemovePermission.Text.Length -ge 4 ) ) )
+	if ( ( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count -gt 0 ) -and ( ( $syncHash.Controls.TxtUsersAddPermission.Text.Length -ge 4 ) -or ( $syncHash.Controls.TxtUsersRemovePermission.Text.Length -ge 4 ) ) )
 	{
 		$syncHash.Controls.BtnPerform.IsEnabled = $true
 	}
@@ -36,7 +36,7 @@ function CheckReady
 	}
 }
 
-function CheckUser
+function Check-User
 {
 	<#
 	.Synopsis
@@ -68,33 +68,7 @@ function CheckUser
 	}
 }
 
-function CollectEntries
-{
-	<#
-	.Synopsis
-		Collect input from textboxes
-	#>
-
-	if ( $syncHash.Controls.TxtUsersAddPermission.LineCount -gt 0 )
-	{
-		$entries = $syncHash.Controls.TxtUsersAddPermission.Text -split "\W" | Where-Object { $_ }
-		CollectUsers -Entries $entries -PermissionType "Add"
-	}
-
-	if ( $syncHash.Controls.TxtUsersRemovePermission.LineCount -gt 0 )
-	{
-		$entries = $syncHash.Controls.TxtUsersRemovePermission.Text -split "\W" | Where-Object { $_ }
-		CollectUsers -Entries $entries -PermissionType "Remove"
-	}
-
-	if ( $syncHash.Controls.TbComputer.LineCount -gt 0 )
-	{
-		$entries = $syncHash.Controls.TbComputer.Text -split "\W" | Where-Object { $_ }
-		CollectComputers -Entries $entries
-	}
-}
-
-function CollectComputers
+function Collect-Computers
 {
 	<#
 	.Synopsis
@@ -124,7 +98,33 @@ function CollectComputers
 	}
 }
 
-function CollectUsers
+function Collect-Entries
+{
+	<#
+	.Synopsis
+		Collect input from textboxes
+	#>
+
+	if ( $syncHash.Controls.TxtUsersAddPermission.LineCount -gt 0 )
+	{
+		$entries = $syncHash.Controls.TxtUsersAddPermission.Text -split "\W" | Where-Object { $_ }
+		Collect-Users -Entries $entries -PermissionType "Add"
+	}
+
+	if ( $syncHash.Controls.TxtUsersRemovePermission.LineCount -gt 0 )
+	{
+		$entries = $syncHash.Controls.TxtUsersRemovePermission.Text -split "\W" | Where-Object { $_ }
+		Collect-Users -Entries $entries -PermissionType "Remove"
+	}
+
+	if ( $syncHash.Controls.TbComputer.LineCount -gt 0 )
+	{
+		$entries = $syncHash.Controls.TbComputer.Text -split "\W" | Where-Object { $_ }
+		Collect-Computers -Entries $entries
+	}
+}
+
+function Collect-Users
 {
 	<#
 	.Synopsis
@@ -151,11 +151,11 @@ function CollectUsers
 	foreach ( $entry in $entries )
 	{
 		$syncHash.Controls.Window.Title = "$( $msgTable.StrGettingUser ) $( [Math]::Floor( $loopCounter / $entries.Count * 100 ) )"
-		$User = CheckUser -Id $entry
+		$User = Check-User -Id $entry
 		if ( $User -is [Microsoft.ActiveDirectory.Management.ADUser] )
 		{
 			$object = $null
-			$object = @{ "Id" = $entry.ToString().ToUpper(); "AD" = $User ; "PW" = GeneratePassword }
+			$object = @{ "Id" = $entry.ToString().ToUpper(); "AD" = $User ; "PW" = Generate-Password }
 			if ( ( ( $syncHash.AddUsers | Where-Object { $_.Id -eq $object.Id } ).Count + ( $syncHash.RemoveUsers | Where-Object { $_.Id -eq $object.Id } ).Count ) -gt 1 )
 			{
 				$syncHash.Duplicates += $object.Id
@@ -175,7 +175,7 @@ function CollectUsers
 	}
 }
 
-function CreateLogText
+function Create-LogText
 {
 	<#
 	.Synopsis
@@ -193,7 +193,10 @@ function CreateLogText
 		Message = $Message
 	}
 
-	$syncHash.DC.LbGroupsChosen[1].Name | ForEach-Object { $LogText.Groups.Add( $_ ) }
+	$syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Name | `
+		ForEach-Object {
+			$LogText.Groups.Add( $_ )
+		}
 
 	if ( $syncHash.AddUsers )
 	{
@@ -211,10 +214,10 @@ function CreateLogText
 	}
 
 	$syncHash.Data.Test = $LogText
-	$syncHash.Controls.IcLog.ItemsSource.Insert( 0, $LogText )
+	$syncHash.Controls.Window.Resources['CvsLog'].Source.Insert( 0, $LogText )
 }
 
-function CreateMessage
+function Create-Message
 {
 	<#
 	.Synopsis
@@ -223,35 +226,55 @@ function CreateMessage
 
 	$Message = @()
 	$Message += "$( $syncHash.Data.msgTable.MsgMessageIntro ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType )"
-	$syncHash.DC.LbGroupsChosen[1].Name | ForEach-Object { $Message += "`t$_" }
+	$syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Name | `
+		ForEach-Object {
+			$Message += "`t$_"
+		}
+
 	if ( $syncHash.AddUsers )
 	{
 		$Message += "`n$( $syncHash.Data.msgTable.MsgNew ):"
-		$syncHash.AddUsers | ForEach-Object { $Message += "`t$( $_.AD.Name )$( if ( $_.AD.otherMailbox -match $syncHash.Data.msgTable.StrSpecOrg ) { "( $( $syncHash.Data.msgTable.MsgNewPassword ): $( $_.PW ) )" } )" }
+		$syncHash.AddUsers | `
+			ForEach-Object {
+				$Message += "`t$( $_.AD.Name )$( if ( $_.AD.otherMailbox -match $syncHash.Data.msgTable.StrSpecOrg ) { "( $( $syncHash.Data.msgTable.MsgNewPassword ): $( $_.PW ) )" } )"
+			}
 	}
+
 	if ( $syncHash.RemoveUsers )
 	{
 		$Message += "`n$( $syncHash.Data.msgTable.MsgRemove ):"
-		$syncHash.RemoveUsers.AD | ForEach-Object { $Message += "`t$( $_.Name )" }
+		$syncHash.RemoveUsers.AD | `
+			ForEach-Object {
+				$Message += "`t$( $_.Name )"
+			}
 	}
+
 	if ( $syncHash.AddComputer )
 	{
 		$Message += "`n$( $syncHash.Data.msgTable.MsgAddComputer )"
-		$syncHash.AddComputer.Name | ForEach-Object { $Message += "`t$( $_ )"}
+		$syncHash.AddComputer.Name | `
+			ForEach-Object {
+				$Message += "`t$( $_ )"
+			}
 	}
+
 	if ( $syncHash.ErrorUsers )
 	{
 		$Message += "`n$( $syncHash.Data.msgTable.MsgNoAccount ):"
-		$syncHash.ErrorUsers | ForEach-Object { $Message += "`t$( $_.Id ) ($( $_.Reason ))" }
+		$syncHash.ErrorUsers | `
+			ForEach-Object {
+				$Message += "`t$( $_.Id ) ($( $_.Reason ))"
+			}
 	}
-	$Message += $syncHash.Data.msgTable.StrLogOut
+
+	$Message += "`n$( $syncHash.Data.msgTable.StrLogOut )"
 	$Message += $syncHash.Signatur
 	$OutputEncoding = [System.Text.UnicodeEncoding]::new( $False, $False ).psobject.BaseObject
-	$Message | clip
+	$Message.Trim() | clip
 	return $Message
 }
 
-function GeneratePassword
+function Generate-Password
 {
 	<#
 	.Synopsis
@@ -264,7 +287,7 @@ function GeneratePassword
 	$p += Get-RandomCharacters -length 1 -characters 'ABCDEFGHKLMNPRSTUVWXYZ'
 	$p += Get-RandomCharacters -length 1 -characters '123456789'
 	$p += Get-RandomCharacters -length 5 -characters 'abcdefghikmnprstuvwxyzABCDEFGHKLMNPRSTUVWXYZ123456789'
-	$p = ScrambleString $p
+	$p = Scramble-String $p
 	return $p
 }
 
@@ -288,7 +311,7 @@ function Get-RandomCharacters
 	return [string]$Characters[$random]
 }
 
-function GroupDeselected
+function Group-Deselected
 {
 	<#
 	.Synopsis
@@ -297,16 +320,16 @@ function GroupDeselected
 		A group in the list of selected groups was doubleclicked. Remove it from selected list, add to grouplist.
 	#>
 
-	if ( $null -ne $syncHash.DC.LbGroupsChosen[0] )
+	if ( $null -ne $syncHash.Controls.LbGroupsChosen.SelectedItem )
 	{
-		$syncHash.DC.LbAppGroupList[1].Add( $syncHash.DC.LbGroupsChosen[0] )
-		$syncHash.DC.LbGroupsChosen[1].Remove( $syncHash.DC.LbGroupsChosen[0] )
-		CheckReady
-		UpdateAppGroupListItems
+		$syncHash.Controls.Window.Resources['CvsAppGrps'].Source.Add( $syncHash.Controls.LbGroupsChosen.SelectedItem )
+		$syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Remove( $syncHash.Controls.LbGroupsChosen.SelectedItem )
+		Check-Ready
+		Update-AppGroupListItems
 	}
 }
 
-function GroupSelected
+function Group-Selected
 {
 	<#
 	.Synopsis
@@ -315,23 +338,23 @@ function GroupSelected
 		A group was selected. Add it to list of selected groups.
 	#>
 
-	if ( $null -ne $syncHash.DC.LbAppGroupList[0] )
+	if ( $null -ne $syncHash.Controls.LbAppGroupList.SelectedItem )
 	{
-		$syncHash.DC.LbGroupsChosen[1].Add( $syncHash.DC.LbAppGroupList[0] )
-		$syncHash.DC.LbAppGroupList[1].Remove( $syncHash.DC.LbAppGroupList[0] )
-		CheckReady
-		UpdateAppGroupListItems
+		$syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Add( $syncHash.Controls.LbAppGroupList.SelectedItem )
+		$syncHash.Controls.Window.Resources['CvsAppGrps'].Source.Remove( $syncHash.Controls.LbAppGroupList.SelectedItem )
+		Check-Ready
+		Update-AppGroupListItems
 	}
 }
 
-function PerformPermissions
+function Perform-Permissions
 {
 	<#
 	.Synopsis
 		Start operations to apply permissions
 	#>
 
-	CollectEntries
+	Collect-Entries
 
 	if ( $syncHash.Duplicates )
 	{
@@ -339,13 +362,13 @@ function PerformPermissions
 	}
 	else
 	{
-		$Continue = Show-MessageBox -Text "$( $syncHash.Data.msgTable.QCont1 ) $( $syncHash.DC.LbGroupsChosen[1].Count ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType ) $( $syncHash.Data.msgTable.QCont2 ) $( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) $( $syncHash.Data.msgTable.QCont3 ) ?$( if ( $syncHash.ErrorUsers ) { "`n$( $syncHash.Data.msgTable.QContErr )." } )" -Title "$( $syncHash.Data.msgTable.QContTitle )?" -Button "OKCancel"
+		$Continue = Show-MessageBox -Text "$( $syncHash.Data.msgTable.QCont1 ) $( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType ) $( $syncHash.Data.msgTable.QCont2 ) $( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) $( $syncHash.Data.msgTable.QCont3 ) ?$( if ( $syncHash.ErrorUsers ) { "`n$( $syncHash.Data.msgTable.QContErr )." } )" -Title "$( $syncHash.Data.msgTable.QContTitle )?" -Button "OKCancel"
 		if ( $Continue -eq "OK" )
 		{
 			$loopCounter = 0
-			foreach ( $Group in $syncHash.DC.LbGroupsChosen[1] )
+			foreach ( $Group in $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source )
 			{
-				$syncHash.Controls.Window.Title = "$( $syncHash.Data.msgTable.StrProgressTitle ) $( [Math]::Floor( $loopCounter / $syncHash.DC.LbGroupsChosen[1].Count * 100 ) )%"
+				$syncHash.Controls.Window.Title = "$( $syncHash.Data.msgTable.StrProgressTitle ) $( [Math]::Floor( $loopCounter / $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count * 100 ) )%"
 				if ( $syncHash.AddUsers )
 				{
 					try { Add-ADGroupMember -Identity $Group -Members $syncHash.AddUsers.Id -Confirm:$false }
@@ -402,18 +425,18 @@ function PerformPermissions
 					}
 				}
 			}
-			CreateLogText ( CreateMessage )
-			WriteToLogFile
-			Show-MessageBox -Text "$( $syncHash.DC.LbGroupsChosen[1].Count * ( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) ) $( $syncHash.Data.msgTable.StrFinishMessage )" -Title "$( $syncHash.Data.msgTable.StrFinishMessageTitle )"
+			Create-LogText ( Create-Message )
+			Write-ToLogFile
+			Show-MessageBox -Text "$( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count * ( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) ) $( $syncHash.Data.msgTable.StrFinishMessage )" -Title "$( $syncHash.Data.msgTable.StrFinishMessageTitle )"
 
-			UndoInput
-			ResetVariables
+			Undo-Input
+			Reset-Variables
 			$syncHash.Controls.Window.Title = $syncHash.Data.msgTable.ContentWindowTitle
 		}
 	}
 }
 
-function ResetVariables
+function Reset-Variables
 {
 	<#
 	.Synopsis
@@ -429,7 +452,7 @@ function ResetVariables
 	$syncHash.RemoveUsers = @()
 }
 
-function ScrambleString
+function Scramble-String
 {
 	<#
 	.Synopsis
@@ -447,7 +470,17 @@ function ScrambleString
 	return -join $scrambledStringArray
 }
 
-function SetUserSettings
+function Set-Localizations
+{
+	'CvsAppGrps', 'CvsLog', 'CvsSelectedGrps', 'CvsLog', 'CvsAppList' | `
+		ForEach-Object {
+			$syncHash.Controls.Window.Resources[$_].Source = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+		}
+
+	$syncHash.Controls.IcLog.Resources['BrdClick'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.LogItemClickHandler
+}
+
+function Set-UserSettings
 {
 	<#
 	.Synopsis
@@ -478,7 +511,7 @@ function SetUserSettings
 	}
 }
 
-function UpdateAppList
+function Update-AppList
 {
 	<#
 	.Synopsis
@@ -501,28 +534,36 @@ function UpdateAppList
 			split = "_"
 			index = 2 }
 
-	$apps | Where-Object { $_ } | Sort-Object Text | ForEach-Object { $syncHash.DC.CbApp[0].Add( $_ ) }
+	$apps | `
+		Where-Object { $_ } | `
+		Sort-Object Text | `
+		ForEach-Object {
+			$syncHash.Controls.Window.Resources['CvsAppList'].Source.Add( $_ )
+		}
 }
 
-function UpdateAppGroupList
+function Update-AppGroupList
 {
 	<#
 	.Synopsis
 		Item in combobox has changed, get that applications groups and list them
 	#>
 
-	$syncHash.DC.LbGroupsChosen[1].Clear()
-	$syncHash.DC.LbAppGroupList[1].Clear()
+	$syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Clear()
+	$syncHash.Controls.Window.Resources['CvsAppGrps'].Source.Clear()
 	$syncHash.Controls.Window.Title = $syncHash.Data.msgTable.StrGetADGroups
 
 	if ( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupList.Count -eq 0 )
 	{
 		try
 		{
-			if ( $null -eq $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude )
-			{ $syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" | Sort-Object Name }
-			else
-			{ $syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" | Where-Object { $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude -notcontains $_.Name.Split( $syncHash.Controls.CbApp.SelectedItem.Tag.split )[$syncHash.Controls.CbApp.SelectedItem.Tag.index] } | Sort-Object Name }
+			$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" -Properties Description | Sort-Object Name
+			if ( $null -ne $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude )
+			{
+				$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = $syncHash.Controls.CbApp.SelectedItem.Tag.GroupList | `
+					Where-Object { $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude -notcontains $_.Name.Split( $syncHash.Controls.CbApp.SelectedItem.Tag.split )[$syncHash.Controls.CbApp.SelectedItem.Tag.index] } | `
+					Sort-Object Name
+			}
 		}
 		catch
 		{
@@ -530,22 +571,26 @@ function UpdateAppGroupList
 		}
 	}
 
-	UpdateAppGroupListItems
+	Update-AppGroupListItems
 	$syncHash.Controls.Window.Title = $syncHash.Data.msgTable.ContentWindowTitle
 }
 
-function UpdateAppGroupListItems
+function Update-AppGroupListItems
 {
 	<#
 	.Synopsis
 		Update the list of groups, excluding any selected group
 	#>
 
-	$syncHash.DC.LbAppGroupList[1].Clear()
-	$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList | Where-Object { $syncHash.DC.LbGroupsChosen[1] -notcontains $_ } | ForEach-Object { [void] $syncHash.DC.LbAppGroupList[1].Add( $_ ) }
+	$syncHash.Controls.Window.Resources['CvsAppGrps'].Source.Clear()
+	$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList | `
+		Where-Object { $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source -notcontains $_ } | `
+		ForEach-Object {
+			$syncHash.Controls.Window.Resources['CvsAppGrps'].Source.Add( $_ )
+		}
 }
 
-function UndoInput
+function Undo-Input
 {
 	<#
 	.Synopsis
@@ -555,10 +600,10 @@ function UndoInput
 	$syncHash.Controls.TxtUsersAddPermission.Text = ""
 	$syncHash.Controls.TxtUsersRemovePermission.Text = ""
 	$syncHash.Controls.TbComputer.Text = ""
-	UpdateAppGroupList
+	Update-AppGroupList
 }
 
-function WriteToLogFile
+function Write-ToLogFile
 {
 	<#
 	.Synopsis
@@ -575,19 +620,12 @@ function WriteToLogFile
 	$UserInput = ""
 	if ( $syncHash.Controls.TxtUsersAddPermission.Text.Length -gt 0 ) { $UserInput += "$( $syncHash.Data.msgTable.LogInputAdd ) $( $syncHash.Controls.TxtUsersAddPermission.Text -split "\W" )`n" }
 	if ( $syncHash.Controls.TxtUsersRemovePermission.Text.Length -gt 0 ) { $UserInput += "$( $syncHash.Data.msgTable.LogInputRemove ) $( $syncHash.Controls.TxtUsersRemovePermission.Text -split "\W" )`n" }
-	$UserInput += $syncHash.DC.LbGroupsChosen[1]
+	$UserInput += $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source
 
 	WriteLog -Text $LogText -UserInput $UserInput -Success ( $syncHash.Data.ErrorHashes.Count -lt 1 ) -ErrorLogHash $syncHash.Data.ErrorHashes
 }
 
 ######################### Script start #########################
-$controls = [System.Collections.ArrayList]::new()
-[void] $controls.Add( @{ CName = "CbApp" ; Props = @( @{ PropName = "ItemsSource" ; PropVal = [System.Collections.ObjectModel.ObservableCollection[Object]]::new() } ) } )
-[void] $controls.Add( @{ CName = "IcLog" ; Props = @( @{ PropName = "ItemsSource" ; PropVal = [System.Collections.ObjectModel.ObservableCollection[Object]]::new() } ) } )
-[void] $controls.Add( @{ CName = "LbAppGroupList" ; Props = @( @{ PropName = "SelectedItem"; PropVal = "" } ; @{ PropName = "ItemsSource" ; PropVal = [System.Collections.ObjectModel.ObservableCollection[Object]]::new() } ) } )
-[void] $controls.Add( @{ CName = "LbGroupsChosen" ; Props = @( @{ PropName = "SelectedItem"; PropVal = "" } ; @{ PropName = "ItemsSource" ; PropVal = [System.Collections.ObjectModel.ObservableCollection[Object]]::new() } ) } )
-
-BindControls $syncHash $controls
 
 $syncHash.Data.ErrorHashes = @()
 $syncHash.ErrorLogFilePath = ""
@@ -598,8 +636,9 @@ $syncHash.LogFilePath = ""
 
 	$SenderObject.DataContext.Message | clip
 }
-ResetVariables
-SetUserSettings
+Reset-Variables
+Set-UserSettings
+Set-Localizations
 
 $syncHash.Controls.CbApp.Add_SelectionChanged( {
 	if ( $true -eq $this.SelectedItem.Tag.AddComputer )
@@ -619,32 +658,32 @@ $syncHash.Controls.BtnRefetchGroups.Add_Click( {
 	{ $syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" | Where-Object { $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude -notcontains $_.Name.Split( $syncHash.Controls.CbApp.SelectedItem.Tag.split )[$syncHash.Controls.CbApp.SelectedItem.Tag.index] } | Sort-Object Name }
 } )
 
-$syncHash.Controls.BtnPerform.Add_Click( { PerformPermissions } )
+$syncHash.Controls.BtnPerform.Add_Click( { Perform-Permissions } )
 
-$syncHash.Controls.BtnUndo.Add_Click( { UndoInput } )
+$syncHash.Controls.BtnUndo.Add_Click( { Undo-Input } )
 
-$syncHash.Controls.IcLog.Resources['BrdClick'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.LogItemClickHandler
+$syncHash.Controls.LbAppGroupList.Add_MouseDoubleClick( { Group-Selected } )
 
-$syncHash.Controls.LbAppGroupList.Add_MouseDoubleClick( { GroupSelected } )
+$syncHash.Controls.LbGroupsChosen.Add_MouseDoubleClick( { Group-Deselected } )
 
-$syncHash.Controls.LbGroupsChosen.Add_MouseDoubleClick( { GroupDeselected } )
+$syncHash.Controls.TxtUsersAddPermission.Add_TextChanged( { Check-Ready } )
 
-$syncHash.Controls.TxtUsersAddPermission.Add_TextChanged( { CheckReady } )
-
-$syncHash.Controls.TxtUsersRemovePermission.Add_TextChanged( { CheckReady } )
+$syncHash.Controls.TxtUsersRemovePermission.Add_TextChanged( { Check-Ready } )
 
 $syncHash.Controls.Window.Add_Loaded( {
-	if ( $syncHash.DC.CbApp[0].Count -eq 0 )
+	if ( $syncHash.Controls.Window.Resources['CvsAppList'].Source.Count -eq 0 )
 	{
 		$this.Title = $syncHash.Data.msgTable.StrPreparing
-		UpdateAppList
+		Update-AppList
 	}
 
-	if ( $syncHash.DC.CbApp[0].Count -eq 1 )
+	if ( $syncHash.Controls.Window.Resources['CvsAppList'].Source.Count -eq 1 )
 	{
-		UpdateAppGroupList
+		Update-AppGroupList
 	}
 
 	$this.Title = $syncHash.Data.msgTable.ContentWindowTitle
-	$syncHash.Controls.CbApp.Add_SelectionChanged( { if ( $null -ne $syncHash.Controls.CbApp.SelectedItem ) { UpdateAppGroupList } } )
+	$syncHash.Controls.CbApp.Add_SelectionChanged( { if ( $null -ne $syncHash.Controls.CbApp.SelectedItem ) { Update-AppGroupList } } )
 } )
+
+Export-ModuleMember
