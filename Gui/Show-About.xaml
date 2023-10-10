@@ -34,7 +34,7 @@
     <Grid Name="GridMain"
           Margin="{StaticResource StdMargin}">
         <Grid.ColumnDefinitions>
-            <ColumnDefinition />
+            <ColumnDefinition Width="Auto" />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
