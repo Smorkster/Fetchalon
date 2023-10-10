@@ -35,7 +35,14 @@ Get-Module | `
 		$syncHash.Controls.Window.Resources['CvsModules'].Source.Add( $_ ) | Out-Null
 	}
 
-$syncHash.Controls.TblO365Account.Text = ( Get-AzureADCurrentSessionInfo ).Account.Id
+try
+{
+	$syncHash.Controls.TblO365Account.Text = ( Get-AzureADCurrentSessionInfo -ErrorAction Stop ).Account.Id
+}
+catch
+{
+	$syncHash.Controls.TblO365Account.Text = $syncHash.Data.msgTable.ErrO365NotLoggedIn
+}
 
 $syncHash.Controls.Window.Add_Loaded( {
 	$syncHash.Controls.Window.Resources['CvsModules'].View.Refresh()
