@@ -1,10 +1,10 @@
 <#
 .Synopsis
-	Visa köade utskrifter
+	View queued prints
 .Description
-	Visa dokument som ligger på kö, samt rensa kön
+	View documents that are in the queue, as well as clear the queue
 .MenuItem
-	Visa kö
+	Show queue
 .SearchedItemRequest
 	Allowed
 .State

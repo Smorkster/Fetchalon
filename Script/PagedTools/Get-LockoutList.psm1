@@ -1,10 +1,10 @@
 <#
 .Synopsis
-	Visa när konto har låsts
+	Show when account has been locked
 .Description
-	Ta fram en lista för alla tillfällen när ett konto har blivit låst
+	Get a list of all instances when an account has been locked
 .MenuItem
-	Visa låsningslista
+	Show lock list
 .ObjectOperations
 	User
 .State
