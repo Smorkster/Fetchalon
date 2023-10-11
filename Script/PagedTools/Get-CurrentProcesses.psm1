@@ -1,10 +1,10 @@
 <#
 .Synopsis
-	Hämta aktiva processer på datorn
+	Download active processes on the computer
 .Description
-	Hämta aktiva processer på datorn
+	Download active processes on the computer
 .MenuItem
-	Lista processer
+	List processes
 .SearchedItemRequest
 	Required
 .ObjectOperations
