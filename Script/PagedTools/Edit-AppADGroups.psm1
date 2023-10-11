@@ -224,54 +224,58 @@ function Create-Message
 		Generate message for performed operation
 	#>
 
-	$Message = @()
-	$Message += "$( $syncHash.Data.msgTable.MsgMessageIntro ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType )"
+	$Message = [System.Text.StringBuilder]::new( "$( $syncHash.Data.msgTable.MsgMessageIntro ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType )" )
 	$syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Name | `
 		ForEach-Object {
-			$Message += "`t$_"
+			$Message.AppendLine( "`t$_" ) | Out-Null
 		}
 
 	if ( $syncHash.AddUsers )
 	{
-		$Message += "`n$( $syncHash.Data.msgTable.MsgNew ):"
+		$Message.AppendLine() | Out-Null
+		$Message.AppendLine( "$( $syncHash.Data.msgTable.MsgNew ):" ) | Out-Null
 		$syncHash.AddUsers | `
 			ForEach-Object {
-				$Message += "`t$( $_.AD.Name )$( if ( $_.AD.otherMailbox -match $syncHash.Data.msgTable.StrSpecOrg ) { "( $( $syncHash.Data.msgTable.MsgNewPassword ): $( $_.PW ) )" } )"
+				$Message.AppendLine( "`t$( $_.AD.Name )$( if ( $_.AD.otherMailbox -match $syncHash.Data.msgTable.StrSpecOrg ) { "( $( $syncHash.Data.msgTable.MsgNewPassword ): $( $_.PW ) )" } )" ) | Out-Null
 			}
 	}
 
 	if ( $syncHash.RemoveUsers )
 	{
-		$Message += "`n$( $syncHash.Data.msgTable.MsgRemove ):"
+		$Message.AppendLine() | Out-Null
+		$Message.AppendLine( "$( $syncHash.Data.msgTable.MsgRemove ):" ) | Out-Null
 		$syncHash.RemoveUsers.AD | `
 			ForEach-Object {
-				$Message += "`t$( $_.Name )"
+				$Message.AppendLine( "`t$( $_.Name )" ) | Out-Null
 			}
 	}
 
 	if ( $syncHash.AddComputer )
 	{
-		$Message += "`n$( $syncHash.Data.msgTable.MsgAddComputer )"
+		$Message.AppendLine() | Out-Null
+		$Message.AppendLine( "$( $syncHash.Data.msgTable.MsgAddComputer )" ) | Out-Null
 		$syncHash.AddComputer.Name | `
 			ForEach-Object {
-				$Message += "`t$( $_ )"
+				$Message.AppendLine( "`t$( $_ )" ) | Out-Null
 			}
 	}
 
 	if ( $syncHash.ErrorUsers )
 	{
-		$Message += "`n$( $syncHash.Data.msgTable.MsgNoAccount ):"
+		$Message.AppendLine() | Out-Null
+		$Message.AppendLine( "`n$( $syncHash.Data.msgTable.MsgNoAccount ):" ) | Out-Null
 		$syncHash.ErrorUsers | `
 			ForEach-Object {
-				$Message += "`t$( $_.Id ) ($( $_.Reason ))"
+				$Message.AppendLine( "`t$( $_.Id ) ($( $_.Reason ))" ) | Out-Null
 			}
 	}
 
-	$Message += "`n$( $syncHash.Data.msgTable.StrLogOut )"
-	$Message += $syncHash.Signatur
+	$Message.AppendLine() | Out-Null
+	$Message.AppendLine( "$( $syncHash.Data.msgTable.StrLogOut )" ) | Out-Null
+	$Message.AppendLine( "$( $syncHash.Data.Signature )" ) | Out-Null
 	$OutputEncoding = [System.Text.UnicodeEncoding]::new( $False, $False ).psobject.BaseObject
-	$Message.Trim() | clip
-	return $Message
+	$Message.ToString().Trim() | clip
+	return $Message.ToString().Trim()
 }
 
 function Generate-Password
@@ -490,7 +494,7 @@ function Set-UserSettings
 	try
 	{
 		$a = Get-ADPrincipalGroupMembership -Identity ( [Environment]::UserName )
-		$syncHash.Signatur = "`n$( $syncHash.Data.msgTable.StrSigGen )"
+		$syncHash.Data.Signature = "`n$( $syncHash.Data.msgTable.StrSigGen )"
 		if ( $a.SamAccountName -match $syncHash.Data.msgTable.StrOpGrp )
 		{
 			$syncHash.LogFilePath = $syncHash.Data.msgTable.StrOpLogPath
@@ -498,7 +502,7 @@ function Set-UserSettings
 		}
 		elseif ( ( Get-ADGroupMember $syncHash.Data.msgTable.StrBORoleGrp ).Name -contains ( Get-ADUser -Identity ( [Environment]::UserName ) ).Name )
 		{
-			$syncHash.Signatur = "`n$( $msgTable.StrSigSD )"
+			$syncHash.Data.Signature += "`n$( $syncHash.Data.msgTable.StrSigSD )"
 		}
 		else
 		{ throw }
