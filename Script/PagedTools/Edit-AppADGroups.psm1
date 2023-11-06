@@ -224,7 +224,7 @@ function Create-Message
 		Generate message for performed operation
 	#>
 
-	$Message = [System.Text.StringBuilder]::new( "$( $syncHash.Data.msgTable.MsgMessageIntro ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType )" )
+	$Message = [System.Text.StringBuilder]::new( "$( $syncHash.Data.msgTable.MsgMessageIntro ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType )`n" )
 	$syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Name | `
 		ForEach-Object {
 			$Message.AppendLine( "`t$_" ) | Out-Null
@@ -644,17 +644,6 @@ Reset-Variables
 Set-UserSettings
 Set-Localizations
 
-$syncHash.Controls.CbApp.Add_SelectionChanged( {
-	if ( $true -eq $this.SelectedItem.Tag.AddComputer )
-	{
-		$syncHash.Controls.TbComputer.Visibility = [System.Windows.Visibility]::Visible
-	}
-	else
-	{
-		$syncHash.Controls.TbComputer.Visibility = [System.Windows.Visibility]::Collapsed
-	}
-} )
-
 $syncHash.Controls.BtnRefetchGroups.Add_Click( {
 	if ( $null -eq $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude )
 	{ $syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" | Sort-Object Name }
@@ -665,6 +654,18 @@ $syncHash.Controls.BtnRefetchGroups.Add_Click( {
 $syncHash.Controls.BtnPerform.Add_Click( { Perform-Permissions } )
 
 $syncHash.Controls.BtnUndo.Add_Click( { Undo-Input } )
+
+$syncHash.Controls.CbApp.Add_SelectionChanged( {
+	if ( $true -eq $this.SelectedItem.Tag.AddComputer )
+	{
+		$syncHash.Controls.TbComputer.Visibility = [System.Windows.Visibility]::Visible
+	}
+	else
+	{
+		$syncHash.Controls.TbComputer.Visibility = [System.Windows.Visibility]::Collapsed
+	}
+	$syncHash.Controls.LbAppGroupList.ScrollIntoView( $syncHash.Controls.LbAppGroupList[0] )
+} )
 
 $syncHash.Controls.LbAppGroupList.Add_MouseDoubleClick( { Group-Selected } )
 
