@@ -18,6 +18,7 @@ $syncHash = $args[0]
 
 $syncHash.Data.Words = $syncHash.Data.msgTable.Words -split ","
 $syncHash.Data.Chars = $syncHash.Data.msgTable.Chars -split ","
+
 $syncHash.Controls.Window.Resources['CvsPasswords'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
 $syncHash.Data.msgTable.GetEnumerator() | `
