@@ -2267,7 +2267,7 @@ $syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add_CollectionChanged( {
 	[System.GC]::Collect()
 } )
 
-if ( $null -eq $InitArgs[0] )
+if ( $null -eq $InitArgs[1] )
 {
 	# Connect to Office365 online services
 	if ( Check-O365Connection )
