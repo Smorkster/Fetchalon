@@ -1418,6 +1418,7 @@
                                              Height="30"
                                              Margin="5,0"
                                              Padding="{StaticResource StdPadding}"
+                                             Style="{StaticResource TbInputStyle}"
                                              Text="{Binding Path=EnteredValue, Mode=TwoWay}"
                                              VerticalContentAlignment="Center" />
                                 </Grid>
@@ -1428,6 +1429,7 @@
                             Content="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.MsgTable.ContentBtnEnterFunctionInput}"
                             Grid.Row="2"
                             HorizontalAlignment="Right"
+                            Padding="{StaticResource StdPadding}"
                             Visibility="{Binding ElementName=IcFunctionInput, Path=Visibility}" />
                 </Grid>
                 <ItemsControl Name="IcOutputObjects" Grid.Row="1"
@@ -3008,8 +3010,7 @@
                             </Border.Style>
                             <ToggleButton Name="TBtnObjectDetailed"
                                           Background="Transparent"
-                                          Height="30"
-                                          IsEnabled="False">
+                                          Height="30">
                                 <ToggleButton.Style>
                                     <Style TargetType="ToggleButton">
                                         <Setter Property="Template"
@@ -3019,11 +3020,6 @@
                                                          Value="True">
                                                 <Setter Property="Template"
                                                         Value="{StaticResource TBtnCheckedWithProgressBarStyle}" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding ElementName=IcObjectDetailed, Path=Visibility}"
-                                                         Value="Visible">
-                                                <Setter Property="IsEnabled"
-                                                        Value="True" />
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
