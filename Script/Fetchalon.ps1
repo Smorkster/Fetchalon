@@ -323,7 +323,10 @@ function Prepare-ToRunScript
 	else
 	{
 		# If SearchedItem is allowed/requested by function, enter it in the first inputbox
-		if ( "None" -ne $ScriptObject.SearchedItemRequest -and $ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass )
+		if (
+			"None" -ne $ScriptObject.SearchedItemRequest -and `
+			$ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass
+		)
 		{
 			if ( "printQueue" -eq $syncHash.Data.SearchedItem.ObjectClass )
 			{
@@ -333,7 +336,6 @@ function Prepare-ToRunScript
 			{
 				$syncHash.GridFunctionOp.DataContext.InputData[0].EnteredValue = $syncHash.Data.SearchedItem.SamAccountName
 			}
-			$syncHash.IcFunctionInput.ItemContainerGenerator.ContainerFromIndex( 0 ).Focus()
 		}
 	}
 }
@@ -341,7 +343,8 @@ function Prepare-ToRunScript
 function Read-SettingsFile
 {
 	<#
-	.Synopsis Get users settings
+	.Synopsis
+		Get users settings
 	#>
 
 	$syncHash.Data.UserSettings = [pscustomobject]@{
@@ -1500,6 +1503,14 @@ $(
 {
 	param ( $SenderObject, $e )
 
+	<#
+	TODO
+	What to log
+		PropHandlers
+		Functions
+		Tools
+		Search
+	#>
 	Display-View -ViewName "FrameTool"
 
 	# Menuitem represents a tool
