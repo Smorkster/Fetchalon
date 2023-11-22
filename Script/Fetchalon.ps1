@@ -448,6 +448,42 @@ function Run-ScriptNoRunspace
 	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $msgTable.StrDefaultMainTitle } )
 }
 
+function Set-DefaultSettings
+{
+	$syncHash.Data.UserSettings = [pscustomobject]@{
+		VisibleProperties = [pscustomobject]@{
+			Computer = [System.Collections.ArrayList]::new()
+			DirectoryInfo = [System.Collections.ArrayList]::new()
+			FileInfo = [System.Collections.ArrayList]::new()
+			Group = [System.Collections.ArrayList]::new()
+			PrintQueue = [System.Collections.ArrayList]::new()
+			User = [System.Collections.ArrayList]::new()
+			O365User = [System.Collections.ArrayList]::new()
+			O365SharedMailbox = [System.Collections.ArrayList]::new()
+			O365Resource = [System.Collections.ArrayList]::new()
+			O365Room = [System.Collections.ArrayList]::new()
+			O365Distributionlist = [System.Collections.ArrayList]::new()
+		}
+		Maximized = 0
+		MenuTextVisible = 0
+		WindowHeight = 955
+		WindowLeft = 0
+		WindowWidth = 1442
+		WindowTop = 0
+	}
+	$syncHash.Data.UserSettings.VisibleProperties.Computer.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.DirectoryInfo.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.FileInfo.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.Group.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.PrintQueue.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.User.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.O365User.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.O365SharedMailbox.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.O365Resource.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.O365Room.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.O365Distributionlist.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
+}
+
 function Set-Localizations
 {
 	<#
@@ -797,13 +833,14 @@ $controls = [System.Collections.ArrayList]::new()
 [void] $controls.Add( @{ CName = "TbSearch" ; Props = @( @{ PropName = "Text"; PropVal = "" } ) } )
 
 Update-SplashText -Text $msgTable.StrSplashCreatingWindow
+
 $syncHash = CreateWindowExt -ControlsToBind $controls -IncludeConverters
 $Global:syncHash = $syncHash
-$syncHash.Data.InitArgs = $InitArgs
-$syncHash.Data.SettingsPath = Resolve-Path $env:UserProfile\FetchalonSettings.json
-$syncHash.Data.msgTable = $msgTable
-$syncHash.Data.Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $culture )
 $syncHash.Data.BaseDir = $BaseDir
+$syncHash.Data.Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $culture )
+$syncHash.Data.InitArgs = $InitArgs
+$syncHash.Data.msgTable = $msgTable
+$syncHash.Data.SettingsPath = "$( $env:UserProfile )\FetchalonSettings.json"
 $syncHash.Data.UserGroups = ( Get-ADUser -Identity ( [Environment]::UserName ) -Properties memberof ).memberof | Get-ADGroup | Select-Object -ExpandProperty Name
 
 try
@@ -829,7 +866,16 @@ $syncHash.Data.TestSearches = @{
 }
 
 Update-SplashText -Text $msgTable.StrSplashReadingSettings
-Read-SettingsFile
+
+try
+{
+	Resolve-Path $syncHash.Data.SettingsPath -ErrorAction Stop
+	Read-SettingsFile
+}
+catch
+{
+	Set-DefaultSettings
+}
 
 $syncHash.BindData = [pscustomobject]@{
 	MsgTable = $msgTable
@@ -1351,6 +1397,8 @@ $syncHash.Code.ListProperties =
 					$syncHash.Window.Resources['CvsPropsList'].Source.Add( $Prop )
 				}
 			}
+
+		$syncHash.Window.Resources['CvsPropSourceFilters'].Source.Clear()
 		$syncHash.Window.Resources['CvsDetailedProps'].Source.Source | `
 			Sort-Object -Unique | `
 			ForEach-Object {
