@@ -44,6 +44,8 @@ catch
 	$syncHash.Controls.TblO365Account.Text = $syncHash.Data.msgTable.ErrO365NotLoggedIn
 }
 
+$syncHash.Controls.TblPSVersionTable.Text = $PSVersionTable.PSVersion.ToString()
+
 $syncHash.Controls.Window.Add_Loaded( {
 	$syncHash.Controls.Window.Resources['CvsModules'].View.Refresh()
 } )
