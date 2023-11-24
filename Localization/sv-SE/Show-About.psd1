@@ -1,6 +1,7 @@
 ConvertFrom-StringData @'
 ContentTblVersionTitle = Version
 ContentTblModulesTitle = Inlästa moduler
+ContentTblPSVersionTableTitle = PSVersion
 ContentTblValueTtVersion = Version
 ContentTblValueTtDescription = Beskrivning
 ContentTblValueTtPath = Sökväg

@@ -40,6 +40,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition MaxHeight="150" />
         </Grid.RowDefinitions>
         <TextBlock Name="TblVersionTitle"
@@ -49,20 +50,28 @@
                    Grid.Column="1"
                    Style="{StaticResource TblValueStyle}"
                    Text="{DynamicResource Version}" />
-        <TextBlock Name="TblO365AccountTitle"
+        <TextBlock Name="TblPSVersionTableTitle"
                    Grid.Row="1"
+                   Style="{StaticResource TblTitleStyle}"
+                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPSVersionTableTitle}" />
+        <TextBlock Name="TblPSVersionTable"
+                   Grid.Column="1"
+                   Grid.Row="1"
+                   Style="{StaticResource TblValueStyle}" />
+        <TextBlock Name="TblO365AccountTitle"
+                   Grid.Row="2"
                    Style="{StaticResource TblTitleStyle}"
                    Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblO365AccountTitle}" />
         <TextBlock Name="TblO365Account"
                    Grid.Column="1"
-                   Grid.Row="1"
+                   Grid.Row="2"
                    Style="{StaticResource TblValueStyle}" />
         <TextBlock Name="TblModulesTitle"
-                   Grid.Row="2"
+                   Grid.Row="3"
                    Style="{StaticResource TblTitleStyle}"
                    Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblModulesTitle}" />
         <ScrollViewer Grid.Column="1"
-                      Grid.Row="2">
+                      Grid.Row="3">
             <ItemsControl Name="IcModules"
                           ItemsSource="{Binding Source={StaticResource CvsModules}}">
                 <ItemsControl.ItemsPanel>
