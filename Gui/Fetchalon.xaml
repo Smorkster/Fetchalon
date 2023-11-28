@@ -3205,6 +3205,40 @@
                                                                     </Setter.Value>
                                                                 </Setter>
                                                             </DataTrigger>
+                                                            <DataTrigger Binding="{Binding Path=Type}"
+                                                                         Value="ObjectList">
+                                                                <Setter Property="Template">
+                                                                    <Setter.Value>
+                                                                        <ControlTemplate>
+                                                                            <Expander>
+                                                                                <Expander.Header>
+                                                                                    <StackPanel Orientation="Horizontal">
+                                                                                        <StackPanel.Resources>
+                                                                                            <Style TargetType="TextBlock">
+                                                                                                <Setter Property="FontWeight"
+                                                                                                        Value="Bold" />
+                                                                                            </Style>
+                                                                                        </StackPanel.Resources>
+                                                                                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrPropListTitle1}" />
+                                                                                        <TextBlock Text=" " />
+                                                                                        <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=ContentControl}, Path=DataContext.Value.Count}" />
+                                                                                        <TextBlock Text=" " />
+                                                                                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrPropListTitle2}" />
+                                                                                    </StackPanel>
+                                                                                </Expander.Header>
+                                                                                <ItemsControl ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=ContentControl}, Path=DataContext.Value}">
+                                                                                    <ItemsControl.ItemTemplate>
+                                                                                        <DataTemplate>
+                                                                                            <TextBox Style="{StaticResource TbListValueBaseStyle}"
+                                                                                                     Text="{Binding Mode=OneWay}" />
+                                                                                        </DataTemplate>
+                                                                                    </ItemsControl.ItemTemplate>
+                                                                                </ItemsControl>
+                                                                            </Expander>
+                                                                        </ControlTemplate>
+                                                                    </Setter.Value>
+                                                                </Setter>
+                                                            </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </ContentControl.Style>

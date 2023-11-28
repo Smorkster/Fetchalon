@@ -120,56 +120,56 @@ function Get-ExtraInfoFromSysMan
 		Get more information about SearchedItem
 	#>
 
-		if ( "User" -eq $ObjectClass )
-		{
-			$syncHash.Data.SearchedItem.ExtraInfo.SysManBase = ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )User?name=$( $syncHash.Data.SearchedItem.SamAccountName )&take=1&skip=0" -UseDefaultCredentials -ContentType "application/json" -Method Get ).result[0]
-			$syncHash.Data.SearchedItem.ExtraInfo.SysManReport = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )reporting/User?userName=$( $syncHash.Data.SearchedItem.SamAccountName )" -UseDefaultCredentials -ContentType "application/json" -Method Get
+	if ( "User" -eq $syncHash.Data.SearchedItem.ObjectClass )
+	{
+		$syncHash.Data.SearchedItem.ExtraInfo.SysManBase = ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )User?name=$( $syncHash.Data.SearchedItem.SamAccountName )&take=1&skip=0" -UseDefaultCredentials -ContentType "application/json" -Method Get ).result[0]
+		$syncHash.Data.SearchedItem.ExtraInfo.SysManReport = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )reporting/User?userName=$( $syncHash.Data.SearchedItem.SamAccountName )" -UseDefaultCredentials -ContentType "application/json" -Method Get
 
-			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "AzureMemberships" -Value ( $syncHash.Data.SearchedItem.ExtraInfo.SysManReport.azure.memberships.Name | Sort-Object ) -Force
-			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "AzureDevices" -Value ( [System.Collections.ArrayList]::new() ) -Force
-			$syncHash.Data.SearchedItem.ExtraInfo.SysManReport.azure.devices | Sort-Object name | ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.AzureDevices.Add( $_ ) | Out-Null }
-		}
-		elseif ( "Computer" -eq $ObjectClass )
-		{
-			$syncHash.Data.SearchedItem.ExtraInfo.Base = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
-			$syncHash.Data.SearchedItem.ExtraInfo.Manufacturer = Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.StrSysManApi )HardwareModel/$( $syncHash.Data.SearchedItem.ExtraInfo.Base.hardwareModelId )" -Method Get -UseDefaultCredentials -ContentType "application/json"
-			$syncHash.Data.SearchedItem.ExtraInfo.Sccm = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/SccmInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
+		Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "AzureMemberships" -Value ( $syncHash.Data.SearchedItem.ExtraInfo.SysManReport.azure.memberships.Name | Sort-Object ) -Force
+		Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "AzureDevices" -Value ( [System.Collections.ArrayList]::new() ) -Force
+		$syncHash.Data.SearchedItem.ExtraInfo.SysManReport.azure.devices | Sort-Object name | ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.AzureDevices.Add( $_ ) | Out-Null }
+	}
+	elseif ( "Computer" -eq $syncHash.Data.SearchedItem.ObjectClass )
+	{
+		$syncHash.Data.SearchedItem.ExtraInfo.Base = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
+		$syncHash.Data.SearchedItem.ExtraInfo.Manufacturer = Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.StrSysManApi )HardwareModel/$( $syncHash.Data.SearchedItem.ExtraInfo.Base.hardwareModelId )" -Method Get -UseDefaultCredentials -ContentType "application/json"
+		$syncHash.Data.SearchedItem.ExtraInfo.Sccm = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/SccmInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
 
-			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "activeDirectoryOperatingSystemNameVersion" -Value $null -Force
-			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ManufacturerModel" -Value $null -Force
+		Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "activeDirectoryOperatingSystemNameVersion" -Value $null -Force
+		Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ManufacturerModel" -Value $null -Force
+		$syncHash.Data.SearchedItem.ExtraInfo.Wmi = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/WmiInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop
+		$syncHash.Data.SearchedItem.ExtraInfo.Other.activeDirectoryOperatingSystemNameVersion = "$( $syncHash.Data.SearchedItem.ExtraInfo.Base.activeDirectoryOperatingSystemName ) - $( $syncHash.Data.msgTable.StrCompOperatingSystemVersion ) $( $syncHash.Data.SearchedItem.ExtraInfo.Base.activeDirectoryOperatingSystemVersion )"
+
+		$syncHash.Data.SearchedItem.ExtraInfo.Sccm = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/SccmInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
+
+		$syncHash.Data.SearchedItem.ExtraInfo.Other.ManufacturerModel = "$( $syncHash.Data.SearchedItem.ExtraInfo.Manufacturer.Manufacturer ) - $( $syncHash.Data.SearchedItem.ExtraInfo.Manufacturer.Name )"
+
+		try
+		{
+			$syncHash.Data.SearchedItem.ExtraInfo.Local = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/LocalInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop
 			$syncHash.Data.SearchedItem.ExtraInfo.Wmi = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/WmiInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop
-			$syncHash.Data.SearchedItem.ExtraInfo.Other.activeDirectoryOperatingSystemNameVersion = "$( $syncHash.Data.SearchedItem.ExtraInfo.Base.activeDirectoryOperatingSystemName ) - $( $syncHash.Data.msgTable.StrCompOperatingSystemVersion ) $( $syncHash.Data.SearchedItem.ExtraInfo.Base.activeDirectoryOperatingSystemVersion )"
-
-			$syncHash.Data.SearchedItem.ExtraInfo.Sccm = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/SccmInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
-
-			$syncHash.Data.SearchedItem.ExtraInfo.Other.ManufacturerModel = "$( $syncHash.Data.SearchedItem.ExtraInfo.Manufacturer.Manufacturer ) - $( $syncHash.Data.SearchedItem.ExtraInfo.Manufacturer.Name )"
-
-			try
-			{
-				$syncHash.Data.SearchedItem.ExtraInfo.Local = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/LocalInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop
-				$syncHash.Data.SearchedItem.ExtraInfo.Wmi = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/WmiInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop
-				$syncHash.Data.SearchedItem.ExtraInfo.Other.IsOnline = "Online"
-			}
-			catch
-			{
-				$syncHash.Data.SearchedItem.ExtraInfo.Other.IsOnline = "Offline"
-			}
-			$syncHash.Data.SearchedItem.ExtraInfo.Health = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/Health?targetName=$( $name )&onlyLatest=$true" -UseDefaultCredentials -ContentType "application/json" -Method Get
+			$syncHash.Data.SearchedItem.ExtraInfo.Other.IsOnline = "Online"
 		}
-		elseif ( "PrintQueue" -eq $ObjectClass )
+		catch
 		{
-			$syncHash.Data.SearchedItem.ExtraInfo.Base = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )Printer?name=$( $syncHash.Data.SearchedItem.Name )&take=1&skip=0" -UseDefaultCredentials -ContentType "application/json" -Method Get | Select-Object -ExpandProperty result
-			$syncHash.Data.SearchedItem.ExtraInfo.Extended = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )Printer/$( $syncHash.Data.SearchedItem.ExtraInfo.Base.id )" -UseDefaultCredentials -ContentType "application/json" -Method Get
-
-			try
-			{
-				$a = Get-Printer -Name $syncHash.Data.SearchedItem.ExtraInfo.Base.name.Trim() -ComputerName $syncHash.Data.SearchedItem.ExtraInfo.Base.server -ErrorAction Stop
-				$syncHash.Data.SearchedItem.ExtraInfo.PrintConf = @{}
-				$a | Get-Member -MemberType Property | ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.PrintConf."$( $_.Name )" = $a."$( $_.Name )" }
-			}
-			catch
-			{}
+			$syncHash.Data.SearchedItem.ExtraInfo.Other.IsOnline = "Offline"
 		}
+		$syncHash.Data.SearchedItem.ExtraInfo.Health = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/Health?targetName=$( $name )&onlyLatest=$true" -UseDefaultCredentials -ContentType "application/json" -Method Get
+	}
+	elseif ( "PrintQueue" -eq $syncHash.Data.SearchedItem.ObjectClass )
+	{
+		$syncHash.Data.SearchedItem.ExtraInfo.Base = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )Printer?name=$( $syncHash.Data.SearchedItem.Name )&take=1&skip=0" -UseDefaultCredentials -ContentType "application/json" -Method Get | Select-Object -ExpandProperty result
+		$syncHash.Data.SearchedItem.ExtraInfo.Extended = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )Printer/$( $syncHash.Data.SearchedItem.ExtraInfo.Base.id )" -UseDefaultCredentials -ContentType "application/json" -Method Get
+
+		try
+		{
+			$a = Get-Printer -Name $syncHash.Data.SearchedItem.ExtraInfo.Base.name.Trim() -ComputerName $syncHash.Data.SearchedItem.ExtraInfo.Base.server -ErrorAction Stop
+			$syncHash.Data.SearchedItem.ExtraInfo.PrintConf = @{}
+			$a | Get-Member -MemberType Property | ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.PrintConf."$( $_.Name )" = $a."$( $_.Name )" }
+		}
+		catch
+		{}
+	}
 
 	Invoke-Command $syncHash.Code.ListProperties -ArgumentList ( "Visible" -eq $syncHash.IcObjectDetailed.Visibility )
 	$syncHash.MiGetSysManInfo.IsEnabled = $false
@@ -1240,33 +1240,26 @@ $syncHash.Code.ListProperties =
 								Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
 								ForEach-Object {
 									$Key = $_
-									if (
-										$syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -match "(AD)|(Exchange)" -and $_.Name -eq $Key } ) -or `
-										$OtherObjectClass -or `
-										$Detailed
-									)
+									if ( $syncHash.Data.SearchedItem.ObjectClass -match "^O365((SharedMailbox)|(Room)|(Resource)|(Distributionlist)|(User))" )
 									{
-										if ( $syncHash.Data.SearchedItem.ObjectClass -match "^O365((SharedMailbox)|(Room)|(Resource)|(Distributionlist)|(User))" )
-										{
-											[pscustomobject]@{
-												Name = $Key
-												Value = $syncHash.Data.SearchedItem."$( $Key )"
-												Source = "Exchange"
-												Type = $null
-												Handler = $null
-												CheckedForVisible = $null
-											}
+										[pscustomobject]@{
+											Name = $Key
+											Value = $syncHash.Data.SearchedItem."$( $Key )"
+											Source = "Exchange"
+											Type = $null
+											Handler = $null
+											CheckedForVisible = $null
 										}
-										else
-										{
-											[pscustomobject]@{
-												Name = $Key
-												Value = $syncHash.Data.SearchedItem."$( $Key )"
-												Source = "AD"
-												Type = $null
-												Handler = $null
-												CheckedForVisible = $null
-											}
+									}
+									else
+									{
+										[pscustomobject]@{
+											Name = $Key
+											Value = $syncHash.Data.SearchedItem."$( $Key )"
+											Source = "AD"
+											Type = $null
+											Handler = $null
+											CheckedForVisible = $null
 										}
 									}
 								}
@@ -1280,19 +1273,13 @@ $syncHash.Code.ListProperties =
 									Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
 									ForEach-Object {
 										$Key = $_
-										if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -eq $Source -and $_.Name -eq $Key } ) -or `
-											$OtherObjectClass -or `
-											$Detailed
-										)
-										{
-											[pscustomobject]@{
-												Name = $Key
-												Value = $syncHash.Data.SearchedItem.ExtraInfo."$( $Source )"."$( $Key )"
-												Source = $Source
-												Type = $null
-												Handler = $null
-												CheckedForVisible = $null
-											}
+										[pscustomobject]@{
+											Name = $Key
+											Value = $syncHash.Data.SearchedItem.ExtraInfo."$( $Source )"."$( $Key )"
+											Source = $Source
+											Type = $null
+											Handler = $null
+											CheckedForVisible = $null
 										}
 									}
 								}
@@ -1337,7 +1324,7 @@ $syncHash.Code.ListProperties =
 				{
 					if ( $Prop.Value.Count -eq 0 )
 					{
-						$Prop.Value += $syncHash.Data.msgTable.StrNoScriptOutput
+						$Prop.Value = $syncHash.Data.msgTable.StrNoScriptOutput
 						$Prop.Type = "String"
 					}
 					elseif ( $Prop.Value[0] -is [string] )
@@ -1398,13 +1385,13 @@ $syncHash.Code.ListProperties =
 				}
 			}
 
-		$syncHash.Window.Resources['CvsPropSourceFilters'].Source.Clear()
-		$syncHash.Window.Resources['CvsDetailedProps'].Source.Source | `
-			Sort-Object -Unique | `
-			ForEach-Object {
-				$syncHash.Window.Resources['CvsPropSourceFilters'].Source.Add( ( [pscustomobject]@{ Name = $_ ; Checked = $true } ) )
-			}
-		$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
+	$syncHash.Window.Resources['CvsPropSourceFilters'].Source.Clear()
+	$syncHash.Window.Resources['CvsDetailedProps'].Source.Source | `
+		Sort-Object -Unique | `
+		ForEach-Object {
+			$syncHash.Window.Resources['CvsPropSourceFilters'].Source.Add( ( [pscustomobject]@{ Name = $_ ; Checked = $true } ) )
+		}
+	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
 }
 
 Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximum ( $syncHash.Data.msgTable.Keys.Where( { $_ -match "Joke" } ).Count ) )"
