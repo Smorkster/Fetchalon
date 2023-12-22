@@ -1,0 +1,433 @@
+<Page Name="Window"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase">
+    <Page.Resources>
+        <CollectionViewSource x:Key="CvsTestConnResults" />
+        <Thickness x:Key="StdMargin">5</Thickness>
+        <Style TargetType="Button"
+               x:Key="BtnBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="CheckBox">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalAlignment"
+                    Value="Center" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="RowDefinition"
+               x:Key="RowDefHiddenStyle">
+            <Setter Property="Height"
+                    Value="Auto" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}"
+                             Value="False">
+                    <Setter Property="Height"
+                            Value="0" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="TextBlock">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="TextBox"
+               x:Key="TbBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="TextBox"
+               x:Key="TbIntText"
+               BasedOn="{StaticResource TbBaseStyle}" />
+    </Page.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Name="TblTargetTitle" />
+            <TextBox Name="TbTarget"
+                     Grid.Column="1"
+                     Style="{StaticResource TbBaseStyle}" />
+            <Button Name="BtnStart"
+                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnStart}"
+                    Grid.Column="2">
+                <Button.Style>
+                    <Style TargetType="Button"
+                           BasedOn="{StaticResource BtnBaseStyle}">
+                        <Setter Property="IsEnabled"
+                                Value="True" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=TbTarget, Path=Text.Length}"
+                                         Value="0">
+                                <Setter Property="IsEnabled"
+                                        Value="False" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Name="BtnReset"
+                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnReset}"
+                    Grid.Column="3"
+                    Style="{StaticResource BtnBaseStyle}" />
+        </Grid>
+        <Grid Grid.Row="1">
+            <ProgressBar Name="PbRunningTest"
+                         Height="30"
+                         IsIndeterminate="True"
+                         Margin="{StaticResource StdMargin}"
+                         VerticalAlignment="Top" />
+            <Expander Name="ExpSettings"
+                      Margin="{StaticResource StdMargin}">
+                <Expander.Header>
+                    <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpanderHeader}" />
+                </Expander.Header>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <TextBlock Name="TblBufferSizeTitle"
+                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblBufferSizeTitle}" />
+                    <TextBox Name="TbBufferSize"
+                             Grid.Column="1"
+                             Style="{StaticResource TbIntText}" />
+                    <TextBlock Name="TblCountTitle"
+                               Grid.Column="2"
+                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblCountTitle}" />
+                    <TextBox Name="TbCount"
+                             Grid.Column="3"
+                             Style="{StaticResource TbIntText}" />
+
+                    <TextBlock Name="TblDelayTitle"
+                               Grid.Column="0"
+                               Grid.Row="1"
+                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblDelayTitle}" />
+                    <TextBox Name="TbDelay"
+                             Grid.Column="1"
+                             Grid.Row="1"
+                             Style="{StaticResource TbIntText}" />
+                    <TextBlock Name="TblTimeToLiveTitle"
+                               Grid.Column="2"
+                               Grid.Row="1"
+                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblTimeToLiveTitle}" />
+                    <TextBox Name="TbTimeToLive"
+                             Grid.Column="3"
+                             Grid.Row="1"
+                             Style="{StaticResource TbIntText}" />
+
+                    <TextBlock Name="TblThrottleLimitTitle"
+                               Grid.Row="2"
+                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblThrottleLimitTitle}" />
+                    <TextBox Name="TbThrottleLimit"
+                             Grid.Column="1"
+                             Grid.Row="2"
+                             Style="{StaticResource TbIntText}" />
+
+                    <GroupBox Name="GbAuthenticationSettings"
+                              Grid.ColumnSpan="4"
+                              Grid.Row="3">
+                        <GroupBox.Header>
+                            <WrapPanel>
+                                <TextBlock Name="TblProtocolTitle"
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblProtocolTitle}" />
+                                <ComboBox Name="CbProtocol">
+                                    <ComboBoxItem>None</ComboBoxItem>
+                                    <ComboBoxItem>DCOM</ComboBoxItem>
+                                    <ComboBoxItem>WSMan</ComboBoxItem>
+                                </ComboBox>
+                            </WrapPanel>
+                        </GroupBox.Header>
+                        <WrapPanel>
+                            <WrapPanel.Style>
+                                <Style TargetType="WrapPanel">
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=CbProtocol, Path=Text}"
+                                                     Value="None">
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </WrapPanel.Style>
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Setter Property="Visibility"
+                                                Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ElementName=CbProtocol, Path=Text}"
+                                                         Value="DCOM">
+                                                <Setter Property="Visibility"
+                                                        Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Name="TblImpersonationTitle"
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblImpersonationTitle}" />
+                                <ComboBox Name="CbImpersonation"
+                                          Grid.Column="1">
+                                    <ComboBoxItem>Default</ComboBoxItem>
+                                    <ComboBoxItem>Anonymous</ComboBoxItem>
+                                    <ComboBoxItem>Identify</ComboBoxItem>
+                                    <ComboBoxItem>Impersonate</ComboBoxItem>
+                                </ComboBox>
+                            </Grid>
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Setter Property="Visibility"
+                                                Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ElementName=CbProtocol, Path=Text}"
+                                                         Value="DCOM">
+                                                <Setter Property="Visibility"
+                                                        Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Name="TblDcomAuthenticationTitle"
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblDcomAuthenticationTitle}" />
+                                <ComboBox Name="CbDcomAuthentication"
+                                          Grid.Column="1">
+                                    <ComboBoxItem>Default</ComboBoxItem>
+                                    <ComboBoxItem>None</ComboBoxItem>
+                                    <ComboBoxItem>Connect</ComboBoxItem>
+                                    <ComboBoxItem>Call</ComboBoxItem>
+                                    <ComboBoxItem>Packet</ComboBoxItem>
+                                    <ComboBoxItem>PacketIntegrity</ComboBoxItem>
+                                    <ComboBoxItem>PacketPrivacy</ComboBoxItem>
+                                    <ComboBoxItem>Unchanged</ComboBoxItem>
+                                </ComboBox>
+                            </Grid>
+                            <Grid>
+                                <Grid.Style>
+                                    <Style TargetType="Grid">
+                                        <Setter Property="Visibility"
+                                                Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ElementName=CbProtocol, Path=Text}"
+                                                         Value="WSMan">
+                                                <Setter Property="Visibility"
+                                                        Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Grid.Style>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition />
+                                    <ColumnDefinition />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Name="TblWsmanAuthenticationTitle"
+                                           Grid.Row="5"
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblWsmanAuthenticationTitle}" />
+                                <ComboBox Name="CbWsmanAuthentication"
+                                          Grid.Column="1"
+                                          Grid.Row="5">
+                                    <ComboBoxItem>Basic</ComboBoxItem>
+                                    <ComboBoxItem>CredSSP</ComboBoxItem>
+                                    <ComboBoxItem>Default</ComboBoxItem>
+                                    <ComboBoxItem>Digest</ComboBoxItem>
+                                    <ComboBoxItem>Kerberos</ComboBoxItem>
+                                    <ComboBoxItem>Negotiate</ComboBoxItem>
+                                </ComboBox>
+                            </Grid>
+                        </WrapPanel>
+                    </GroupBox>
+
+                </Grid>
+            </Expander>
+        </Grid>
+        <ItemsControl Name="IcResults"
+                      Grid.Row="2"
+                      ItemsSource="{Binding Source={StaticResource CvsTestConnResults}}"
+                      Margin="{StaticResource StdMargin}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Expander HorizontalAlignment="Stretch">
+                        <Expander.Resources>
+                            <Style TargetType="TextBlock"
+                                   x:Key="TblExpandedStyle">
+                                <Setter Property="Margin"
+                                        Value="{StaticResource StdMargin}" />
+                                <Setter Property="Visibility"
+                                        Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=IsExpanded}"
+                                                 Value="True">
+                                        <Setter Property="Visibility"
+                                                Value="Collapsed" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Expander.Resources>
+                        <Expander.Header>
+                            <Border BorderThickness="3,0,0,2"
+                                    Padding="{StaticResource StdMargin}">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush"
+                                                Value="Black" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=IsExpanded}"
+                                                         Value="True">
+                                                <Setter Property="BorderBrush"
+                                                        Value="Cyan" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
+                                <Grid HorizontalAlignment="Stretch">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1*" />
+                                        <ColumnDefinition Width="1*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Grid.Row="0"
+                                               Margin="{StaticResource StdMargin}"
+                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadAddress}" />
+                                    <TextBlock Text="{Binding Path=Address}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Grid.Column"
+                                                        Value="0" />
+                                                <Setter Property="Grid.Row"
+                                                        Value="1" />
+                                                <Setter Property="Margin"
+                                                        Value="{StaticResource StdMargin}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=IsExpanded}"
+                                                                 Value="True">
+                                                        <Setter Property="Grid.Column"
+                                                                Value="1" />
+                                                        <Setter Property="Grid.Row"
+                                                                Value="0" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+
+                                        </TextBlock.Style>
+                                    </TextBlock>
+
+                                    <TextBlock Grid.Column="1"
+                                               Grid.Row="0"
+                                               Style="{StaticResource TblExpandedStyle}"
+                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadIPV4Address}">
+                                    </TextBlock>
+                                    <TextBlock Grid.Column="1"
+                                               Grid.Row="1"
+                                               Style="{StaticResource TblExpandedStyle}"
+                                               Text="{Binding Path=IPV4Address}" />
+
+                                    <TextBlock Grid.Column="2"
+                                               Grid.Row="0"
+                                               Style="{StaticResource TblExpandedStyle}"
+                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadIPV6Address}" />
+                                    <TextBlock Grid.Column="2"
+                                               Grid.Row="1"
+                                               Style="{StaticResource TblExpandedStyle}"
+                                               Text="{Binding Path=IPV6Address}" />
+
+                                    <TextBlock Grid.Column="3"
+                                               Grid.Row="0"
+                                               Style="{StaticResource TblExpandedStyle}"
+                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadBufferSize}" />
+                                    <TextBlock Grid.Column="3"
+                                               Grid.Row="1"
+                                               Style="{StaticResource TblExpandedStyle}"
+                                               Text="{Binding Path=BufferSize}" />
+
+                                    <TextBlock Grid.Column="4"
+                                               Grid.Row="0"
+                                               Style="{StaticResource TblExpandedStyle}"
+                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadResponseTime}" />
+                                    <TextBlock Grid.Column="4"
+                                               Grid.Row="1"
+                                               Style="{StaticResource TblExpandedStyle}"
+                                               Text="{Binding Path=ResponseTime}" />
+                                </Grid>
+                            </Border>
+                        </Expander.Header>
+                        <ItemsControl ItemsSource="{Binding Path=Properties}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="{StaticResource StdMargin}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition />
+                                            <ColumnDefinition />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock FontWeight="Bold"
+                                                   Margin="{StaticResource StdMargin}"
+                                                   Text="{Binding Path=Name}" />
+                                        <TextBlock Grid.Column="1"
+                                                   Margin="{StaticResource StdMargin}"
+                                                   Text="{Binding Path=Value}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Expander>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </Grid>
+</Page>
