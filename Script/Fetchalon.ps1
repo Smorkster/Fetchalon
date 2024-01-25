@@ -295,7 +295,9 @@ function Prepare-ToRunScript
 
 				$syncHash.Data.SearchedItem | `
 					Get-Member -MemberType NoteProperty | `
-					ForEach-Object { $ItemToSend."$( $_.Name )" = $syncHash.Data.SearchedItem."$( $_.Name )" }
+					ForEach-Object {
+						$ItemToSend."$( $_.Name )" = $syncHash.Data.SearchedItem."$( $_.Name )"
+					}
 
 				$syncHash.Jobs.ExecuteFunction.P.AddParameter( "SearchedItem", $ItemToSend ) | Out-Null
 			}
@@ -435,14 +437,18 @@ function Run-ScriptNoRunspace
 	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $syncHash.Data.msgTable.StrScriptRunningWithoutRunspace }, [System.Windows.Threading.DispatcherPriority]::Send )
 
 	$EnteredInput = @{}
-	$syncHash.GridFunctionOp.DataContext.InputData | ForEach-Object { $EnteredInput."$( $_.Name )" = $_.EnteredValue }
+	$syncHash.GridFunctionOp.DataContext.InputData | `
+		ForEach-Object {
+			$EnteredInput."$( $_.Name )" = $_.EnteredValue
+		}
+
 	if ( "None" -eq $ScriptObject.SearchedItemRequest )
 	{
 		. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module | Where-Object { Test-Path $_.Path } ) $null $EnteredInput
 	}
 	else
 	{
-		. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module | Where-Object { Test-Path $_.Path } ) $syncHash.Data.SearchedItem $EnteredInput
+		. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module | Where-Object { Test-Path $_.Path } ) $syncHash.Data.SearchedItem.psobject.Copy() $EnteredInput
 	}
 
 	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $msgTable.StrDefaultMainTitle } )
@@ -1670,8 +1676,11 @@ $syncHash.Code.SBlockExecuteFunction = {
 	param ( $syncHash, $ScriptObject, $Modules, $ItemToSend, $InputData )
 
 	$Error.Clear()
-	Add-Type -AssemblyName PresentationFramework
-	Import-Module ( $Modules | Where-Object { Test-Path $_.Path } ) -Force -WarningAction SilentlyContinue
+	if ( -not $ScriptObject.NoRunspace )
+	{
+		Add-Type -AssemblyName PresentationFramework
+		Import-Module ( $Modules | Where-Object { Test-Path $_.Path } ) -Force -WarningAction SilentlyContinue
+	}
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
 
 	$Info = [pscustomobject]@{ Started = Get-Date ; Finished = $null ; Data = $null ; Script = $ScriptObject ; Error = [System.Collections.ArrayList]::new() ; Item = $ItemToSend ; OutputType = $ScriptObject.OutputType }
@@ -1740,11 +1749,17 @@ $syncHash.Code.SBlockExecuteFunction = {
 		}
 
 		if ( $Info.Data -is [string] )
-		{ $Info.OutputType = "String" }
+		{
+			$Info.OutputType = "String"
+		}
 		elseif ( "String", "List", "ObjectList" -match $ScriptObject.OutputType )
-		{ $Info.OutputType = $ScriptObject.OutputType }
+		{
+			$Info.OutputType = $ScriptObject.OutputType
+		}
 		else
-		{ $Info.OutputType = "String" }
+		{
+			$Info.OutputType = "String"
+		}
 	}
 	catch {}
 
@@ -1771,14 +1786,14 @@ $syncHash.Code.SBlockExecuteFunction = {
 	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $InputData | ConvertTo-Json -Compress ) -ErrorLogHash $eh | Out-Null
 
 	$syncHash.Window.Dispatcher.Invoke( [action] {
+		$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Collapsed
+		$syncHash.GridFunctionOp.DataContext = $null
+
 		# Send result to GUI
 		if ( "None" -ne $ScriptObject.OutputType )
 		{
 			$syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $Info )
 		}
-
-		$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Collapsed
-		$syncHash.GridFunctionOp.DataContext = $null
 	} )
 }
 
