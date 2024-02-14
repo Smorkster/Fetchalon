@@ -1906,7 +1906,6 @@
                                        VerticalAlignment="Center" />
                         </Grid>
                         <TextBlock Name="TblObjName"
-                                   Background="LightGreen"
                                    FontSize="13"
                                    Grid.Row="1"
                                    Text="{Binding Path=SearchedItem.Name}">
