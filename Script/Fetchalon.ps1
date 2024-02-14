@@ -483,6 +483,7 @@ function Set-DefaultSettings
 	$syncHash.Data.UserSettings.VisibleProperties.Group.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.PrintQueue.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.User.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.User.Add( ( [pscustomobject]@{ Name = "info" ; MandatorySource = "AD" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.O365User.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.O365SharedMailbox.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.O365Resource.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
@@ -1151,7 +1152,18 @@ $syncHash.Code.ListItem =
 		$syncHash.Window.DataContext.SearchedItem = $syncHash.Data.SearchedItem
 		$syncHash.MenuObject.IsEnabled = $true
 		$syncHash.TblObjName.GetBindingExpression( [System.Windows.Controls.TextBlock]::TextProperty ).UpdateTarget()
-		$syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "Cvs.*" } | ForEach-Object { $_.Value.View.Refresh() }
+
+		$syncHash.TblObjName.Background = switch ( $syncHash.Data.SearchedItem.Enabled )
+		{
+			"$true" { "LightGreen" }
+			"$false" { "Coral" }
+			default { "Transparent" }
+		}
+
+		$syncHash.TblObjName.UpdateDefaultStyle()
+		$syncHash.Window.Resources.GetEnumerator() | `
+			Where-Object { $_.Key -match "Cvs.*" } | `
+			ForEach-Object { $_.Value.View.Refresh() }
 	}
 	# An PS Get-CmdLet was run
 	else
