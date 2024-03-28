@@ -93,13 +93,13 @@ function PrepParsing
 
 		Import-Module $Modules
 
+		$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Clear()
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
 			$syncHash.Controls.GridErrorlogsList.Visibility = [System.Windows.Visibility]::Collapsed
 			$syncHash.Controls.PbParseErrorLogs.IsIndeterminate = $true
 		} )
 		$syncHash.Data.ErrorLoggs = Get-ChildItem "$( $syncHash.Data.BaseDir )\ErrorLogs" -Recurse -File -Filter "*.json" | Sort-Object Name
 		$syncHash.Controls.PbParseErrorLogs.Maximum = [double] $syncHash.Data.ErrorLoggs.Count
-		$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Clear()
 		$syncHash.Data.ParsedErrorLogs.Clear()
 		$syncHash.DC.PbParseErrorLogsOps[0] = 0.0
 		$syncHash.DC.PbParseErrorLogs[0] = 0.0
@@ -107,13 +107,31 @@ function PrepParsing
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
 			$syncHash.Controls.PbParseErrorLogs.IsIndeterminate = $false
 		} )
-		$syncHash.Data.ErrorLoggs | ForEach-Object {
-			$n = $_.BaseName -replace " - ErrorLog"
-			if ( $syncHash.Data.ParsedErrorLogs.ScriptName -notcontains $n )
-			{ $syncHash.Data.ParsedErrorLogs.Add( [pscustomobject]@{ ScriptName = $n ; ScriptErrorLogs = [System.Collections.ArrayList]::new() } ) }
-			Get-Content $_.FullName | ForEach-Object { ( $syncHash.Data.ParsedErrorLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptErrorLogs.Add( ( NewErrorLog ( $_ | ConvertFrom-Json ) ) ) }
-			$syncHash.DC.PbParseErrorLogs[0] += 1
-		}
+		$syncHash.Data.ErrorLoggs | `
+			ForEach-Object {
+				$n = $_.BaseName -replace " - ErrorLog"
+				if ( $syncHash.Data.ParsedErrorLogs.ScriptName -notcontains $n )
+				{
+					$syncHash.Data.ParsedErrorLogs.Add(
+						[pscustomobject]@{
+							ScriptName = $n
+							ScriptErrorLogs = [System.Collections.ArrayList]::new()
+							ScriptErrorLogsRecent = [System.Collections.ArrayList]::new()
+						}
+					)
+				}
+				Get-Content $_.FullName | `
+					ForEach-Object {
+						$log = NewErrorLog ( $_ | ConvertFrom-Json )
+						( $syncHash.Data.ParsedErrorLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptErrorLogs.Add( $log )
+						if ( ( Get-Date $log.LogDate ) -gt ( Get-Date ).AddDays( -7 ) )
+						{
+							[void] ( $syncHash.Data.ParsedErrorLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptErrorLogsRecent.Add( $log )
+						}
+					}
+				$syncHash.DC.PbParseErrorLogs[0] += 1
+			}
+
 		$syncHash.DC.PbParseErrorLogsOps[0] = 1.0
 
 		$syncHash.Controls.PbParseErrorLogs.Maximum = $syncHash.Data.ParsedErrorLogs.Count
@@ -127,6 +145,7 @@ function PrepParsing
 		$syncHash.DC.PbParseErrorLogs[0] = 0.0
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
 			$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source = $syncHash.Data.ParsedErrorLogs
+			$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].View.Refresh()
 		}, [System.Windows.Threading.DispatcherPriority]::Send )
 
 		$syncHash.DC.PbParseErrorLogsOps[0] = 3.0
@@ -148,7 +167,6 @@ function PrepParsing
 			$syncHash.Controls.PbLogSearch.Visibility = [System.Windows.Visibility]::Visible
 		} )
 		$syncHash.Data.ParsedLogs.Clear()
-		$syncHash.Data.ParsedLogsRecent.Clear()
 		$a = Get-ChildItem "$( $syncHash.Data.BaseDir )\Logs" -Recurse -File -Filter "*log.json"
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
 			$syncHash.Controls.PbLogSearch.IsIndeterminate = $false
@@ -156,28 +174,42 @@ function PrepParsing
 			$syncHash.Controls.PbLogSearch.Value = 0.0
 		} )
 
-		$a | Sort-Object Name | ForEach-Object {
-			$n = $_.BaseName -replace " - Log"
-			if ( $syncHash.Data.ParsedLogs.ScriptName -notcontains $n )
-			{
-				[void] $syncHash.Data.ParsedLogs.Add( [pscustomobject]@{ ScriptName = $n ; ScriptLogs = [System.Collections.ArrayList]::new() } )
-				[void] $syncHash.Data.ParsedLogsRecent.Add( [pscustomobject]@{ ScriptName = $n ; ScriptLogs = [System.Collections.ArrayList]::new() } )
-			}
-			Get-Content $_.FullName | ForEach-Object {
-				$log = NewLog ( $_ | ConvertFrom-Json )
-				[void] ( $syncHash.Data.ParsedLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptLogs.Add( $log )
-				if ( $log.LogDate -gt ( Get-Date ).AddDays( -7 ) )
-				{ [void] ( $syncHash.Data.ParsedLogsRecent.Where( { $_.ScriptName -eq $n } ) )[0].ScriptLogs.Add( $log ) }
-			}
-			$syncHash.DC.PbLogSearch[0] += 1
-		}
+		$a | Sort-Object Name | `
+			ForEach-Object {
+				$n = $_.BaseName -replace " - Log"
+				if ( $syncHash.Data.ParsedLogs.ScriptName -notcontains $n )
+				{
+					[void] $syncHash.Data.ParsedLogs.Add(
+						[pscustomobject]@{
+							ScriptName = $n
+							ScriptLogs = [System.Collections.ArrayList]::new()
+							ScriptLogsRecent = [System.Collections.ArrayList]::new()
+						}
+					)
+				}
 
-		$syncHash.Data.ParsedLogs | ForEach-Object { $_.ScriptLogs = [System.Collections.ArrayList]::new( @( $_.ScriptLogs | Sort-Object -Property LogDate -Descending ) ) }
+				Get-Content $_.FullName | `
+					ForEach-Object {
+						$log = NewLog ( $_ | ConvertFrom-Json )
+						[void] ( $syncHash.Data.ParsedLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptLogs.Add( $log )
+						if ( ( Get-Date $log.LogDate ) -gt ( Get-Date ).AddDays( -7 ) )
+						{
+							[void] ( $syncHash.Data.ParsedLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptLogsRecent.Add( $log )
+						}
+					}
+				$syncHash.DC.PbLogSearch[0] += 1
+			}
+
+		$syncHash.Data.ParsedLogs | `
+			ForEach-Object {
+				$_.ScriptLogs = [System.Collections.ArrayList]::new( @( $_.ScriptLogs | Sort-Object -Property LogDate -Descending ) )
+			}
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
 			$syncHash.Controls.Window.Resources['CvsCbLogsScriptNames'].Source = $syncHash.Data.ParsedLogs
-			$syncHash.Controls.PbLogSearch.Visibility = [System.Windows.Visibility]::Collapsed
 			$syncHash.Controls.Window.Resources['CvsCbLogsScriptNames'].View.Refresh()
+			$syncHash.Controls.PbLogSearch.Visibility = [System.Windows.Visibility]::Collapsed
 		} )
+		$syncHash.Controls.RbLogsDisplayPeriodRecent.IsChecked = $true
 	} )
 	$syncHash.Jobs.PParseLogs.AddArgument( $syncHash )
 	$syncHash.Jobs.PParseLogs.AddArgument( ( Get-Module ) )
@@ -537,7 +569,7 @@ function TestLocalizations
 				Select-String "[Mm]sgTable\.\w+(?<!Keys)\b" | `
 				ForEach-Object {
 					$LineMatch = $_
-					[regex]::Matches( $_.Line , "[Mm]sgTable\.(?<LocVar>\w+)\b" ) | `
+					[regex]::Matches( $_.Line , "[Mm]sgTable\.(?<LocVar>(?!GetEnumerator)\w+)\b" ) | `
 					ForEach-Object {
 						if ( $LocalizationData.Keys -notcontains $_.Groups['LocVar'].Value )
 						{
@@ -903,7 +935,6 @@ PrepParsing
 SetLocalizations
 
 $syncHash.Data.ParsedLogs = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
-$syncHash.Data.ParsedLogsRecent = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 $syncHash.Data.ParsedErrorLogs = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 $syncHash.Data.RollbackData = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 $syncHash.Data.RollbackFiles = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
@@ -1139,10 +1170,12 @@ $syncHash.Controls.CbLogsFilterSuccessSuccess.Add_Unchecked( { $syncHash.Control
 
 $syncHash.Controls.CbLogsScriptNames.Add_SelectionChanged( {
 	$syncHash.Controls.Window.Resources['CvsDgLogs'].Source = $this.SelectedItem.ScriptLogs
+	$syncHash.Controls.RbLogsDisplayPeriodRecent.IsChecked = $true
 } )
 
 $syncHash.Controls.CbErrorLogsScriptNames.Add_SelectionChanged( {
 	$this.SelectedItem.ScriptErrorLogs | ForEach-Object { $syncHash.Controls.Window.Resources['CvsDgErrorLogs'].Source.Add( $_ ) }
+	$syncHash.Controls.RbErrorLogsDisplayPeriodRecent.IsChecked = $true
 } )
 
 # Click was made outside of rows and valid cells, unselect selected rows
@@ -1223,14 +1256,26 @@ $syncHash.Controls.PbParseUpdates.Add_ValueChanged( {
 
 # Set binding to all logs
 $syncHash.Controls.RbLogsDisplayPeriodAll.Add_Checked( {
-	#$b = [System.Windows.Data.Binding]@{ ElementName = "CbLogsScriptNames"; Path = "SelectedItem.ScriptLogs" }
-	#[void][System.Windows.Data.BindingOperations]::SetBinding( $syncHash.Controls.DgLogs, [System.Windows.Controls.DataGrid]::ItemsSourceProperty, $b )
+	$b = [System.Windows.Data.Binding]@{ ElementName = "CbLogsScriptNames"; Path = "SelectedItem.ScriptLogs" }
+	[void][System.Windows.Data.BindingOperations]::SetBinding( $syncHash.Controls.DgLogs, [System.Windows.Controls.DataGrid]::ItemsSourceProperty, $b )
 } )
 
 # Set binding to recent logs
 $syncHash.Controls.RbLogsDisplayPeriodRecent.Add_Checked( {
-	#$b = [System.Windows.Data.Binding]@{ ElementName = "CbLogsScriptNames"; Path = "SelectedItem.ScriptLogsRecent" }
-	#[void][System.Windows.Data.BindingOperations]::SetBinding( $syncHash.Controls.DgLogs, [System.Windows.Controls.DataGrid]::ItemsSourceProperty, $b )
+	$b = [System.Windows.Data.Binding]@{ ElementName = "CbLogsScriptNames"; Path = "SelectedItem.ScriptLogsRecent" }
+	[void][System.Windows.Data.BindingOperations]::SetBinding( $syncHash.Controls.DgLogs, [System.Windows.Controls.DataGrid]::ItemsSourceProperty, $b )
+} )
+
+# Set binding to all errorlogs
+$syncHash.Controls.RbErrorLogsDisplayPeriodAll.Add_Checked( {
+	$b = [System.Windows.Data.Binding]@{ ElementName = "CbErrorLogsScriptNames"; Path = "SelectedItem.ScriptErrorLogs" }
+	[void][System.Windows.Data.BindingOperations]::SetBinding( $syncHash.Controls.DgErrorLogs, [System.Windows.Controls.DataGrid]::ItemsSourceProperty, $b )
+} )
+
+# Set binding to recent errorlogs
+$syncHash.Controls.RbErrorLogsDisplayPeriodRecent.Add_Checked( {
+	$b = [System.Windows.Data.Binding]@{ ElementName = "CbErrorLogsScriptNames"; Path = "SelectedItem.ScriptErrorLogsRecent" }
+	[void][System.Windows.Data.BindingOperations]::SetBinding( $syncHash.Controls.DgErrorLogs, [System.Windows.Controls.DataGrid]::ItemsSourceProperty, $b )
 } )
 
 # Window rendered, do some final preparations
