@@ -1,4 +1,5 @@
 ﻿ConvertFrom-StringData @'
+GetLastLoggedInErrNoUser = User not found in AD
 GetLastLoggedInStrCompNotFound = Computer name not found in SysMan
 GetLastLoggedInStrCompTitle = Computername
 GetLastLoggedInStrUserTitle = User

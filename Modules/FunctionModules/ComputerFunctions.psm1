@@ -64,16 +64,51 @@ function Get-LastLoggedIn
 		ForEach-Object {
 			try
 			{
-				Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/?name=$_" -UseDefaultCredentials -Method Get -ContentType "application/json" | Out-Null
-				$u = ( ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/Health?targetName=$( $_ )&onlyLatest=true" -UseDefaultCredentials ).lastLoggedOnUser -split "\\" )[1]
+				$a = ""
+				$Id = ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/?name=$_&onlyLatest=true" -UseDefaultCredentials).id
+				$a = ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/reporting/Client?clientId=$Id" -UseDefaultCredentials ).LastUser
+				try
+				{
+					$a = ( Get-ADUser $a ).Name
+				}
+				catch
+				{
+					$a = "$a ($( $IntMsgTable.GetLastLoggedInErrNoUser ))"
+				}
 			}
 			catch
 			{
-				$u = $IntMsgTable.GetLastLoggedInStrCompNotFound
+				$a = $IntMsgTable.GetLastLoggedInStrCompNotFound
 			}
-			[void] $Output.Add( ( [pscustomobject]@{ $IntMsgTable.GetLastLoggedInStrCompTitle = $_ ; $IntMsgTable.GetLastLoggedInStrUserTitle = $u } ) )
+			[void] $Output.Add( ( [pscustomobject]@{ $IntMsgTable.GetLastLoggedInStrCompTitle = $_ ; $IntMsgTable.GetLastLoggedInStrUserTitle = $a } ) )
 		}
 	return $Output
+}
+
+function Get-LoggedInUser
+{
+	<#
+	.Synopsis
+		List logged in users
+	.Description
+		List who is logged in to a given computer
+	.MenuItem
+		Show currently logged in
+	.InputData
+		ComputerName Name of computer
+	.SearchedItemRequest
+		Allowed
+	.State
+		Prod
+	.OutputType
+		String
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item, $InputData )
+
+	return "$( ( ( Get-CimInstance -ComputerName $InputData.ComputerName.Trim() -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName ) -split "\\" )[1] | Get-ADUser | Select-Object -ExpandProperty Name )"
 }
 
 function Open-SysManEdit
@@ -375,9 +410,21 @@ function Reset-OutlookViews
 	try
 	{
 		Invoke-Command -ComputerName $Item.SamAccountName -ScriptBlock {
-			Get-Process -Name Outlook -ErrorAction SilentlyContinue | `
+			"OUTLOOK", "WINWORD", "EXCEL", "Teams", "POWERPNT", "MSPUB", "ONENOTE", "Todo" | `
 				ForEach-Object {
-					$_.CloseMainWindow()
+					try
+					{
+						Get-Process -Name $_ -ErrorAction Stop | `
+							ForEach-Object {
+								$P = $_
+								$P.CloseMainWindow()
+								if ( Get-Process -Id $P.Id )
+								{
+									$P.Kill()
+								}
+							}
+					}
+					catch { throw $_.Exception.Message }
 				}
 
 			do
