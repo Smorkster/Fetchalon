@@ -75,8 +75,9 @@ function Clear-FileDownloads
 
 		if ( $Removed.Count -gt 0 )
 		{
-			$ReturnText.Append( $IntMsgTable.StrClearFileDownloadsRemovedSize )
-			$ReturnText.AppendLine( ( $Removed | ForEach-Object -Begin { $l = 0 } -Process { $l += $_.Length } -End { [System.Math]::Round( $l / 1MB , 2 ) } ) ) | Out-Null
+			$ReturnText.Append( "$( $IntMsgTable.StrClearFileDownloadsRemovedSize ): " ) | Out-Null
+			$ReturnText.Append( ( $Removed | ForEach-Object -Begin { $l = 0 } -Process { $l += $_.Length } -End { [System.Math]::Round( $l / 1MB , 2 ) } ) ) | Out-Null
+			$ReturnText.AppendLine( " MB" ) | Out-Null
 		}
 	}
 	else
@@ -86,14 +87,12 @@ function Clear-FileDownloads
 
 	try
 	{
-		$Sender = ( ( Get-ADUser -Identity ( [Environment]::UserName ).Substring( ( ( [Environment]::UserName ).Length - 4 ), 4 ) -Properties EmailAddress ).EmailAddress )
-		Send-MailMessage -From $Sender `
-			-To $IntMsgTable.StrClearFileDownloadsBotAddress `
-			-Body $ReturnText.ToString() `
-			-Encoding bigendianunicode `
-			-SmtpServer $IntMsgTable.StrSMTP `
-			-Subject "BotFlow1" `
-			-BodyAsHtml
+		$Info = "{""User"":""$( ( Get-ADUser $env:USERNAME.Substring( $env:USERNAME.Length - 4 ) ).SamAccountName )"",""Info"":""$( $ReturnText.ToString() )""}"
+
+		Invoke-RestMethod -Uri "https://<Azure address>/" `
+			-Method Post `
+			-ContentType "application/json" `
+			-Body ( [System.Text.Encoding]::UTF8.GetBytes( $Info ) )
 	}
 	catch
 	{
