@@ -119,7 +119,7 @@
                                 Background="#FFDDDDDD"
                                 BorderBrush="#FF555555"
                                 BorderThickness="1"
-                                Margin="4,0"
+                                Margin="5"
                                 Padding="5">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center" />
@@ -2013,250 +2013,277 @@
                                           MinWidth="440" />
                         <ColumnDefinition />
                     </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
-                    <Button Name="BtnReadLogs">
-                        <Button.Style>
-                            <Style TargetType="Button"
-                                   BasedOn="{StaticResource BtnBaseStyle}">
-                                <Setter Property="Content"
-                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnReadLogs}" />
-                                <Setter Property="Visibility"
-                                        Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ElementName=CbLogsScriptNames, Path=ItemsSource.Count}"
-                                                 Value="0">
-                                        <Setter Property="Visibility"
-                                                Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Button.Style>
-                    </Button>
-                    <Grid Name="GridSearchLogs">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <Grid.Style>
-                            <Style TargetType="Grid">
-                                <Setter Property="Visibility"
-                                        Value="Visible" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ElementName=CbLogsScriptNames, Path=ItemsSource.Count}"
-                                                 Value="0">
-                                        <Setter Property="Visibility"
-                                                Value="Collapsed" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Grid.Style>
-                        <ComboBox Name="CbLogSearchType">
-                            <ComboBox.Style>
-                                <Style TargetType="ComboBox"
-                                       BasedOn="{StaticResource CbBaseStyle}" />
-                            </ComboBox.Style>
-                            <ComboBoxItem Content="ComputerName" />
-                            <ComboBoxItem Content="LogText" />
-                            <ComboBoxItem Content="Operator" />
-                            <ComboBoxItem Content="UserInput" />
-                        </ComboBox>
-                        <TextBox Name="TbLogSearchText">
-                            <TextBox.Style>
-                                <Style TargetType="TextBox"
-                                       BasedOn="{StaticResource TbBaseStyle}">
-                                    <Setter Property="Grid.Column"
-                                            Value="1" />
-                                    <Setter Property="ToolTip"
-                                            Value="{x:Null}" />
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <Button Name="BtnReadLogs">
+                            <Button.Style>
+                                <Style TargetType="Button"
+                                       BasedOn="{StaticResource BtnBaseStyle}">
+                                    <Setter Property="Content"
+                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnReadLogsAgain}" />
                                     <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=CbLogSearchType, Path=SelectedIndex}"
-                                                     Value="-1">
-                                            <Setter Property="IsEnabled"
-                                                    Value="False" />
-                                            <Setter Property="ToolTip"
-                                                    Value="{StaticResource LogSearchNoType}" />
+                                        <DataTrigger Binding="{Binding ElementName=CbLogsScriptNames, Path=ItemsSource.Count}"
+                                                     Value="0">
+                                            <Setter Property="Content"
+                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnReadLogs}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </TextBox.Style>
-                        </TextBox>
-                        <Button Name="BtnLogSearch">
-                            <Button.Style>
-                                <Style TargetType="Button"
-                                       BasedOn="{StaticResource BtnBaseStyle}">
-                                    <Setter Property="Content"
-                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnLogSearch}" />
-                                    <Setter Property="Grid.Column"
-                                            Value="2" />
+                            </Button.Style>
+                        </Button>
+                        <Grid Name="GridSearchLogs"
+                              Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=CbLogsScriptNames, Path=ItemsSource.Count}"
+                                                     Value="0">
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+                            <ComboBox Name="CbLogSearchType">
+                                <ComboBox.Style>
+                                    <Style TargetType="ComboBox"
+                                           BasedOn="{StaticResource CbBaseStyle}" />
+                                </ComboBox.Style>
+                                <ComboBoxItem Content="ComputerName" />
+                                <ComboBoxItem Content="LogText" />
+                                <ComboBoxItem Content="Operator" />
+                                <ComboBoxItem Content="UserInput" />
+                            </ComboBox>
+                            <TextBox Name="TbLogSearchText">
+                                <TextBox.Style>
+                                    <Style TargetType="TextBox"
+                                           BasedOn="{StaticResource TbBaseStyle}">
+                                        <Setter Property="Grid.Column"
+                                                Value="1" />
+                                        <Setter Property="ToolTip"
+                                                Value="{x:Null}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ElementName=CbLogSearchType, Path=SelectedIndex}"
+                                                         Value="-1">
+                                                <Setter Property="IsEnabled"
+                                                        Value="False" />
+                                                <Setter Property="ToolTip"
+                                                        Value="{StaticResource LogSearchNoType}" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBox.Style>
+                            </TextBox>
+                            <Button Name="BtnLogSearch">
+                                <Button.Style>
+                                    <Style TargetType="Button"
+                                           BasedOn="{StaticResource BtnBaseStyle}">
+                                        <Setter Property="Content"
+                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnLogSearch}" />
+                                        <Setter Property="Grid.Column"
+                                                Value="2" />
+                                        <Setter Property="IsEnabled"
+                                                Value="{Binding ElementName=TbLogSearchText, Path=IsEnabled}" />
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                        <Grid Grid.Row="2">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
                                     <Setter Property="IsEnabled"
-                                            Value="{Binding ElementName=TbLogSearchText, Path=IsEnabled}" />
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </Grid>
-                    <Grid Grid.Row="2">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <ComboBox Name="CbLogsScriptNames">
-                            <ComboBox.Style>
-                                <Style TargetType="ComboBox"
-                                       BasedOn="{StaticResource CbBaseStyle}">
-                                    <Setter Property="DisplayMemberPath"
-                                            Value="ScriptName" />
-                                    <Setter Property="ItemsSource"
-                                            Value="{Binding Source={StaticResource CvsCbLogsScriptNames}}" />
-                                </Style>
-                            </ComboBox.Style>
-                        </ComboBox>
-                        <ProgressBar Name="PbLogSearch">
-                            <ProgressBar.Style>
-                                <Style TargetType="ProgressBar">
-                                    <Setter Property="IsIndeterminate"
                                             Value="True" />
-                                    <Setter Property="Margin"
-                                            Value="5" />
-                                    <Setter Property="Visibility"
-                                            Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=CbLogsScriptNames, Path=ItemsSource.Count}"
+                                                     Value="0">
+                                            <Setter Property="IsEnabled"
+                                                    Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
                                 </Style>
-                            </ProgressBar.Style>
-                        </ProgressBar>
-                        <Button Name="BtnClearLogSearch">
-                            <Button.Style>
-                                <Style TargetType="Button"
-                                       BasedOn="{StaticResource BtnBaseStyle}">
-                                    <Setter Property="Content"
-                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnClearLogSearch}" />
-                                    <Setter Property="Grid.Column"
-                                            Value="1" />
-                                    <Setter Property="Visibility"
-                                            Value="Collapsed" />
+                            </Grid.Style>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <ComboBox Name="CbLogsScriptNames">
+                                <ComboBox.Style>
+                                    <Style TargetType="ComboBox"
+                                           BasedOn="{StaticResource CbBaseStyle}">
+                                        <Setter Property="DisplayMemberPath"
+                                                Value="ScriptName" />
+                                        <Setter Property="ItemsSource"
+                                                Value="{Binding Source={StaticResource CvsCbLogsScriptNames}}" />
+                                    </Style>
+                                </ComboBox.Style>
+                            </ComboBox>
+                            <ProgressBar Name="PbLogSearch">
+                                <ProgressBar.Style>
+                                    <Style TargetType="ProgressBar">
+                                        <Setter Property="IsIndeterminate"
+                                                Value="True" />
+                                        <Setter Property="Margin"
+                                                Value="5" />
+                                        <Setter Property="Visibility"
+                                                Value="Collapsed" />
+                                    </Style>
+                                </ProgressBar.Style>
+                            </ProgressBar>
+                            <Button Name="BtnClearLogSearch">
+                                <Button.Style>
+                                    <Style TargetType="Button"
+                                           BasedOn="{StaticResource BtnBaseStyle}">
+                                        <Setter Property="Content"
+                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnClearLogSearch}" />
+                                        <Setter Property="Grid.Column"
+                                                Value="1" />
+                                        <Setter Property="Visibility"
+                                                Value="Collapsed" />
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                        <Grid Grid.Row="3">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="IsEnabled"
+                                            Value="True" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=CbLogsScriptNames, Path=ItemsSource.Count}"
+                                                     Value="0">
+                                            <Setter Property="IsEnabled"
+                                                    Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
                                 </Style>
-                            </Button.Style>
-                        </Button>
+                            </Grid.Style>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <GroupBox Name="GbLogsFilter">
+                                <GroupBox.Style>
+                                    <Style TargetType="GroupBox"
+                                           BasedOn="{StaticResource GroupBoxBaseStyle}">
+                                        <Setter Property="Header"
+                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbLogsFilter}" />
+                                    </Style>
+                                </GroupBox.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <CheckBox Name="CbLogsFilterSuccessFailed">
+                                        <CheckBox.Style>
+                                            <Style TargetType="CheckBox"
+                                                   BasedOn="{StaticResource ChbBaseStyle}">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbLogsFilterSuccessFailed}" />
+                                                <Setter Property="IsChecked"
+                                                        Value="True" />
+                                            </Style>
+                                        </CheckBox.Style>
+                                    </CheckBox>
+                                    <CheckBox Name="CbLogsFilterSuccessSuccess">
+                                        <CheckBox.Style>
+                                            <Style TargetType="CheckBox"
+                                                   BasedOn="{StaticResource ChbBaseStyle}">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbLogsFilterSuccessSuccess}" />
+                                                <Setter Property="IsChecked"
+                                                        Value="True" />
+                                            </Style>
+                                        </CheckBox.Style>
+                                    </CheckBox>
+                                </StackPanel>
+                            </GroupBox>
+                            <GroupBox Name="GbLogsDisplayPeriod"
+                                      Grid.Column="1">
+                                <GroupBox.Style>
+                                    <Style TargetType="GroupBox"
+                                           BasedOn="{StaticResource GroupBoxBaseStyle}">
+                                        <Setter Property="Grid.Column"
+                                                Value="1" />
+                                        <Setter Property="Header"
+                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbLogsDisplayPeriod}" />
+                                    </Style>
+                                </GroupBox.Style>
+                                <GroupBox.Resources>
+                                    <Style TargetType="RadioButton"
+                                           BasedOn="{StaticResource RbBaseStyle}">
+                                        <Setter Property="GroupName"
+                                                Value="RbLogsDisplayPeriod" />
+                                    </Style>
+                                </GroupBox.Resources>
+                                <StackPanel>
+                                    <StackPanel.Style>
+                                        <Style TargetType="StackPanel"
+                                               BasedOn="{StaticResource SpBaseStyle}" />
+                                    </StackPanel.Style>
+                                    <RadioButton Name="RbLogsDisplayPeriodAll">
+                                        <RadioButton.Style>
+                                            <Style TargetType="RadioButton"
+                                                   BasedOn="{StaticResource ResourceKey=RbBaseStyle}">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbLogsDisplayPeriodAll}" />
+                                            </Style>
+                                        </RadioButton.Style>
+                                    </RadioButton>
+                                    <RadioButton Name="RbLogsDisplayPeriodRecent">
+                                        <RadioButton.Style>
+                                            <Style TargetType="RadioButton"
+                                                   BasedOn="{StaticResource ResourceKey=RbBaseStyle}">
+                                                <Setter Property="Content"
+                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbLogsDisplayPeriodRecent}" />
+                                            </Style>
+                                        </RadioButton.Style>
+                                    </RadioButton>
+                                </StackPanel>
+                            </GroupBox>
+                        </Grid>
+                        <DataGrid Name="DgLogs">
+                            <DataGrid.Style>
+                                <Style TargetType="DataGrid"
+                                       BasedOn="{StaticResource DgBaseStyle}">
+                                    <Setter Property="Grid.Row"
+                                            Value="4" />
+                                    <Setter Property="ItemsSource"
+                                            Value="{Binding Source={StaticResource CvsDgLogs}}" />
+                                    <Setter Property="RowStyle"
+                                            Value="{StaticResource DgLogsRowStyle}" />
+                                </Style>
+                            </DataGrid.Style>
+                            <DataGrid.Resources>
+                                <Style TargetType="DataGridRow">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Path=Success}"
+                                                     Value="0">
+                                            <Setter Property="Background"
+                                                    Value="LightCoral" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.Resources>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Binding="{Binding Path=LogDate}"
+                                                    ElementStyle="{StaticResource ColumnElementStyle}" />
+                                <DataGridTextColumn Binding="{Binding Path=Success}"
+                                                    ElementStyle="{StaticResource ColumnElementStyle}" />
+                                <DataGridTextColumn Binding="{Binding Path=Operator, Converter={StaticResource Converter}}"
+                                                    ElementStyle="{StaticResource ColumnElementStyle}" />
+                            </DataGrid.Columns>
+                        </DataGrid>
                     </Grid>
-                    <Grid Grid.Row="3">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-                        <GroupBox Name="GbLogsFilter">
-                            <GroupBox.Style>
-                                <Style TargetType="GroupBox"
-                                       BasedOn="{StaticResource GroupBoxBaseStyle}">
-                                    <Setter Property="Header"
-                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbLogsFilter}" />
-                                </Style>
-                            </GroupBox.Style>
-                            <StackPanel Orientation="Horizontal">
-                                <CheckBox Name="CbLogsFilterSuccessFailed">
-                                    <CheckBox.Style>
-                                        <Style TargetType="CheckBox"
-                                               BasedOn="{StaticResource ChbBaseStyle}">
-                                            <Setter Property="Content"
-                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbLogsFilterSuccessFailed}" />
-                                            <Setter Property="IsChecked"
-                                                    Value="True" />
-                                        </Style>
-                                    </CheckBox.Style>
-                                </CheckBox>
-                                <CheckBox Name="CbLogsFilterSuccessSuccess">
-                                    <CheckBox.Style>
-                                        <Style TargetType="CheckBox"
-                                               BasedOn="{StaticResource ChbBaseStyle}">
-                                            <Setter Property="Content"
-                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentCbLogsFilterSuccessSuccess}" />
-                                            <Setter Property="IsChecked"
-                                                    Value="True" />
-                                        </Style>
-                                    </CheckBox.Style>
-                                </CheckBox>
-                            </StackPanel>
-                        </GroupBox>
-                        <GroupBox Name="GbLogsDisplayPeriod"
-                                  Grid.Column="1">
-                            <GroupBox.Style>
-                                <Style TargetType="GroupBox"
-                                       BasedOn="{StaticResource GroupBoxBaseStyle}">
-                                    <Setter Property="Grid.Column"
-                                            Value="1" />
-                                    <Setter Property="Header"
-                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbLogsDisplayPeriod}" />
-                                </Style>
-                            </GroupBox.Style>
-                            <GroupBox.Resources>
-                                <Style TargetType="RadioButton"
-                                       BasedOn="{StaticResource RbBaseStyle}">
-                                    <Setter Property="GroupName"
-                                            Value="RbLogsDisplayPeriod" />
-                                </Style>
-                            </GroupBox.Resources>
-                            <StackPanel>
-                                <StackPanel.Style>
-                                    <Style TargetType="StackPanel"
-                                           BasedOn="{StaticResource SpBaseStyle}" />
-                                </StackPanel.Style>
-                                <RadioButton Name="RbLogsDisplayPeriodAll">
-                                    <RadioButton.Style>
-                                        <Style TargetType="RadioButton"
-                                               BasedOn="{StaticResource ResourceKey=RbBaseStyle}">
-                                            <Setter Property="Content"
-                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbLogsDisplayPeriodAll}" />
-                                        </Style>
-                                    </RadioButton.Style>
-                                </RadioButton>
-                                <RadioButton Name="RbLogsDisplayPeriodRecent">
-                                    <RadioButton.Style>
-                                        <Style TargetType="RadioButton"
-                                               BasedOn="{StaticResource ResourceKey=RbBaseStyle}">
-                                            <Setter Property="Content"
-                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbLogsDisplayPeriodRecent}" />
-                                        </Style>
-                                    </RadioButton.Style>
-                                </RadioButton>
-                            </StackPanel>
-                        </GroupBox>
-                    </Grid>
-                    <DataGrid Name="DgLogs">
-                        <DataGrid.Style>
-                            <Style TargetType="DataGrid"
-                                   BasedOn="{StaticResource DgBaseStyle}">
-                                <Setter Property="Grid.Row"
-                                        Value="4" />
-                                <Setter Property="ItemsSource"
-                                        Value="{Binding Source={StaticResource CvsDgLogs}}" />
-                                <Setter Property="RowStyle"
-                                        Value="{StaticResource DgLogsRowStyle}" />
-                            </Style>
-                        </DataGrid.Style>
-                        <DataGrid.Resources>
-                            <Style TargetType="DataGridRow">
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding Path=Success}"
-                                                 Value="0">
-                                        <Setter Property="Background"
-                                                Value="LightCoral" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </DataGrid.Resources>
-                        <DataGrid.Columns>
-                            <DataGridTextColumn Binding="{Binding Path=LogDate}"
-                                                ElementStyle="{StaticResource ColumnElementStyle}" />
-                            <DataGridTextColumn Binding="{Binding Path=Success}"
-                                                ElementStyle="{StaticResource ColumnElementStyle}" />
-                            <DataGridTextColumn Binding="{Binding Path=Operator, Converter={StaticResource Converter}}"
-                                                ElementStyle="{StaticResource ColumnElementStyle}" />
-                        </DataGrid.Columns>
-                    </DataGrid>
                     <Grid Name="GridLogInfo">
                         <Grid.Style>
                             <Style TargetType="Grid">
@@ -2586,11 +2613,10 @@
                         <ColumnDefinition />
                     </Grid.ColumnDefinitions>
                     <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="21*" />
-                            <ColumnDefinition Width="179*" />
-                        </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition />
@@ -2600,47 +2626,39 @@
                                 <Style TargetType="Button"
                                        BasedOn="{StaticResource BtnBaseStyle}">
                                     <Setter Property="Content"
-                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnReadErrorLogs}" />
-                                    <Setter Property="Grid.ColumnSpan"
-                                            Value="2" />
-                                    <Setter Property="Visibility"
-                                            Value="Collapsed" />
+                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnReadErrorLogsAgain}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding ElementName=CbErrorLogsScriptNames, Path=ItemsSource.Count}"
                                                      Value="0">
-                                            <Setter Property="Visibility"
-                                                    Value="Visible" />
+                                            <Setter Property="Content"
+                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnReadErrorLogs}" />
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
                             </Button.Style>
                         </Button>
-                        <Grid Name="GridErrorlogsSearch">
+                        <Grid Name="GridErrorlogsSearch"
+                              Grid.Row="1">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="IsEnabled"
+                                            Value="True" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=CbErrorLogsScriptNames, Path=ItemsSource.Count}"
+                                                     Value="0">
+                                            <Setter Property="IsEnabled"
+                                                    Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <Grid.Style>
-                                <Style TargetType="Grid">
-                                    <Setter Property="Grid.ColumnSpan"
-                                            Value="2" />
-                                    <Setter Property="Visibility"
-                                            Value="Visible" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=CbErrorLogsScriptNames, Path=ItemsSource.Count}"
-                                                     Value="0">
-                                            <Setter Property="Visibility"
-                                                    Value="Collapsed" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Grid.Style>
-                            <ComboBox Name="CbErrorLogSearchType">
-                                <ComboBox.Style>
-                                    <Style TargetType="ComboBox"
-                                           BasedOn="{StaticResource CbBaseStyle}" />
-                                </ComboBox.Style>
+                            <ComboBox Name="CbErrorLogSearchType"
+                                      Style="{StaticResource CbBaseStyle}">
                                 <ComboBoxItem Content="ComputerName" />
                                 <ComboBoxItem Content="LogText" />
                                 <ComboBoxItem Content="Operator" />
@@ -2680,21 +2698,25 @@
                                 </Button.Style>
                             </Button>
                         </Grid>
-                        <Grid Name="GridErrorlogsList">
+                        <Grid Name="GridErrorlogsList"
+                              Grid.Row="2">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="IsEnabled"
+                                            Value="True" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=CbErrorLogsScriptNames, Path=ItemsSource.Count}"
+                                                     Value="0">
+                                            <Setter Property="IsEnabled"
+                                                    Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <Grid.Style>
-                                <Style TargetType="Grid">
-                                    <Setter Property="Grid.ColumnSpan"
-                                            Value="2" />
-                                    <Setter Property="Grid.Row"
-                                            Value="1" />
-                                    <Setter Property="Visibility"
-                                            Value="Visible" />
-                                </Style>
-                            </Grid.Style>
                             <ComboBox Name="CbErrorLogsScriptNames">
                                 <ComboBox.Style>
                                     <Style TargetType="ComboBox"
@@ -2720,13 +2742,59 @@
                                 </Button.Style>
                             </Button>
                         </Grid>
-                        <Border Name="BorderErrorLogsParsing">
+                        <GroupBox Name="GbErrorLogsDisplayPeriod"
+                                  Grid.Row="3"
+                                  Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbErrorLogsDisplayPeriod}">
+                            <GroupBox.Style>
+                                <Style TargetType="GroupBox"
+                                       BasedOn="{StaticResource GroupBoxBaseStyle}">
+                                    <Setter Property="IsEnabled"
+                                            Value="True" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=CbErrorLogsScriptNames, Path=ItemsSource.Count}"
+                                                     Value="0">
+                                            <Setter Property="IsEnabled"
+                                                    Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </GroupBox.Style>
+                            <GroupBox.Resources>
+                                <Style TargetType="RadioButton"
+                                       BasedOn="{StaticResource RbBaseStyle}">
+                                    <Setter Property="GroupName"
+                                            Value="RbErrorLogsDisplayPeriod" />
+                                </Style>
+                            </GroupBox.Resources>
+                            <StackPanel>
+                                <StackPanel.Style>
+                                    <Style TargetType="StackPanel"
+                                           BasedOn="{StaticResource SpBaseStyle}" />
+                                </StackPanel.Style>
+                                <RadioButton Name="RbErrorLogsDisplayPeriodAll">
+                                    <RadioButton.Style>
+                                        <Style TargetType="RadioButton"
+                                               BasedOn="{StaticResource ResourceKey=RbBaseStyle}">
+                                            <Setter Property="Content"
+                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbErrorLogsDisplayPeriodAll}" />
+                                        </Style>
+                                    </RadioButton.Style>
+                                </RadioButton>
+                                <RadioButton Name="RbErrorLogsDisplayPeriodRecent">
+                                    <RadioButton.Style>
+                                        <Style TargetType="RadioButton"
+                                               BasedOn="{StaticResource ResourceKey=RbBaseStyle}">
+                                            <Setter Property="Content"
+                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentRbErrorLogsDisplayPeriodRecent}" />
+                                        </Style>
+                                    </RadioButton.Style>
+                                </RadioButton>
+                            </StackPanel>
+                        </GroupBox>
+                        <Border Name="BorderErrorLogsParsing"
+                                Grid.Row="4">
                             <Border.Style>
                                 <Style TargetType="Border">
-                                    <Setter Property="Grid.ColumnSpan"
-                                            Value="2" />
-                                    <Setter Property="Grid.Row"
-                                            Value="1" />
                                     <Setter Property="Height"
                                             Value="{Binding ElementName=GridErrorlogsList, Path=ActualHeight}" />
                                     <Setter Property="Margin"
@@ -2771,22 +2839,12 @@
                                 </ProgressBar>
                             </Grid>
                         </Border>
-                        <DataGrid Name="DgErrorLogs">
-                            <DataGrid.Style>
-                                <Style TargetType="DataGrid"
-                                       BasedOn="{StaticResource DgBaseStyle}">
-                                    <Setter Property="AutoGenerateColumns"
-                                            Value="False" />
-                                    <Setter Property="Grid.ColumnSpan"
-                                            Value="2" />
-                                    <Setter Property="Grid.Row"
-                                            Value="2" />
-                                    <Setter Property="ItemsSource"
-                                            Value="{Binding Source={StaticResource CvsDgErrorLogs}}" />
-                                    <Setter Property="RowStyle"
-                                            Value="{StaticResource DgLogsRowStyle}" />
-                                </Style>
-                            </DataGrid.Style>
+                        <DataGrid Name="DgErrorLogs"
+                                  AutoGenerateColumns="False"
+                                  Grid.Row="4"
+                                  ItemsSource="{Binding Source={StaticResource CvsDgErrorLogs}}"
+                                  RowStyle="{StaticResource DgLogsRowStyle}"
+                                  Style="{StaticResource DgBaseStyle}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Binding="{Binding Path=LogDate}"
                                                     ElementStyle="{StaticResource ColumnElementStyle}"
@@ -2794,13 +2852,8 @@
                             </DataGrid.Columns>
                         </DataGrid>
                     </Grid>
-                    <Grid Name="GridErrorInfo">
-                        <Grid.Style>
-                            <Style TargetType="Grid">
-                                <Setter Property="Grid.Column"
-                                        Value="1" />
-                            </Style>
-                        </Grid.Style>
+                    <Grid Name="GridErrorInfo"
+                          Grid.Column="1">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" />
                             <ColumnDefinition Width="250" />
@@ -2814,14 +2867,12 @@
                             <RowDefinition Height="1*" />
                             <RowDefinition Height="1*" />
                         </Grid.RowDefinitions>
-                        <Button Name="BtnCopyErrorInfo">
+                        <Button Name="BtnCopyErrorInfo"
+                                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCopyErrorInfo}"
+                                Grid.Column="1">
                             <Button.Style>
                                 <Style TargetType="Button"
                                        BasedOn="{StaticResource BtnBaseStyle}">
-                                    <Setter Property="Content"
-                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCopyErrorInfo}" />
-                                    <Setter Property="Grid.Column"
-                                            Value="1" />
                                     <Setter Property="IsEnabled"
                                             Value="True" />
                                     <Style.Triggers>
