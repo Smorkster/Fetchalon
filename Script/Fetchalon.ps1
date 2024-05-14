@@ -9,7 +9,72 @@
 	Smorkster (smorkster)
 #>
 
+# Initiate internal variables
 $InitArgs = $args
+$culture = "sv-SE"
+$BaseDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
+Add-Type -AssemblyName PresentationFramework
+Add-Type -AssemblyName UIAutomationClient
+Get-Module | Where-Object { $_.Path -match "Fetchalon" } | Remove-Module
+"ActiveDirectory", ( Get-ChildItem -Path "$BaseDir\Modules\SuiteModules\*" -File ).FullName | `
+	ForEach-Object {
+		Import-Module -Name $_ -Force -ArgumentList $culture, $true
+	}
+
+if ( $BaseDir -notmatch "Development" )
+{
+	#.Net invokes to look for open windows
+	Add-Type  @"
+		using System;
+		using System.Runtime.InteropServices;
+		using System.Text;
+		public class Win32Init {
+			public delegate void ThreadDelegate(IntPtr hWnd, IntPtr lParam);
+
+			[DllImport("user32.dll")]
+			public static extern bool EnumThreadWindows(int dwThreadId, ThreadDelegate lpfn, IntPtr lParam);
+
+			[DllImport("user32.dll")]
+			public static extern bool IsIconic(IntPtr hWnd);
+
+			[DllImport("user32.dll")]
+			public static extern bool IsWindowVisible(IntPtr hWnd);
+
+			[DllImport("user32.dll", SetLastError=true)]
+			public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
+
+			[DllImport("user32.dll")] 
+			public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
+		}
+"@
+
+	<# Verify if script has already been opened
+		If opened, set window state to foreground
+		If not opened, continue with starting script
+	#>
+	Get-Process | `
+		Where-Object { $_.MainWindowTitle } | `
+		ForEach-Object {
+			$_.Threads.ForEach( {
+				[void][Win32Init]::EnumThreadWindows( $_.Id, {
+					param( $hwnd, $lparam )
+					if ( [Win32Init]::IsIconic( $hwnd ) -or [Win32Init]::IsWindowVisible( $hwnd ) )
+					{
+						$a = $null
+						[Win32Init]::GetWindowThreadProcessId( $hwnd, [ref] $a )
+
+						$Global:Temp.Add( ( Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = '$a'" ) ) | Out-Null
+						if ( ( Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = '$a'" ).CommandLine -match "Fetchalon.*$( ( Get-Item $PSCommandPath ).Name )" )
+						{
+							Show-Splash -Duration 1 -NoProgressBar -Text $msgTable.StrOpenMainWindowFound
+							[Win32Init]::ShowWindowAsync( $hwnd , 9 )
+							exit
+						}
+					}
+				}, 0 )
+			} )
+		}
+}
 
 function Check-O365Connection
 {
@@ -814,16 +879,7 @@ function Start-Search
 }
 
 ############################################ Script start
-$culture = "sv-SE"
-$BaseDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
-Add-Type -AssemblyName PresentationFramework
-Add-Type -AssemblyName UIAutomationClient
 
-Get-Module | Where-Object { $_.Path -match "Fetchalon" } | Remove-Module
-"ActiveDirectory", ( Get-ChildItem -Path "$BaseDir\Modules\SuiteModules\*" -File ).FullName | `
-	ForEach-Object {
-		Import-Module -Name $_ -Force -ArgumentList $culture, $true
-	}
 Show-Splash -Text "" -SelfAdmin
 WriteLog -Text "Start" -Success $true | Out-Null
 
@@ -1937,7 +1993,10 @@ Update-SplashText -Text $msgTable.StrSplashAddControlHandlers
 # Input has been entered by operator, start function
 $syncHash.BtnEnterFunctionInput.Add_Click( {
 	$EnteredInput = @{}
-	$syncHash.GridFunctionOp.DataContext.InputData | ForEach-Object { $EnteredInput."$( $_.Name )" = $_.EnteredValue }
+	$syncHash.GridFunctionOp.DataContext.InputData | `
+		ForEach-Object {
+			$EnteredInput."$( $_.Name )" = $_.EnteredValue
+		}
 
 	if ( $syncHash.GridFunctionOp.DataContext.NoRunspace )
 	{
@@ -2301,7 +2360,6 @@ $syncHash.Window.Add_Closed( {
 						Unregister-Event -SourceIdentifier $_
 					}
 			}
-
 	}
 
 	# Close runspaces and windows opened for tools
@@ -2352,19 +2410,21 @@ if ( $null -eq $InitArgs[1] )
 		Update-SplashText -Text $msgTable.StrSplashConnectO365
 		Set-SplashTopMost -NotTopMost
 		Connect-O365
-		#$syncHash.MiO365Connect.Visibility = [System.Windows.Visibility]::Collapsed
 		Set-SplashTopMost -TopMost
 	}
 	try
 	{
 		Update-SplashText -Text "$( $msgTable.StrSplashCheckO365Roles )`n$( ( Get-AzureADCurrentSessionInfo -ErrorAction Stop ).Account.Id )"
-		#Check-O365Connection
 		Check-O365Roles
 	}
 	catch
 	{}
 
 	Import-Module ActiveDirectory -Force
+}
+else
+{
+	Update-SplashText -Text $msgTable.StrSplashSkippingO365
 }
 
 [void] $syncHash.Window.ShowDialog()
