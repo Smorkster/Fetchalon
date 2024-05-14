@@ -19,7 +19,8 @@
                     <RowDefinition Height="35" />
                     <RowDefinition Height="1*" />
                 </Grid.RowDefinitions>
-                <Border Background="Wheat" Opacity="0.7">
+                <Border Background="Wheat"
+                        Opacity="0.7">
                     <!-- Opacity of < 1.0 helps show the minimize, maximize and close buttons -->
                     <Grid>
                         <!-- Window Title - Center Aligned -->
@@ -538,6 +539,9 @@
                     Value="1" />
         </Style>
 
+        <Style TargetType="ComboBox"
+               x:Key="CbInputStyle">
+        </Style>
         <Style TargetType="CheckBox"
                x:Key="CbPropValueStyle">
             <Setter Property="Grid.Row"
@@ -1368,7 +1372,8 @@
                                   Grid.Row="1"
                                   ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.InputData}">
                         <ItemsControl.Style>
-                            <Style TargetType="ItemsControl" BasedOn="{StaticResource IcBaseStyle}">
+                            <Style TargetType="ItemsControl"
+                                   BasedOn="{StaticResource IcBaseStyle}">
                                 <Setter Property="IsEnabled"
                                         Value="True" />
                                 <Setter Property="Visibility"
@@ -1418,9 +1423,48 @@
                                              Height="30"
                                              Margin="5,0"
                                              Padding="{StaticResource StdPadding}"
-                                             Style="{StaticResource TbInputStyle}"
                                              Text="{Binding Path=EnteredValue, Mode=TwoWay}"
-                                             VerticalContentAlignment="Center" />
+                                             VerticalContentAlignment="Center">
+                                        <TextBox.Style>
+                                            <Style TargetType="TextBox"
+                                                   BasedOn="{StaticResource TbInputStyle}">
+                                                <Setter Property="Visibility"
+                                                        Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Path=InputType}"
+                                                                 Value="String">
+                                                        <Setter Property="Visibility"
+                                                                Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBox.Style>
+                                    </TextBox>
+                                    <ComboBox Name="CbValueInput"
+                                              Grid.ColumnSpan="3"
+                                              Grid.Row="1"
+                                              Height="30"
+                                              ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.InputList}"
+                                              Margin="5,0"
+                                              Padding="{StaticResource StdPadding}"
+                                              Text="{Binding Path=EnteredValue, Mode=TwoWay}"
+                                              VerticalContentAlignment="Center">
+                                        <ComboBox.Style>
+                                            <Style TargetType="ComboBox"
+                                                   BasedOn="{StaticResource CbInputStyle}">
+                                                <Setter Property="Visibility"
+                                                        Value="Collapsed" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Path=InputType}"
+                                                                 Value="List">
+                                                        <Setter Property="Visibility"
+                                                                Value="Visible" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+
+                                        </ComboBox.Style>
+                                    </ComboBox>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
@@ -1432,7 +1476,8 @@
                             Padding="{StaticResource StdPadding}"
                             Visibility="{Binding ElementName=IcFunctionInput, Path=Visibility}" />
                 </Grid>
-                <ItemsControl Name="IcOutputObjects" Grid.Row="1"
+                <ItemsControl Name="IcOutputObjects"
+                              Grid.Row="1"
                               VirtualizingPanel.IsVirtualizing="True"
                               VirtualizingPanel.VirtualizationMode="Recycling">
                     <ItemsControl.ItemsPanel>
@@ -3467,7 +3512,7 @@
                                                                                             <Label Content="{Binding Path=.}"
                                                                                                    ContentStringFormat="{DynamicResource StrFullDateTimeFormat}"
                                                                                                    Margin="0"
-                                                                                                   Style="{StaticResource LblStyle}"/>
+                                                                                                   Style="{StaticResource LblStyle}" />
                                                                                         </DataTemplate>
                                                                                         <DataTemplate x:Key="DefaultTemplate">
                                                                                             <TextBlock Style="{StaticResource TblStyle}"
