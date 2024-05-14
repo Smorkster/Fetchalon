@@ -124,20 +124,19 @@ function Get-PollenRapport
 		Smorkster (smorkster)
 	#>
 
-	Add-Type -AssemblyName System.Web
-	$Result = Invoke-WebRequest -Uri https://pollenrapporten.se
+	param ( $InputData )
 
-	( $Result.RawContent -replace "`n" ) -match "data-location=""Stockholm(?<LocationData>.*?)pp_pollentext pp_pollentext_liten c3823" | Out-Null
+	$CityId = ( ( Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/regions" -Method Get ).items | `
+		Where-Object { ( $_.name -replace "Ã¥", "å" -replace "Ã¤", "ä" -replace "Ã¶", "ö" ) -match $InputData.Stad } ).id
 	$PList = [System.Collections.ArrayList]::new()
-	$LocationData = $Matches.LocationData
-
-	[regex]::Matches( $LocationData , "(<element>(?<p>.*?)<.*?value(?<pn>\d))" ) | `
+	$PollenTypes = ( Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/pollen-types" -Method get ).items
+	$PollenForecast = Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/forecasts?region_id=$CityId&current=true" -Method Get -ContentType "application/json"
+	$PollenForecast.items[0].levelSeries | `
+		Where-Object { $_.level -gt 0 -and $_.time -match ( Get-Date -Format "yyyy-MM-dd" ) } | `
+		Select-Object @{ Name = $IntMsgTable.GetPollenRapportTitle1 ; Expression = { $current = $_ ; ( $PollenTypes | Where-Object { $_.id -eq $current.pollenId } ).Name -replace "Ã¥", "å" -replace "Ã¤", "ä" -replace "Ã¶", "ö" } } , `
+			@{ Name = $IntMsgTable.GetPollenRapportTitle2 ; Expression = { $_.level } } | `
 		ForEach-Object {
-			$PR = [pscustomobject]@{
-				"$( $IntMsgTable.GetPollenRapportTitle1 )" = [System.Web.HttpUtility]::HtmlDecode( ( $_.Groups['p'].Value.Trim() ) )
-				"$( $IntMsgTable.GetPollenRapportTitle2 )" = "$( $_.Groups['pn'].Value ) / 7"
-			}
-			$PList.Add( $PR ) | Out-Null
+			$PList.Add( $_ ) | Out-Null
 		}
 
 	return $PList
