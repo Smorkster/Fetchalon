@@ -290,11 +290,13 @@ function GetScriptInfo
 		[switch] $NoErrorRecord
 	)
 
+	# Create object if not present in parameters
 	if ( $null -eq $InfoObject )
 	{
 		$InfoObject = [pscustomobject]@{}
 	}
 
+	# Determine if text to parse was passed, otherwise get the text from file
 	if ( $FilePath )
 	{
 		try
@@ -331,26 +333,41 @@ function GetScriptInfo
 		}
 	}
 
+	# Separate infoblock from rest of the script text
 	if ( $FileContent -match "(?s)<#(?<Info>.*?)#>" )
 	{
+		# Parse the info block
 		$Matches.Info -split "(?m)^\s*\." | `
 			Where-Object { $_ } | `
 			ForEach-Object `
 				-Begin {
-					$InputDataList = [System.Collections.ArrayList]::new()
+					$ListInputData = [System.Collections.ArrayList]::new()
 				} `
 				-Process {
 					$_ -match "\s*(?<InfoType>(?!(Parameter)|(Outputs))\w+)\s+(?<Rest>.*)" | Out-Null
 					if ( "InputData" -eq $Matches.InfoType )
 					{
 						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\s*?(?<InputComment>.*)" | Out-Null
-						$InputDataList.Add( (
+						$ListInputData.Add( (
 							[pscustomobject]@{
 								Name = $Matches.InputVar
+								InputType = "String"
 								InputDescription = $Matches.InputComment.Trim()
 								EnteredValue = ""
 								}
 							) ) | Out-Null
+					}
+					elseif ( "InputDataList" -eq $Matches.InfoType )
+					{
+						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\s*?(?<InputList>.*)" | Out-Null
+						$ListInputData.Add( (
+							[pscustomobject]@{
+								Name = $Matches.InputVar
+								InputType = "List"
+								InputList = [System.Collections.ArrayList] ( $Matches.InputList.Trim() -split "," )
+								EnteredValue = ""
+							}
+						) ) | Out-Null
 					}
 					elseif ( "NoRunspace" -eq $Matches.InfoType )
 					{
@@ -362,9 +379,9 @@ function GetScriptInfo
 					}
 				} `
 				-End {
-					if ( $InputDataList.Count -gt 0 )
+					if ( $ListInputData.Count -gt 0 )
 					{
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "InputData" -Value $InputDataList -Force
+						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "InputData" -Value $ListInputData -Force
 					}
 				}
 
@@ -393,7 +410,7 @@ function GetScriptInfo
 	}
 	else
 	{
-		if ( -not $NoErrorRecord)
+		if ( -not $NoErrorRecord )
 		{
 			if ( $FilePath )
 			{
