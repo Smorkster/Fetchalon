@@ -195,6 +195,7 @@ function CreatePage
 	$syncHash.Page, $ControlNames = CreateWindow -IncludeConverters -XamlFile $FilePath
 	if ( $syncHash.Page -is [System.Windows.Controls.Page] )
 	{
+		$SyncHash.Page.Language = [System.Windows.Markup.XmlLanguage]::GetLanguage( $culture )
 		$syncHash.Bindings = [hashtable]( @{} )
 		$syncHash.Code = [hashtable]( @{} )
 		$syncHash.Controls = [hashtable]::Synchronized( @{} )
@@ -459,6 +460,8 @@ function Show-MessageBox
 		What buttons are to be used/visible in the messagebox
 	.Parameter Icon
 		What icon is to be displayed in the messagebox
+	.Parameter Window
+		Which window should be the 'owner' of the messagebox
 	.Outputs
 		Returns which button in the messagebox was clicked
 	.State
@@ -471,10 +474,22 @@ function Show-MessageBox
 		[string] $Text,
 		[string] $Title = "",
 		[string] $Button = "OK",
-		[string] $Icon = "Info"
+		[string] $Icon = "Info",
+		[object] $Window
 	)
 
-	return [System.Windows.MessageBox]::Show( "$Text", "$Title", "$Button", "$Icon" )
+	$MsgAnswer = ""
+	if ( $Window )
+	{
+		$Window.Dispatcher.Invoke( "Send", [action] {
+			$MsgAnswer = [System.Windows.MessageBox]::Show( $Window, $Text, $Title, $Button, $Icon )
+		} ) | Out-Null
+	}
+	else
+	{
+		$MsgAnswer = [System.Windows.MessageBox]::Show( $Text, $Title, $Button, $Icon )
+	}
+	return $MsgAnswer
 }
 
 function Show-Splash
@@ -615,6 +630,8 @@ Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName 
 
 $Converters = @"
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using System.Drawing;
@@ -688,6 +705,27 @@ namespace FetchalonConverters
 
 			var res = ( adsSearcher.FindOne() ).GetDirectoryEntry();
 			return res.Name.Split( '=' )[1];
+		}
+
+		public object ConvertBack ( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	public class ADVerifyId : IValueConverter
+	{
+		/// <summary>Convert an AD-groups DistinguishedName to its name</summary>
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			DirectoryEntry de = new DirectoryEntry( "LDAP://CodeConverterADContainer" );
+			DirectorySearcher adsSearcher = new DirectorySearcher( de )
+			{
+				Filter = "(SamAccountName=" + (string)value + ")"
+			};
+
+			var res = ( adsSearcher.FindOne() ).GetDirectoryEntry();
+			return res != null;
 		}
 
 		public object ConvertBack ( object value, Type targetType, object parameter, CultureInfo culture )
