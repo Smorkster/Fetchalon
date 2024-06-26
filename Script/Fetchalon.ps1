@@ -932,7 +932,7 @@ Update-SplashText -Text $msgTable.StrSplashReadingSettings
 
 try
 {
-	Resolve-Path $syncHash.Data.SettingsPath -ErrorAction Stop
+	Resolve-Path $syncHash.Data.SettingsPath -ErrorAction Stop | Out-Null
 	Read-SettingsFile
 }
 catch
@@ -1636,6 +1636,7 @@ $(
 					$page = CreatePage -FilePath $SenderObject.DataContext.Xaml
 					$page.Data.msgTable = Import-LocalizedData -BaseDirectory $SenderObject.DataContext.Localization.Directory.FullName -FileName $SenderObject.DataContext.Localization.Name
 					$page.Data.Modules = Get-Module
+					$page.Data.MainWindow = $syncHash.Window
 					$page.Page.DataContext = [pscustomobject]@{
 						MsgTable = $page.Data.msgTable
 					}
@@ -2225,7 +2226,7 @@ $syncHash.TbSearch.Add_TextChanged( {
 	$syncHash.DC.BtnSearch[0] = $this.Text.Length -ge 3
 } )
 
-# Togglebutton is unchecked (unpressed), display the checked properties in PropsList
+# Togglebutton is checked (pressed), display the checked properties in PropsList
 $syncHash.TBtnObjectDetailed.Add_Checked( {
 	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
 } )
