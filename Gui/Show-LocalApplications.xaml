@@ -1,6 +1,7 @@
 <Page Name="Window"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Page.Resources>
         <Brush x:Key="DefaultFontColor">#FF444444</Brush>
@@ -10,13 +11,18 @@
                                                 PropertyName="Name" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsAppsLocal">
+        <CollectionViewSource x:Key="CvsAppsLocal"
+                              IsLiveSortingRequested="True">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="User" />
+                                                PropertyName="DisplayName" />
                 <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="Name" />
+                                                PropertyName="User" />
             </CollectionViewSource.SortDescriptions>
+            <CollectionViewSource.LiveSortingProperties>
+                <sys:String>DisplayName</sys:String>
+                <sys:String>User</sys:String>
+            </CollectionViewSource.LiveSortingProperties>
         </CollectionViewSource>
         <CollectionViewSource x:Key="CvsAppsWrappers">
             <CollectionViewSource.SortDescriptions>
@@ -28,6 +34,12 @@
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
                                                 PropertyName="Name" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsLogMessages">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Descending"
+                                                PropertyName="LogTime" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
         <Thickness x:Key="StdMargin">5</Thickness>
@@ -96,8 +108,8 @@
         </Style>
         <Style TargetType="ProgressBar"
                x:Key="PbBaseStyle">
-            <Setter Property="Grid.Row"
-                    Value="1" />
+            <Setter Property="MinHeight"
+                    Value="10" />
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
         </Style>
@@ -123,6 +135,8 @@
             <RowDefinition Height="1*" />
             <RowDefinition Height="Auto"
                            MinHeight="40" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -158,53 +172,21 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-                    <DataGrid Name="DgAppListLocal">
-                        <DataGrid.Style>
-                            <Style TargetType="DataGrid">
-                                <Setter Property="AutoGenerateColumns"
-                                        Value="False" />
-                                <Setter Property="Grid.Row"
-                                        Value="1" />
-                                <Setter Property="HeadersVisibility"
-                                        Value="Column" />
-                                <Setter Property="HorizontalScrollBarVisibility"
-                                        Value="Hidden" />
-                                <Setter Property="IsReadOnly"
-                                        Value="True" />
-                                <Setter Property="ItemsSource"
-                                        Value="{Binding Source={StaticResource CvsAppsLocal}}" />
-                                <Setter Property="VerticalScrollBarVisibility"
-                                        Value="Auto" />
-                            </Style>
-                        </DataGrid.Style>
+                    <DataGrid Name="DgAppListLocal"
+                              AutoGenerateColumns="False"
+                              Grid.Row="1"
+                              HeadersVisibility="Column"
+                              HorizontalScrollBarVisibility="Hidden"
+                              IsReadOnly="True"
+                              ItemsSource="{Binding Source={StaticResource CvsAppsLocal}}"
+                              VerticalScrollBarVisibility="Auto">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Binding="{Binding Path=Name}">
-                                <DataGridTextColumn.Header>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgLocalNameCol}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Binding="{Binding Path=Installed}">
-                                <DataGridTextColumn.Header>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgLocalInstCol}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </DataGridTextColumn.Header>
+                            <DataGridTextColumn Binding="{Binding Path=DisplayName}" />
+                            <DataGridTextColumn Binding="{Binding Path=InstallDate, StringFormat='yyyy-MM-dd'}">
                                 <DataGridTextColumn.CellStyle>
                                     <Style TargetType="DataGridCell">
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.Installed}"
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.InstallDate}"
                                                          Value="0">
                                                 <Setter Property="ContentTemplate">
                                                     <Setter.Value>
@@ -218,18 +200,7 @@
                                     </Style>
                                 </DataGridTextColumn.CellStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Binding="{Binding Path=User}">
-                                <DataGridTextColumn.Header>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgLocalUserCol}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Path=User}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -279,42 +250,9 @@
                             </Style>
                         </DataGrid.Style>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Binding="{Binding Path=Appname}">
-                                <DataGridTextColumn.Header>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgWrappersAppNameCol}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Binding="{Binding Path=InstallDate}">
-                                <DataGridTextColumn.Header>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgWrappersInstallDateCol}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Binding="{Binding Path=ProductVersion}">
-                                <DataGridTextColumn.Header>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgWrappersProdVerCol}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Path=Appname}" />
+                            <DataGridTextColumn Binding="{Binding Path=InstallDate}" />
+                            <DataGridTextColumn Binding="{Binding Path=ProductVersion}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -364,30 +302,8 @@
                             </Style>
                         </DataGrid.Style>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Binding="{Binding Path=Name}">
-                                <DataGridTextColumn.Header>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgSysManNameCol}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
-                            <DataGridTextColumn Binding="{Binding Path=Description}">
-                                <DataGridTextColumn.Header>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgSysManDescCol}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Path=Name}" />
+                            <DataGridTextColumn Binding="{Binding Path=Description}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -449,28 +365,28 @@
                             </Style>
                         </DataGrid.Style>
                         <DataGrid.Columns>
-                            <DataGridTextColumn Binding="{Binding Path=Name}">
-                                <DataGridTextColumn.Header>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text"
-                                                        Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgAppListCoreNameCol}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </DataGridTextColumn.Header>
-                            </DataGridTextColumn>
+                            <DataGridTextColumn Binding="{Binding Path=Name}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
             </TabItem>
         </TabControl>
-        <ProgressBar Name="PbProgressLocal"
-                     Style="{StaticResource PbBaseStyle}" />
-        <ProgressBar Name="PbProgressSysMan"
-                     Grid.Column="1"
-                     Style="{StaticResource PbBaseStyle}" />
+        <Grid Grid.Row="1"
+              VerticalAlignment="Stretch"
+              Visibility="{Binding ElementName=PbProgressLocal, Path=Visibility}">
+            <ProgressBar Name="PbProgressLocal"
+                         Style="{StaticResource PbBaseStyle}" />
+            <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentPbLocalTitle}" />
+        </Grid>
+        <Grid Grid.Column="1"
+              Grid.Row="1"
+              VerticalAlignment="Stretch"
+              Visibility="{Binding ElementName=PbProgressSysMan, Path=Visibility}">
+            <ProgressBar Name="PbProgressSysMan"
+                         Grid.Column="1"
+                         Style="{StaticResource PbBaseStyle}" />
+            <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentPbSysManTitle}" />
+        </Grid>
         <Grid Grid.Row="2">
             <Grid.Style>
                 <Style TargetType="Grid">
@@ -524,51 +440,66 @@
                 </TextBox.Style>
             </TextBox>
         </Grid>
-        <TextBlock Name="TbProgressInfo"
-                   Grid.Column="1"
-                   Grid.Row="2"
-                   Margin="{StaticResource StdMargin}"
-                   TextWrapping="Wrap"
-                   VerticalAlignment="Center" />
         <Button Name="BtnGetAppList"
                 Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnGetAppList}"
                 Grid.Row="3"
-                IsEnabled="True">
-            <Button.Style>
-                <Style TargetType="Button"
-                       BasedOn="{StaticResource BtnBaseStyle}">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding ElementName=PbProgress, Path=Visibility}"
-                                     Value="Visible">
-                            <Setter Property="IsEnabled"
-                                    Value="False" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Button.Style>
-        </Button>
+                IsEnabled="True"
+                Style="{StaticResource BtnBaseStyle}" />
         <Button Name="BtnUninstall"
                 Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUninstall}"
-                Grid.Column="1"
-                Grid.Row="3"
-                IsEnabled="True">
-            <Button.Style>
-                <Style TargetType="Button"
-                       BasedOn="{StaticResource BtnBaseStyle}">
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding ElementName=DgAppList, Path=SelectedItems.Count}"
-                                     Value="0">
-                            <Setter Property="IsEnabled"
-                                    Value="False" />
-                        </DataTrigger>
-                        <DataTrigger Binding="{Binding ElementName=PbProgress, Path=Visibility}"
-                                     Value="Visible">
-                            <Setter Property="IsEnabled"
-                                    Value="False" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </Button.Style>
-        </Button>
+                Grid.Row="4"
+                IsEnabled="True"
+                Style="{StaticResource BtnBaseStyle}" />
+        <Button Name="BtnReset"
+                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnReset}"
+                Grid.Row="5"
+                IsEnabled="True"
+                Style="{StaticResource BtnBaseStyle}" />
+        <ScrollViewer Grid.Column="1"
+                      Grid.Row="2"
+                      Grid.RowSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=RowDefinitions.Count}"
+                      VerticalScrollBarVisibility="Auto">
+            <ItemsControl Name="IcInfo"
+                          ItemsSource="{Binding Source={StaticResource CvsLogMessages}}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.Resources>
+                                <Style TargetType="TextBlock">
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Path=LogType}"
+                                                     Value="Info">
+                                            <Setter Property="Foreground"
+                                                    Value="#FF444444" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Path=LogType}"
+                                                     Value="Error">
+                                            <Setter Property="Foreground"
+                                                    Value="Red" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding Path=LogType}"
+                                                     Value="Success">
+                                            <Setter Property="Foreground"
+                                                    Value="Green" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Resources>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Path=LogTime}" />
+                            <TextBlock Grid.Column="1" Margin="5,0,0,0" Text="{Binding Path=LogMessage}" TextWrapping="Wrap" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
     </Grid>
 </Page>
