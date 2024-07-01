@@ -513,7 +513,14 @@ function Run-ScriptNoRunspace
 	}
 	else
 	{
-		. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module | Where-Object { Test-Path $_.Path } ) $syncHash.Data.SearchedItem.psobject.Copy() $EnteredInput
+		if ( $null -eq $syncHash.Data.SearchedItem )
+		{
+			. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module | Where-Object { Test-Path $_.Path } ) $null $EnteredInput
+		}
+		else
+		{
+			. $syncHash.Code.SBlockExecuteFunction $syncHash $ScriptObject ( Get-Module | Where-Object { Test-Path $_.Path } ) $syncHash.Data.SearchedItem.psobject.Copy() $EnteredInput
+		}
 	}
 
 	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $msgTable.StrDefaultMainTitle } )
