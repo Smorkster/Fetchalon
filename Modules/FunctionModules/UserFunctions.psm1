@@ -52,36 +52,47 @@ function Compare-UserGroups
 		try
 		{
 			$a = Get-ADUser $_
-			$b = ( Get-ADPrincipalGroupMembership -Identity $a | Select-Object -ExpandProperty Name )
-			[void] $Users.Add( ( [pscustomobject]@{ "User" = $a; "Groups" = $b } ) )
+			$b = Get-ADPrincipalGroupMembership -Identity $a | Where-Object { $_.SamAccountName -ne "Domain Users" }
+			$b | `
+				ForEach-Object {
+					if ( $b.SamAccountName -like "*_Org_*" )
+					{
+						$g = Get-ADGroup $_
+						Get-ADPrincipalGroupMembership $g | `
+							ForEach-Object {
+								$b = $b + ( Get-ADGroup $_ )
+							}
+					}
+				}
+			[void] $Users.Add( ( [pscustomobject]@{ "User" = $a; "Groups" = ( $b | Select-Object -ExpandProperty Name -Unique | Sort-Object ) } ) )
 		}
 		catch { $InputNotFound += $_ }
 	}
 
-	if ( $Users.Count -gt 1 )
+	$AllGroups = $Users.Groups | Select-Object -Unique
+
+	if ( $AllGroups.Count -gt 0 )
 	{
-		$AllGroups = $Users.Groups | Select-Object -Unique
-
-		if ( $AllGroups.Count -gt 0 )
+		$groups = @()
+		foreach ( $g in $AllGroups )
 		{
-			$groups = @()
-			foreach ( $g in $AllGroups )
+			$group = [pscustomobject]@{ "GroupName" = $g; Users = "" }
+			$userlist = [System.Collections.ArrayList]::new()
+
+			foreach ( $u in $Users )
 			{
-				$group = [pscustomobject]@{ "GroupName" = $g; Users = "" }
-				$userlist = [System.Collections.ArrayList]::new()
-
-				foreach ( $u in $Users )
+				if ( $u.Groups -contains $group.Groupname )
 				{
-					if ( $u.Groups -contains $group.Groupname )
-					{
-						[void] $userlist.Add( $u.User.Name )
-					}
+					[void] $userlist.Add( $u.User.Name )
 				}
-				$group.Users = [string]( $userlist | Sort-Object )
-				$groups += $group
 			}
+			$group.Users = [string]( $userlist | Sort-Object )
+			$groups += $group
 		}
+	}
 
+	if ( $UsersIn.Count -gt 1 )
+	{
 		$OFS = "`n"
 		$groups | `
 			Group-Object Users | `
@@ -102,7 +113,7 @@ function Compare-UserGroups
 	}
 	else
 	{
-		throw $IntMsgTable.StrCompareUserGroupsNoValidUsers
+		return $AllGroups | Select-Object -Property @{ Name = "Name" ; Expression = { $_ } } | Sort-Object Name
 	}
 }
 
