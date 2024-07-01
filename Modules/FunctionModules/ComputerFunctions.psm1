@@ -35,6 +35,45 @@ function Get-ComputersSameCostCenter
 	return ( Get-ADComputer -LDAPFilter "($( $IntMsgTable.StrSameCostCenterPropName )=$( $Item."$( $IntMsgTable.StrSameCostCenterPropName )" ))" ).Name | Sort-Object
 }
 
+function Get-Drivers
+{
+	<#
+	.Synopsis
+		Get all drivers
+	.Description
+		Get installed drivers
+	.MenuItem
+		Get drivers
+	.SearchedItemRequest
+		Required
+	.OutputType
+		ObjectList
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	try
+	{
+		$List = [System.Collections.ArrayList]::new()
+		( driverquery /s $Item.Name /v /fo csv ) -replace [char]8221, "ö" -replace [char]255, "," | `
+			ConvertFrom-Csv | `
+			Select-Object -Property "Module Name", "Display Name", "Description", "Driver Type", "Start Mode", "State", "Status", "Path" | `
+			Sort-Object "Display Name" | `
+			ForEach-Object {
+				$List.Add( $_ ) | Out-Null
+			}
+		return $List
+	}
+	catch
+	{
+		return $_
+	}
+}
+
 function Get-LastLoggedIn
 {
 	<#
@@ -65,7 +104,7 @@ function Get-LastLoggedIn
 			try
 			{
 				$a = ""
-				$Id = ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/?name=$_&onlyLatest=true" -UseDefaultCredentials).id
+				$Id = ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/?name=$_&onlyLatest=true" -UseDefaultCredentials ).id
 				$a = ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/reporting/Client?clientId=$Id" -UseDefaultCredentials ).LastUser
 				try
 				{
@@ -109,6 +148,72 @@ function Get-LoggedInUser
 	param ( $Item, $InputData )
 
 	return "$( ( ( Get-CimInstance -ComputerName $InputData.ComputerName.Trim() -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName ) -split "\\" )[1] | Get-ADUser | Select-Object -ExpandProperty Name )"
+}
+
+function Open-RemoteC
+{
+	<#
+	.Synopsis
+		Open C:\ at the computer
+	.Description
+		Open Explorer at C:\ for the computer
+	.MenuItem
+		Open C:\
+	.NoRunspace
+	.SearchedItemRequest
+		Required
+	.State
+		Prod
+	.OutputType
+		None
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	Start-Process -Filepath "C:\Windows\explorer.exe" -ArgumentList "\\$( $Item.Name )\C$\"
+}
+
+function Open-ServiceTagWebpage
+{
+	<#
+	.Synopsis
+		Open webpage for the servicetag
+	.Description
+		Get the manufacturer and servicetag for the computer and then opens the webpage for the designated servicetag. Works with Dell and Lenovo
+	.MenuItem
+		Open servicetag webpage
+	.NoRunspace
+	.SearchedItemRequest
+		Required
+	.State
+		Prod
+	.OutputType
+		None
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	$CimComputer = Get-CimInstance -ClassName CIM_Chassis -ComputerName $Item.Name
+
+	# Get remote servicetag
+	$Vendor = $CimComputer.Manufacturer
+	$Servicetag = $CimComputer.SerialNumber
+
+	# Open Google Chrome with manufacturer webpage for servicetag
+	if ( $Vendor -match "Dell" )
+	{
+		$Adress = "http://www.dell.com/support/my-support/se/sv/sebsdt1/product-support/servicetag/$Servicetag"
+	}
+	elseif ( $Vendor -match "Lenovo" )
+	{
+		$Adress = "https://pcsupport.lenovo.com/us/en/products/$Servicetag"
+	}
+
+	Start-Process chrome.exe $Adress
 }
 
 function Open-SysManEdit
