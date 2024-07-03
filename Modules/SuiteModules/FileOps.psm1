@@ -406,6 +406,7 @@ function GetScriptInfo
 				}
 			}
 
+		Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "IsSubMenuHeader" -Value 0
 		return $InfoObject
 	}
 	else
@@ -434,7 +435,7 @@ function GetUserInput
 	.Synopsis
 		Creates a file for input from user, then returns its content.
 	.Description
-		Creates a file for input from user, then returns its content. If file exists, the content is replaced, otherise the file is created. DefaultText is placed in the begining of the file and then removed in the returned text.
+		Creates a file for input from user, then returns its content. If file exists, the content is replaced, otherwise the file is created. DefaultText is placed in the begining of the file and then removed in the returned text.
 	.Parameter DefaultText
 		A string that is placed at the beginning of the file, to give a description of that infomation the user should enter.
 	.Outputs
