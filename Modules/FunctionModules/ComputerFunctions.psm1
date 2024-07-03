@@ -11,6 +11,43 @@
 
 param ( $culture = "sv-SE" )
 
+function Clear-NetIdCache
+{
+	<#
+	.Synopsis
+		Remove cache-files for NetID
+	.Description
+		Removes all cache-files for NetID
+	.MenuItem
+		Clear NetID cache
+	.SubMenu
+		Reset
+	.SearchedItemRequest
+		Required
+	.State
+		Prod
+	.OutputType
+		String
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	$Files = Invoke-Command -ErrorAction Stop -ComputerName $Item.Name -ScriptBlock `
+	{
+		# Remove all items under 'C:\Windows\temp' containing iid
+		$Files = Get-ChildItem -Path "C:\Windows\Temp\" -Include "*iid*" -Recurse
+		$Files | `
+			ForEach-Object {
+				Remove-Item $_ -Force -Recurse -ErrorAction SilentlyContinue
+			}
+		return $Files
+	}
+
+	return "$( $IntMsgTable.ClearNetIdCacheFinished )`n$( $Files -join "`n" )"
+}
+
 function Get-ComputersSameCostCenter
 {
 	<#
@@ -20,6 +57,8 @@ function Get-ComputersSameCostCenter
         List all computers that are assigned to the same cost center
 	.MenuItem
 		List computers on the same cost center
+	.SubMenu
+		List
 	.SearchedItemRequest
 		Required
 	.State
@@ -44,6 +83,8 @@ function Get-Drivers
 		Get installed drivers
 	.MenuItem
 		Get drivers
+	.SubMenu
+		List
 	.SearchedItemRequest
 		Required
 	.OutputType
@@ -83,6 +124,8 @@ function Get-LastLoggedIn
 		List who was last logged on to multiple computers
 	.MenuItem
 		Get last logged in
+	.SubMenu
+		List
 	.SearchedItemRequest
 		None
 	.OutputType
@@ -148,6 +191,47 @@ function Get-LoggedInUser
 	param ( $Item, $InputData )
 
 	return "$( ( ( Get-CimInstance -ComputerName $InputData.ComputerName.Trim() -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty UserName ) -split "\\" )[1] | Get-ADUser | Select-Object -ExpandProperty Name )"
+}
+
+function Get-Printers
+{
+	<#
+	.Synopsis
+		Get installed printers
+	.Description
+		List all installed printers and printerqueues
+	.MenuItem
+		List printers
+	.SubMenu
+		List
+	.NoRunspace
+	.SearchedItemRequest
+		Required
+	.State
+		Prod
+	.OutputType
+		ObjectList
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	try
+	{
+		$Printers = [System.Collections.ArrayList]::new()
+		Get-CimInstance -ClassName Win32_Printer -ComputerName $Item.Name | `
+			Select-Object Name, Comment, Default, DriverName | `
+			Sort-Object -Property Name | `
+			ForEach-Object {
+				$Printers.Add( $_ ) | Out-Null
+			}
+		return $Printers
+	}
+	catch
+	{
+		return $_
+	}
 }
 
 function Open-RemoteC
@@ -225,6 +309,8 @@ function Open-SysManEdit
 		Opens the SysMan page to change information for the object
 	.MenuItem
 		SysMan change information
+	.SubMenu
+		SysMan
 	.SearchedItemRequest
 		Required
 	.State
@@ -249,6 +335,8 @@ function Open-SysManInstall
 		Opens the SysMan page for application installation
 	.MenuItem
 		SysMan for installation
+	.SubMenu
+		SysMan
 	.SearchedItemRequest
 		Required
 	.OutputType
@@ -273,6 +361,8 @@ function Open-SysManOsdMonitor
 		Opens the SysMan page for controlling OSD monitoring
 	.MenuItem
 		SysMan OSD monitoring
+	.SubMenu
+		SysMan
 	.SearchedItemRequest
 		Required
 	.OutputType
@@ -295,6 +385,8 @@ function Open-SysManOsInstall
 		Opens the SysMan page for OS installation
 	.MenuItem
 		SysMan OS installation
+	.SubMenu
+		SysMan
 	.SearchedItemRequest
 		Required
 	.OutputType
@@ -319,6 +411,8 @@ function Open-SysManPrintAdd
 		Opens the SysMan page for adding printers
 	.MenuItem
 		SysMan add printer
+	.SubMenu
+		SysMan
 	.SearchedItemRequest
 		Required
 	.OutputType
@@ -343,6 +437,8 @@ function Open-SysManPrintRemove
 		Open SysMan page for removal of printer
 	.MenuItem
 		SysMan remove printer
+	.SubMenu
+		SysMan
 	.SearchedItemRequest
 		Required
 	.OutputType
@@ -365,6 +461,8 @@ function Open-SysManTools
 		Opens the SysMan utility page
 	.MenuItem
 		SysMan utility
+	.SubMenu
+		SysMan
 	.SearchedItemRequest
 		Required
 	.OutputType
@@ -389,6 +487,8 @@ function Open-SysManUninstall
 		Opens the SysMan uninstall page
 	.MenuItem
 		SysMan for uninstallation
+	.SubMenu
+		SysMan
 	.SearchedItemRequest
 		Required
 	.OutputType
@@ -411,12 +511,12 @@ function Reset-HostsFile
 		Removes all domains entered in Windows Host file. Can fix problems with certificates in Office 365
 	.MenuItem
 		Clear Host file
+	.SubMenu
+		Reset
 	.SearchedItemRequest
 		Allowed
 	.OutputType
 		String
-	.InputData
-		Computer name Computer where Host file is to be cleared
 	.State
 		Prod
 	.Author
@@ -450,12 +550,12 @@ function Reset-OutlookNavigationPanel
 		Restores the default view for Outlook. Fixes \"Invalid XML, unable to load view\" error message.
 	.MenuItem
 		Restore Outlook navpane
+	.SubMenu
+		Reset
 	.SearchedItemRequest
 		Allowed
 	.OutputType
 		String
-	.InputData
-		ComputerName Computer where Outlook is to be fixed
 	.State
 		Prod
 	.Author
@@ -498,12 +598,12 @@ function Reset-OutlookViews
 		Restore problematic views, e.g. Inbox or folders, to default settings
 	.MenuItem
 		Återställ vyer i Outlook
+	.SubMenu
+		Reset
 	.SearchedItemRequest
 		Allowed
 	.OutputType
 		String
-	.InputData
-		ComputerName Computer where Outlook is to be fixed
 	.State
 		Prod
 	.Author
@@ -558,6 +658,8 @@ function Reset-SoftwareCenter
 		Reset Software Center
 	.MenuItem
 		Reset Software Center
+	.SubMenu
+		Reset
 	.SearchedItemRequest
 		Required
 	.OutputType
