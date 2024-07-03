@@ -1,4 +1,5 @@
 ﻿ConvertFrom-StringData @'
+ClearNetIdCacheFinished = Tog bort följande filer:
 GetLastLoggedInErrNoUser = Användare hittas inte i AD
 GetLastLoggedInStrCompNotFound = Datornamn hittas inte i SysMan
 GetLastLoggedInStrCompTitle = Datornamn
