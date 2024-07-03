@@ -166,10 +166,19 @@ During the function operations, a progressbar will be displayed above the Output
 ## Writing functions
 Functions are located in separate PSModule-files, one for each type of designated AD-objectclass, in the folder **Modules**. The files are:
   * **ComputerFunctions.psm1** - For AD-objects with objectclass _computer_
+  * **DirectoryInfoFunctions.psm1** - For folder-objects, these will get objectclass set to _DirectoryInfo_ in the mainscript
+  * **FileInfoFunctions.psm1** - For file-objects, these will get objectclass set to _FileInfo_ in the mainscript
   * **GroupFunctions.psm1** - For AD-objects with objectclass _group_
   * **PrintQueueFunctions.psm1** - For AD-objects with objectclass _printQueue_
   * **UserFunctions.psm1** - For AD-objects with objectclass _user_
   * **OtherFunctions.psm1** - This contains functions that does not depend on objectclass or AD-objects
+  * **O365DistributionlistFunctions.psm1** - For Distributionlists in M365
+  * **O365ResourceFunctions.psm1** - For Resource-objects in M365
+  * **O365RoomFunctions.psm1** - For Room-objects in M365
+  * **O365SharedMailboxFunctions.psm1** - For SharedMailbox-objects in M365
+  * **O365UserFunctions.psm1** - For User-objects in M365
+  * **SeparateToolsFunctions.psm1** - Used to start other tools and applications
+
 
 When writing a function, the name must be unique. Good practice is to use approved verbs, and a descriptive wordcombination.
 
@@ -188,7 +197,7 @@ A function can have input in four different variations:
   * _SearchedItem_
   * _InputData_
   * _SearchedItem_ and _InputData_
-    * When both are sent to the function SearchedItem will always be the first parameter, and InputData the second.
+    * When both are sent to the function, SearchedItem will always be the first parameter, and InputData the second.
 
 ### SearchedItem
 If the function is to operating on the object that was searched for in the main GUI, as PsCustomObject with all available properties of the AD-object will be sent as a whole.
@@ -230,32 +239,59 @@ VarName = Some text
 #### Tool.psm1
 This must be a PowerShell-module to enable easy switching of context when going between tool/functions/searching.
 
-When the menuitem gets clicked, a check is made if the tool is already loaded.
-  * If it is not loaded the GUI and a synchronized hashtable (in this document named `hashtable`) is created. The hashtable is then sent to the module to make the controls available. To process looks like this:
+From the start an synchronized hashtable will be available with useful collections and hashtables. This will be available in $args[0] for the script.
+
+The hashtable contains these keys:
+  * **Bindings** - An hashtable containing an ObservableCollection for each found control in the XAML. These collections will contain binding objects for when binding dependency properties.
+  * **Code** - An hashtable that can be used to place scriptblocks or other kind of code
+  * **Controls** - An synchronized hashtable that contains all named controls in the XAML-file. If a controls does not have attribute Name="SomeName", it will not be detected and can not be found in **Controls**
+  * **Data** - An hashtable intended to hold various data the author wants to use in the module code
+    * **Data** will always have the variable "MainWindow" containing a reference the object for suite main window. This can be used to set as owner when calling Show-MessageBox from _GUIOps_
+  * **DC** - An hashtable containing all binding-connections that was created at startup. This is very usefull when running code in a runspace, in that you do not have to call a GUI-dispatcher to invoke an action for every data update. Instead you call the binding by the name of the control and the index of the dependency property that was targeted for this binding.
+    * To use a binding, reference the control by name inside **DC**, and then the index:
+      * `$syncHash.DC.ProgressBar[0] = [double] 2` - here we update the value of a progressbar to '2'
+  * **Errors** - An ArrayList intended for the author to store errors
+  * **GenErrors** - An ArrayList that is mainly used to store errors when creating the Page-object. Though this will be available to the module
+  * **Jobs** - Hashtable intended to store PsCustomObjects for runspace and its await handle
+  * **Page** - This is the GUI XAML-page object of the tool that will be loaded inside the main GUI
+  * **Root** - The full path of the folder for the suite
+
+##### Binding control values 
+When binding controlproperties, this should be done as early as possible in the code.
+
+To set up what is to be bound, first create an ArrayList, then collect the properties for each control. Each entry must be a hashtable, formated per control and then a collection of propertynames and values:
+```
+@{ CName = <ControlName> ; Props = @( @{ PropName = <Property name> ; PropVal = <Intended property value> } ) }
+```
+Where:
+  * CName = The name of the control set in XAML
+  * Props = An collection of <PropName,PropVal> hashtables
+  * PropName - The name of the dependency property to have bound, this must be available and correctly spelled. The binding function will append "Property" when setting the binding. So when i.e. binding value to a progressbar, only "Value" is needed
+  * PropVal - The intended start value. This value will be used from start. Any value set in XAML will be overwritten.
+
+The code for binding can thus look like this:
+
+``` PowerShell
+$controls = [System.Collections.ArrayList]::new()
+[void]$controls.Add( @{ CName = "ProgressBar" ; Props = @( @{ PropName = "Value"; PropVal = [double] 0 } ; @{ PropName = "Maximum" ; PropVal = [double] 100 } ) } )
+BindControls $syncHash $controls
+```
+
+When an menuitem gets clicked in the main window, this is what will happen:
+  * If the tool is not loaded, the GUI and a synchronized hashtable (in this document named `hashtable`) is created. The hashtable is then sent to the module to make the controls available.
       1. A Page-object is created from the Xaml-file (see function `CreatePage` in the GUIOps-module)
-      2. The creation will return the hashtable that contains:
-         * **Bindings** - An hashtable containing any WPF-binding that was created by request when main-module was loaded
-         * **Code** - An hashtable that can be used to place scriptblocks or other kind of code
-         * **Controls** - An synchronized hashtable that contains all named controls in the Xaml-file
-         * **Data** - An hashtable intended to hold various data the module wants to store
-         * **DC** - An hashtable containing all binding-connections that was created at startup. This is very usefull when running code in a runspace, in that you do not have to call a GUI-dispatcher to invoke an action for every data update. Instead you call the binding by the name of the control and the index of the dependency property that was targeted for this binding. To use this binding:
-           * `$syncHash.DC.ProgressBar[0] = 2` - here we update the value of a progressbar to '2'
-         * **Errors** - An ArrayList intended to store errors
-         * **GenErrors** - An ArrayList that is mainly used to store errors when creating the Page-object. Though this will be available to the module
-         * **Jobs** - Hashtable intended to store PsCustomObjects for runspace and its await handle
-         * **Page** - This is the main GUI Xaml-page of the tool that will be loaded inside the main GUI
-         * **Root** - The full path of the folder for the suite
-      3. The localized strings is imported and will be stored in `$hashtable.Data.msgTable`
+      2. The creation will return the hashtable
+      3. Any localized strings is imported and will be stored in `$hashtable.Data.msgTable`
          * To enable bindings for the strings in the Xaml-code, the localized strings will also be stored in an PsCustomObject in the DataContext of the Page-object
       4. The Page is then added as a resource in the main GUI window. This enables using navigation to the tool GUI.
-         * The hashtable will also be stored in the menuitem to make all data available for debugging
+         * The hashtable will also be available in the mainwindows resources with the name "LoadedPage<name of the tool>" to make all data available for debugging
       5. If the tool is "Send-Feedback", a list of all functions and tools is created and set as a resource for the tool. This so function/tool can be selected for feedback
-      6. If SearchedItem has the same objectclass as the tool is operating with, SearchedItem will be stored as a resource for the tool, named `SearchedItem`. This way, the tool can start operating on the object when the tool is loaded
+      6. If SearchedItem has the same objectclass as specified in the ObjectOperations-parameter in the CodeInfo for the tool, SearchedItem will be stored as a resource for the tool, named `SearchedItem`. This way, the tool can start operating on the object when the tool is loaded
       7. With all objects created, the main GUI uses navigation to display the tool GUI
   * If the tool has already been loaded, the main GUI will navigate to the tools GUI
 
 #### Tool.xaml
-The Xaml-file _**must**_ have the top control as a Page-control for the loading to work. The GUI will by default look like the rest of the main GUI, but all styling is up to the author.
+The Xaml-file _**must**_ have the top (root) element as a Page-control for the loading to work. The GUI will by default look like the rest of the main GUI, but all styling is up to the author.
 
 Controls using text-fields can utilize bindings for the localized strings defined in the psd1-file by using this:
   * `{Binding ElementName=Window, Path=DataContext.MsgTable.StrCharLimits}`
@@ -285,7 +321,6 @@ Functions to operate on files. Available functions:
   * **NewErrorLog** - Create a new errorlog object
   * **NewLog** - Create a new log object
   * **NewSurvey** - Create a new survey object
-  * **ShowMessageBox** - Display a messagebox with given text
   * **WriteErrorlog** - Write error to errorlogfile
   * **WriteLog** - Writes to log-file
   * **WriteOutput** - Writes output to a file in the Output-folder
@@ -294,13 +329,14 @@ Functions to operate on files. Available functions:
 ### GUIOps.psm1
 Functions to create GUI objects. Available functions:
   * **BindControls** - Create bindings between controls and an associated collections of predefined values
-  * **CreateWindow** - Creates a WPF-window, based on XAML-file with same name as the calling script
   * **CreatePage** - Create a synchronized hashtable for an WPF-page
+  * **CreateWindow** - Creates a WPF-window, based on XAML-file with same name as the calling script
   * **CreateWindowExt** - Creates a synchronized hashtable for the window and binds listed properties of their controls to datacontext
-  * **ShowSplash** - Shows a small window at the center of the screen with given text. To control the splash screen, these functions are available:
+  * **Show-MessageBox** - Display a messagebox with given text
+  * **Show-Splash** - Shows a small window at the center of the screen with given text. To control the splash screen, these functions are available:
+    * **Close-SplashScreen** - Close the splash screen
     * **Update-SplashProgress** - Update the progressbar in the splashscreen
     * **Update-SplashText** - Update the text in the splashscreen
-    * **Close-SplashScreen** - Close the splash screen
 
 ### RemoteOps.psm1
 Functions to operating on remote computer. Available functions:
@@ -316,14 +352,20 @@ Functions for operating against SysMan. Available functions:
 <br>
 
 ## CodeInfo
-The CodeInfo _**must**_ be inside the '{}' brackets and before any code in functions, and before any code at the top of a tool script-file.
+CodeInfo is a section of parameters to descript the function or tool. It is formated like PowerShell's Comment Based Help. Most parameters are optional, but will make the function/tool easier to locate or will be more manageable.
+
+The "**State**" parameter must be listed in the section, otherwise no menuitem will be created, and the function or tool can not be launched.
+
+For functions, the CodeInfo _**must**_ be inside the '{}' brackets and before any code in functions, and before any code at the top of a tool script-file.
+
+For tools the CodeInfo _**must**_ be at the start of the file.
 
 ### Parameters that can not be set in CodeInfo text
 These parameters will be taken from functionname, filename
-  * **Name** - Name of the function/tool. This will be the name of functions, or the name of the file for scripts
+  * **Name** - Name of the function/tool. This will be the name of functions, or the name of the file for the tools psm1-file
 
 #### Reserved for internal use
-These are used for tools
+These are used by the main script for tools
   * **BaseDir** - Basedirectory of script file
   * **Localization** - File for localization for script
   * **PageObject** - Object for tool script to access controls and some default created lists
