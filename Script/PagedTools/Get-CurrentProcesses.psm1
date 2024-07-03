@@ -5,6 +5,8 @@
 	Download active processes on the computer
 .MenuItem
 	List processes
+.SubMenu
+	List
 .SearchedItemRequest
 	Required
 .ObjectOperations
@@ -37,7 +39,7 @@ function Set-Localizations
 }
 
 ################# Script start
-$controls = New-Object System.Collections.ArrayList
+$controls = [System.Collections.ArrayList]::new()
 
 BindControls $syncHash $controls
 
