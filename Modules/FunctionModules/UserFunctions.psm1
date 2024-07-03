@@ -313,6 +313,8 @@ function Open-SysManGroups
 		Opens SysMan to handle groups for user
 	.MenuItem
 		SysMan handle groups
+	.SubMenu
+		SysMan
 	.SearchedItemRequest
 		Required
 	.OutputType
@@ -337,6 +339,8 @@ function Open-SysManMobileDevices
 		Opens SysMan to handle module devices for user
 	.MenuItem
 		SysMan handle module devices
+	.SubMenu
+		SysMan
 	.SearchedItemRequest
 		Required
 	.OutputType
