@@ -124,6 +124,7 @@ StrSplashJoke8 = Your shoelace is undone
 StrSplashJoke9 = Remember the incident
 StrSplashReadingSettings = Loading settings
 StrSplashSkippingO365 = Skips the login to Microsoft 365 services
+StrSubMenuGroupTitleSuffix = -functions
 StrSysManApi = http://sysman.domain.com/SysMan/api/
 StrSysAdmSANPrefix = sys
 '@

@@ -124,6 +124,7 @@ StrSplashJoke8 = Go och glad, kexchoklad
 StrSplashJoke9 = Ta alltid telefonnummer
 StrSplashReadingSettings = Läser in inställningar
 StrSplashSkippingO365 = Skippar inloggningen till Office 365
+StrSubMenuGroupTitleSuffix = -funktioner
 StrSysAdmSANPrefix = sys
 StrSysManApi = http://sysman.domain.com/SysMan/api/
 '@

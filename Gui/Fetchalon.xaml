@@ -202,6 +202,8 @@
         </CollectionViewSource>
         <CollectionViewSource x:Key="CvsMiComputerFunctions">
             <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Descending"
+                                                PropertyName="IsSubMenuHeader" />
                 <componentmodel:SortDescription Direction="Ascending"
                                                 PropertyName="MenuItem" />
             </CollectionViewSource.SortDescriptions>
@@ -667,34 +669,6 @@
                     Value="Normal" />
             <Setter Property="FontWeight"
                     Value="Normal" />
-            <Setter Property="HeaderTemplate">
-                <Setter.Value>
-                    <DataTemplate>
-                        <Border BorderThickness="5,0,0,0">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="BorderBrush"
-                                            Value="Transparent" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.SearchedItemRequest}"
-                                                     Value="Allowed">
-                                            <Setter Property="BorderBrush"
-                                                    Value="Yellow" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.SearchedItemRequest}"
-                                                     Value="Required">
-                                            <Setter Property="BorderBrush"
-                                                    Value="Green" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <TextBlock Margin="{StaticResource StdMargin}"
-                                       Text="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.MenuItem}" />
-                        </Border>
-                    </DataTemplate>
-                </Setter.Value>
-            </Setter>
             <Setter Property="ToolTip">
                 <Setter.Value>
                     <ToolTip>
@@ -770,6 +744,24 @@
                     <Setter Property="ToolTip"
                             Value="{x:Null}" />
                 </DataTrigger>
+                <DataTrigger Binding="{Binding Path=IsSubMenuHeader}"
+                             Value="1">
+                    <Setter Property="HeaderTemplate">
+                        <Setter.Value>
+                            <DataTemplate>
+                                <Border BorderBrush="Black"
+                                        BorderThickness="0,0,5,0">
+                                    <TextBlock FontSize="14"
+                                               FontWeight="Bold"
+                                               Margin="{StaticResource StdMargin}"
+                                               Text="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.MenuItem}" />
+                                </Border>
+                            </DataTemplate>
+                        </Setter.Value>
+                    </Setter>
+                    <Setter Property="Visibility"
+                            Value="Visible" />
+                </DataTrigger>
                 <MultiDataTrigger>
                     <MultiDataTrigger.Conditions>
                         <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=DataContext.SearchedItemRequest}"
@@ -802,6 +794,7 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
+
         <Style TargetType="MenuItem"
                x:Key="MiSubLevelFunctionsStyle"
                BasedOn="{StaticResource MiSubLevelBaseStyle}">
@@ -822,6 +815,38 @@
                     Value="14" />
             <Setter Property="Foreground"
                     Value="{StaticResource DefaultFontColor}" />
+            <Setter Property="ItemTemplate">
+                <Setter.Value>
+                    <HierarchicalDataTemplate ItemsSource="{Binding Path=MenuItems}">
+                        <HierarchicalDataTemplate.Resources>
+                            <Style TargetType="MenuItem"
+                                   BasedOn="{StaticResource MiSubLevelBaseStyle}" />
+                        </HierarchicalDataTemplate.Resources>
+                        <Border BorderThickness="5,0,0,0">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="BorderBrush"
+                                            Value="Transparent" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.SearchedItemRequest}"
+                                                     Value="Allowed">
+                                            <Setter Property="BorderBrush"
+                                                    Value="Yellow" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.SearchedItemRequest}"
+                                                     Value="Required">
+                                            <Setter Property="BorderBrush"
+                                                    Value="Green" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <TextBlock Margin="{StaticResource StdMargin}"
+                                       Text="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.MenuItem}" />
+                        </Border>
+                    </HierarchicalDataTemplate>
+                </Setter.Value>
+            </Setter>
             <Setter Property="Visibility"
                     Value="Visible" />
             <Style.Triggers>
@@ -1632,7 +1657,7 @@
                                     </Grid>
                                 </Border>
                                 <!-- Data output from function -->
-                                <Grid Grid.Row="3">
+                                <Grid Grid.Row="2">
                                     <ScrollViewer Name="ScvOutputData"
                                                   Grid.Row="2"
                                                   HorizontalScrollBarVisibility="Auto"
@@ -3111,7 +3136,7 @@
                     <ScrollViewer Name="ScObjInfo"
                                   DataContext="{Binding ElementName=Window, Path=DataContext.SearchedObject}"
                                   Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
-                                  Grid.Row="3"
+                                  Grid.Row="2"
                                   Style="{StaticResource ScVObjStyle}"
                                   Visibility="Visible">
                         <Grid Name="GridObjInfo"
