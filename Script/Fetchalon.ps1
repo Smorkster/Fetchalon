@@ -76,6 +76,100 @@ if ( $BaseDir -notmatch "Development" )
 		}
 }
 
+function Add-Menuitem
+{
+	<#
+	.Synopsis
+		Add parsed function or tool to designated menu
+	#>
+
+	[CmdletBinding()]
+	param(
+		[pscustomobject] $MiObject,
+		[string] $ModuleName
+	)
+
+	if ( $MiObject.State -eq "Dev" )
+	{
+		$StateApproved = $PSCommandPath -match "(Development)|(User)"
+	}
+	else
+	{
+		$StateApproved = $true
+	}
+
+	# Check permissions for using the script MiObject refers to
+	if (
+		( -not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or `
+		$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or `
+		$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0 ) -and `
+		$StateApproved
+	)
+	{
+		if ( $null -ne $MiObject.SubMenu )
+		{
+			if ( [string]::IsNullOrEmpty( $ModuleName ) )
+			{
+				$CvsTopName = "CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions"
+			}
+			else
+			{
+				$CvsTopName = "CvsMi$( $ModuleName )"
+			}
+
+			# Create a CollectionViewSource for the menuitems in the submenu
+			$ResourceName = "CvsMi$( $CvsTopName )Sub$( $MiObject.SubMenu )"
+			if ( $syncHash.Window.Resources.Keys -notcontains $ResourceName )
+			{
+				$Cvs = [System.Windows.Data.CollectionViewSource]::new()
+				$SortDesc = [System.ComponentModel.SortDescription]::new( "MenuItem", [System.ComponentModel.ListSortDirection]::Ascending )
+				$Cvs.SortDescriptions.Add( $SortDesc )
+
+				$syncHash.Window.Resources.Add( $ResourceName , $Cvs )
+				$syncHash.Window.Resources.$ResourceName.Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+
+				$SubMenu = [pscustomobject]@{
+					IsSubMenuHeader = 1
+					MenuItem = "$( $MiObject.SubMenu )$( $syncHash.Data.msgTable.StrSubMenuGroupTitleSuffix )"
+					MenuItems = $syncHash.Window.Resources.$ResourceName.View
+				}
+				$syncHash.Window.Resources.$CvsTopName.Source.Add( $SubMenu )
+			}
+			$syncHash.Window.Resources.$ResourceName.Source.Add( $MiObject )
+		}
+		else
+		{
+			if ( "Suite" -eq $MiObject.ObjectOperations )
+			{
+				$syncHash.Window.Resources['CvsMiAbout'].Source.Add( $MiObject )
+			}
+			elseif (
+				$null -ne $MiObject.ObjectOperations -and `
+				"None" -ne $MiObject.ObjectOperations -and `
+				$null -ne ( $syncHash.Window.Resources.Keys | Where-Object { $_ -match "CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions" } )
+			)
+			{
+				try
+				{
+					( $syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "^CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions$" } ).Value.Source.Add( $MiObject )
+				}
+				catch
+				{
+					$_
+				}
+			}
+			elseif ( -not [string]::IsNullOrEmpty( $ModuleName ) )
+			{
+				$syncHash.Window.Resources["CvsMi$( $ModuleName )"].Source.Add( $MiObject )
+			}
+			else
+			{
+				$syncHash.Window.Resources['CvsMiTools'].Source.Add( $MiObject )
+			}
+		}
+	}
+}
+
 function Check-O365Connection
 {
 	<#
@@ -475,7 +569,11 @@ function Reset-Info
 
 	$syncHash.Window.Resources['CvsDetailedProps'].Source.Clear()
 	$syncHash.Window.Resources['CvsPropsList'].Source.Clear()
-	$syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "Cvs.*" } | ForEach-Object { $_.Value.View.Refresh() }
+	$syncHash.Window.Resources.GetEnumerator() | `
+		Where-Object { $_.Key -match "Cvs.*" } | `
+		ForEach-Object {
+			$_.Value.View.Refresh()
+		}
 	$syncHash.TblObjName.GetBindingExpression( [System.Windows.Controls.TextBlock]::TextProperty ).UpdateTarget()
 }
 
@@ -570,9 +668,11 @@ function Set-Localizations
 		Set localizations, both directly and in resource
 	#>
 
+	# Set localized strings
 	$syncHash.IcObjectDetailed.Resources['ContentTblPropNameTT'] = $msgTable.ContentTblPropNameTT
-	$syncHash.Window.Resources['MiSubLevelBaseStyle'].Resources['StrOpensSeparateWindow'] = $msgTable.StrOpensSeparateWindow
+	$syncHash.Window.Resources['StrOpensSeparateWindow'] = $msgTable.StrOpensSeparateWindow
 
+	# Set timeformats
 	$DateTimeFormats = [System.Globalization.CultureInfo]::CurrentCulture.DateTimeFormat
 	$syncHash.Window.Resources['ContentNoMembersOfList'] = @( $msgTable.ContentNoMembersOfList )
 	$syncHash.Window.Resources['MainOutput'].Resources['StrCompressedDateTimeFormat'] = "yyMMdd HH:mm"
@@ -584,7 +684,7 @@ function Set-Localizations
 	$syncHash.Window.Resources['StrFullDateTimeFormat'] = "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )"
 	$syncHash.Window.Resources['StrTimeFormat'] = $DateTimeFormats.LongTimePattern
 
-	# Set eventtriggers
+	# Set event handlers
 	$syncHash.Window.Resources['BtnCopyOutputDataStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.CopyOutputData
 	$syncHash.Window.Resources['BtnCopyOutputObjectStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.CopyOutputObject
 	$syncHash.Window.Resources['BtnCopyPropertyStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.CopyProperty
@@ -600,6 +700,7 @@ function Set-Localizations
 
 	$syncHash.MiOutputHistory.ItemContainerStyle.Setters[0].Handler = $syncHash.Code.ShowOutputItem
 
+	# Initialize collections
 	'CvsDetailedProps', 'CvsPropsList', 'CvsMiAbout', 'CvsMiTools', 'CvsMiOutputHistory', 'CvsMiSeparateToolsFunctions', 'CvsPropSourceFilters',
 	'CvsMiComputerFunctions', 'CvsMiDirectoryInfoFunctions', 'CvsMiFileInfoFunctions', 'CvsMiGroupFunctions', 'CvsMiOtherFunctions', 'CvsMiPrintQueueFunctions', 'CvsMiUserFunctions',
 	'CvsMiO365DistributionlistFunctions', 'CvsMiO365ResourceFunctions', 'CvsMiO365RoomFunctions', 'CvsMiO365SharedMailboxFunctions', 'CvsMiO365UserFunctions' | `
@@ -607,6 +708,7 @@ function Set-Localizations
 			$syncHash.Window.Resources[$_].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 		}
 
+	# Enabled collection synchronization over threads
 	"DgSearchResults", "IcObjectDetailed", "IcPropsList", "MiOutputHistory" | `
 		ForEach-Object {
 			[System.Windows.Data.BindingOperations]::EnableCollectionSynchronization( $syncHash."$( $_ )".ItemsSource, $syncHash."$( $_ )" )
@@ -1226,7 +1328,9 @@ $syncHash.Code.ListItem =
 		$syncHash.TblObjName.UpdateDefaultStyle()
 		$syncHash.Window.Resources.GetEnumerator() | `
 			Where-Object { $_.Key -match "Cvs.*" } | `
-			ForEach-Object { $_.Value.View.Refresh() }
+			ForEach-Object {
+				$_.Value.View.Refresh()
+			}
 	}
 	# An PS Get-CmdLet was run
 	else
@@ -1627,118 +1731,122 @@ $(
 		Tools
 		Search
 	#>
-	Display-View -ViewName "FrameTool"
 
-	# Menuitem represents a tool
-	if ( ( $SenderObject.DataContext | Get-Member -MemberType NoteProperty ).Name -match "^PS$" )
+	if ( $SenderObject.DataContext.IsSubMenuHeader -ne 1 )
 	{
-		# The tool has Xaml to be shown in main window
-		if ( $SenderObject.DataContext.Separate -eq $false )
+		Display-View -ViewName "FrameTool"
+
+		# Menuitem represents a tool
+		if ( $null -ne $SenderObject.DataContext.PS )
 		{
-			$name = $SenderObject.DataContext.Name -replace "\W"
-			if ( -not $syncHash.Window.Resources.Contains( $name ) )
+			# The tool has Xaml to be shown in main window
+			if ( $SenderObject.DataContext.Separate -eq $false )
 			{
-				try
-				{
-					$page = CreatePage -FilePath $SenderObject.DataContext.Xaml
-					$page.Data.msgTable = Import-LocalizedData -BaseDirectory $SenderObject.DataContext.Localization.Directory.FullName -FileName $SenderObject.DataContext.Localization.Name
-					$page.Data.Modules = Get-Module
-					$page.Data.MainWindow = $syncHash.Window
-					$page.Page.DataContext = [pscustomobject]@{
-						MsgTable = $page.Data.msgTable
-					}
-					$SenderObject.DataContext.PageObject = $page
-					$syncHash.Window.Resources.Add( $name , $page.Page )
-
-					Import-Module $SenderObject.DataContext.PS -ArgumentList $page -Force
-
-					if ( $SenderObject.DataContext.Name -eq "Send-Feedback" )
-					{
-						if ( $null -eq $syncHash.Window.Resources[$name].Resources['CvsFunctions'].Source )
-						{
-							$syncHash.Window.Resources[$name].Resources['CvsFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-							$syncHash.Window.Resources.GetEnumerator() | `
-								Where-Object { $_.Name -match "CvsMi.*((Functions)|(Tools)|(About))" } | `
-								ForEach-Object { $_.Value.Source } | `
-								Where-Object { $_.Name -notmatch "Temp" } | `
-								Select-Object -Property @{ Name="Name" ; Expression = { $_.Name.Trim() } }, @{ Name="Author" ; Expression = { $_.Author.Trim() } }, @{ Name="Description" ; Expression = { $_.Description.Trim() } } | `
-								ForEach-Object { $_; $syncHash.Window.Resources[$name].Resources['CvsFunctions'].Source.Add( $_ ) }
-						}
-					}
-					elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
-					{
-						$syncHash.Window.Resources[$name].Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
-					}
-				}
-				catch
-				{
-					if ( "NotPage" -eq $_.Exception.Message )
-					{
-						Show-MessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
-					}
-					else
-					{
-						Show-MessageBox -Text $_
-					}
-				}
-			}
-
-			# Copy SearchedItem to page resource
-			if ( $SenderObject.DataContext.ObjectOperations -eq $syncHash.Data.SearchedItem.ObjectClass )
-			{
-				$syncHash.Window.Resources[$name].Resources['SearchedItem'] = $syncHash.Data.SearchedItem
-			}
-
-			$syncHash.FrameTool.Navigate( $syncHash.Window.Resources[$name] )
-		}
-		# The tool is handling its GUI by itself, in separate window
-		else
-		{
-			try
-			{
-				# The tool has previously not been opened
-				if ( $null -eq $SenderObject.DataContext.Process )
-				{
-					Open-Tool $SenderObject
-				}
-				# The tool has been opened, display that window
-				else
+				$name = $SenderObject.DataContext.Name -replace "\W"
+				if ( -not $syncHash.Window.Resources.Contains( $name ) )
 				{
 					try
 					{
-						Add-Type -Namespace GuiNative -Name Win -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);'
+						$page = CreatePage -FilePath $SenderObject.DataContext.Xaml
+						$page.Data.msgTable = Import-LocalizedData -BaseDirectory $SenderObject.DataContext.Localization.Directory.FullName -FileName $SenderObject.DataContext.Localization.Name
+						$page.Data.Modules = Get-Module
+						$page.Data.MainWindow = $syncHash.Window
+						$page.Page.DataContext = [pscustomobject]@{
+							MsgTable = $page.Data.msgTable
+						}
+						$SenderObject.DataContext.PageObject = $page
+						$syncHash.Window.Resources.Add( $name , $page.Page )
+
+						Import-Module $SenderObject.DataContext.PS -ArgumentList $page -Force
+
+						if ( $SenderObject.DataContext.Name -eq "Send-Feedback" )
+						{
+							if ( $null -eq $syncHash.Window.Resources[$name].Resources['CvsFunctions'].Source )
+							{
+								$syncHash.Window.Resources[$name].Resources['CvsFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+								$syncHash.Window.Resources.GetEnumerator() | `
+									Where-Object { $_.Name -match "CvsMi.*((Functions)|(Tools)|(About))" } | `
+									ForEach-Object { $_.Value.Source } | `
+									Where-Object { $_.Name -notmatch "Temp" } | `
+									Select-Object -Property @{ Name="Name" ; Expression = { $_.Name.Trim() } }, @{ Name="Author" ; Expression = { $_.Author.Trim() } }, @{ Name="Description" ; Expression = { $_.Description.Trim() } } | `
+									ForEach-Object { $_; $syncHash.Window.Resources[$name].Resources['CvsFunctions'].Source.Add( $_ ) }
+							}
+						}
+						elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
+						{
+							$syncHash.Window.Resources[$name].Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
+						}
 					}
 					catch
-					{}
-					[GuiNative.Win]::ShowWindow( ( $SenderObject.DataContext.Process.MainWindowHandle.ToInt32() ), 2 )
-					[GuiNative.Win]::ShowWindow( ( $SenderObject.DataContext.Process.MainWindowHandle.ToInt32() ), 9 )
+					{
+						if ( "NotPage" -eq $_.Exception.Message )
+						{
+							Show-MessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
+						}
+						else
+						{
+							Show-MessageBox -Text $_
+						}
+					}
+				}
+
+				# Copy SearchedItem to page resource
+				if ( $SenderObject.DataContext.ObjectOperations -eq $syncHash.Data.SearchedItem.ObjectClass )
+				{
+					$syncHash.Window.Resources[$name].Resources['SearchedItem'] = $syncHash.Data.SearchedItem
+				}
+
+				$syncHash.FrameTool.Navigate( $syncHash.Window.Resources[$name] )
+			}
+			# The tool is handling its GUI by itself, in separate window
+			else
+			{
+				try
+				{
+					# The tool has previously not been opened
+					if ( $null -eq $SenderObject.DataContext.Process )
+					{
+						Open-Tool $SenderObject
+					}
+					# The tool has been opened, display that window
+					else
+					{
+						try
+						{
+							Add-Type -Namespace GuiNative -Name Win -MemberDefinition '[DllImport("user32.dll")] public static extern bool ShowWindow(int handle, int state);'
+						}
+						catch
+						{}
+						[GuiNative.Win]::ShowWindow( ( $SenderObject.DataContext.Process.MainWindowHandle.ToInt32() ), 2 )
+						[GuiNative.Win]::ShowWindow( ( $SenderObject.DataContext.Process.MainWindowHandle.ToInt32() ), 9 )
+					}
+				}
+				# Some error occured, start the tool-script
+				catch
+				{
+					Open-Tool $SenderObject
 				}
 			}
-			# Some error occured, start the tool-script
-			catch
+		}
+		# The menuitem represents a function
+		# This does not have its own UI and will be displayed in main window when finished
+		else
+		{
+			if ( "None" -ne $SenderObject.DataContext.OutputType )
 			{
-				Open-Tool $SenderObject
+				$syncHash.DC.IcOutputObjects[0].Clear()
+				$syncHash.FrameTool.Navigate( $syncHash.Window.Resources['MainOutput'] )
 			}
-		}
-	}
-	# The menuitem represents a function
-	# This does not have its own UI and will be displayed in main window when finished
-	else
-	{
-		if ( "None" -ne $SenderObject.DataContext.OutputType )
-		{
-			$syncHash.DC.IcOutputObjects[0].Clear()
-			$syncHash.FrameTool.Navigate( $syncHash.Window.Resources['MainOutput'] )
-		}
 
-		if ( $SenderObject.DataContext.InputData.Count -gt 0 )
-		{
-			$SenderObject.DataContext.InputData | ForEach-Object { $_.EnteredValue = "" }
-			$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
+			if ( $SenderObject.DataContext.InputData.Count -gt 0 )
+			{
+				$SenderObject.DataContext.InputData | ForEach-Object { $_.EnteredValue = "" }
+				$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
+			}
+			Prepare-ToRunScript $SenderObject.DataContext
 		}
-		Prepare-ToRunScript $SenderObject.DataContext
+		WriteLog -Text "$( $syncHash.Data.msgTable.LogToolStarted ) $( $SenderObject.DataContext.Name )" -Success $true | Out-Null
 	}
-	WriteLog -Text "$( $syncHash.Data.msgTable.LogToolStarted ) $( $SenderObject.DataContext.Name )" -Success $true | Out-Null
 }
 
 # Handler for dynamic checkboxes for datasources of properties
@@ -1884,49 +1992,19 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\*.psm1" | `
 		Get-Command -Module $ModuleName | `
 			ForEach-Object {
 				$CodeDefinition = $_.Definition
-				if ( $ModuleName -match "O365.*Functions" )
-				{
-					$MiObject = [pscustomobject]@{
-						Name = $_.Name
-					}
+				$MiObject = [pscustomobject]@{
+					Name = $_.Name
 				}
-				else
+				if ( $ModuleName -notmatch "O365.*Functions" )
 				{
-					$MiObject = [pscustomobject]@{
-						Name = $_.Name
-						ObjectClass = ( $ModuleName -replace "Functions$" )
-					}
+					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "ObjectClass" -Value ( $ModuleName -replace "Functions$" )
 				}
 
 				$MiObject = GetScriptInfo -Text $CodeDefinition -InfoObject $MiObject -NoErrorRecord
 
 				if ( $null -ne $MiObject )
 				{
-					if ( $MiObject.State -eq "Dev" )
-					{
-						if ( $PSCommandPath -match "(Development)|(User)" )
-						{
-							$StateApproved = $true
-						}
-						else
-						{
-							$StateApproved = $false
-						}
-					}
-					else
-					{
-						$StateApproved = $true
-					}
-
-					if (
-						( -not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or `
-						$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or `
-						$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0 ) -and `
-						$StateApproved
-					)
-					{
-						$syncHash.Window.Resources["CvsMi$( $ModuleName )"].Source.Add( $MiObject )
-					}
+					Add-MenuItem $MiObject $ModuleName
 				}
 			}
 	}
@@ -1940,6 +2018,7 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 				$MiObject = $File = $null
 				$File = $_
 				$MiObject = GetScriptInfo -FilePath $File.FullName -NoErrorRecord
+
 				if (
 					-not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or`
 					$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or`
@@ -1961,6 +2040,7 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 						}
 						catch
 						{
+							# No culture found, default to Swedish
 							$LocFile = Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Localization\sv-SE\$( $_.BaseName ).psd1"
 						}
 						Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Localization" -Value $LocFile
@@ -1968,29 +2048,7 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 
 					if ( $null -ne $MiObject )
 					{
-						if ( "Suite" -eq $MiObject.ObjectOperations )
-						{
-							$syncHash.Window.Resources['CvsMiAbout'].Source.Add( $MiObject )
-						}
-						elseif (
-							$null -ne $MiObject.ObjectOperations -and `
-							"None" -ne $MiObject.ObjectOperations -and `
-							$null -ne ( $syncHash.Window.Resources.Keys | Where-Object { $_ -match "CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions" } )
-						)
-						{
-							try
-							{
-								( $syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "^CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions$" } ).Value.Source.Add( $MiObject )
-							}
-							catch
-							{
-								$_
-							}
-						}
-						else
-						{
-							$syncHash.Window.Resources['CvsMiTools'].Source.Add( $MiObject )
-						}
+						Add-MenuItem $MiObject
 					}
 				}
 			}
@@ -2188,12 +2246,6 @@ $syncHash.TbSearch.Add_GotFocus( {
 
 # Key was pressed in the search textbox
 $syncHash.TbSearch.Add_KeyDown( {
-	if ( "Return" -eq $args[1].Key )
-	{
-		$syncHash.DC.TbSearch[0] = $this.Text
-		$syncHash.DC.BrdAsterixWarning[0] = [System.Windows.Visibility]::Collapsed
-		Start-Search
-	}
 } )
 
 # Close popup when text box loses focus
@@ -2217,6 +2269,13 @@ $syncHash.TbSearch.Add_PreviewKeyDown( {
 		$syncHash.DgSearchResults.SelectedIndex = 0
 		$a = $syncHash.DgSearchResults.ItemContainerGenerator.ContainerFromIndex( 0 )
 		$a.MoveFocus( ( [System.Windows.Input.TraversalRequest]::new( ( [System.Windows.Input.FocusNavigationDirection]::Next ) ) ) )
+	}
+	elseif ( "Return" -eq $args[1].Key )
+	{
+		$syncHash.DC.TbSearch[0] = $this.Text
+		$syncHash.DC.BrdAsterixWarning[0] = [System.Windows.Visibility]::Collapsed
+		$syncHash.PopupMenu.IsOpen = $false
+		Start-Search
 	}
 } )
 
@@ -2256,7 +2315,9 @@ $syncHash.TBtnObjectDetailed.Add_UnChecked( {
 } )
 
 # The window is deactivated (lost focus), make sure the PopupMenu is closed
-$syncHash.Window.Add_Deactivated( { $syncHash.PopupMenu.IsOpen = $false } )
+$syncHash.Window.Add_Deactivated( {
+	$syncHash.PopupMenu.IsOpen = $false
+} )
 
 # Main window is loaded, do final settings
 $syncHash.Window.Add_Loaded( {
@@ -2314,12 +2375,16 @@ $syncHash.Window.Add_KeyDown( {
 				$syncHash.PopupMenu.IsOpen = $false
 			}
 		}
-		"F1" { $syncHash.TbSearch.Focus() }
+		"F1" {
+			$syncHash.TbSearch.SelectAll()
+			$syncHash.TbSearch.Focus()
+		}
 		"System"
 		{
 			if ( $args[1].SystemKey -eq "D" )
 			{
 				$args[1].Handled = $true
+				$syncHash.TbSearch.SelectAll()
 				$syncHash.TbSearch.Focus()
 			}
 		}
