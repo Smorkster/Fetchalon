@@ -388,6 +388,7 @@ These are used by the main script for tools
       * Test
       * Dev
       * Prod
+  * **SubMenu** `[String]` Name of the designated submenu the menuitem for functions/tools to be placed
   * **Synopsis** - `[String]` A short description of the function. This is displayed in the Output-view for functions, as tooltip for the textblock for functionname.
 
 ### Parameters available for functions only
