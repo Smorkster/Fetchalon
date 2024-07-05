@@ -1,0 +1,715 @@
+<Page Name="Window"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+      Title="CM Backup form"
+      Width="1420">
+    <Page.Resources>
+        <Thickness x:Key="StdMargin">5</Thickness>
+        <FontWeight x:Key="TitleFontWeight">Bold</FontWeight>
+        <sys:Double x:Key="TitleFontSize">15</sys:Double>
+        <sys:Double x:Key="BtnHeight">40</sys:Double>
+        <sys:Double x:Key="BtnWidth">150</sys:Double>
+        <sys:Double x:Key="TbHeight">30</sys:Double>
+        <GridLength x:Key="CdValTitleWidth">150</GridLength>
+        <GridLength x:Key="CdValWidth">290</GridLength>
+        <GridLength x:Key="CdVerificationWidth">25</GridLength>
+
+        <CollectionViewSource x:Key="CvsSavedCases">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription PropertyName="Name" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+
+        <Style TargetType="Button"
+               x:Key="BtnBaseStyle">
+            <Setter Property="FontSize"
+                    Value="{StaticResource TitleFontSize}" />
+            <Setter Property="FontWeight"
+                    Value="{StaticResource TitleFontWeight}" />
+            <Setter Property="Height"
+                    Value="{StaticResource BtnHeight}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Width"
+                    Value="{StaticResource BtnWidth}" />
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Height"
+                    Value="{StaticResource TbHeight}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="SelectedIndex"
+                    Value="0" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="HeaderTemplate">
+                <Setter.Value>
+                    <DataTemplate>
+                        <TextBlock FontWeight="Bold"
+                                   FontSize="15"
+                                   Text="{Binding}" />
+                    </DataTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="ToggleButton"
+               x:Key="TBtnBaseStyle">
+            <Setter Property="FontSize"
+                    Value="{StaticResource TitleFontSize}" />
+            <Setter Property="FontWeight"
+                    Value="{StaticResource TitleFontWeight}" />
+            <Setter Property="Height"
+                    Value="{StaticResource BtnHeight}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Width"
+                    Value="{StaticResource BtnWidth}" />
+        </Style>
+        <Style TargetType="Label"
+               x:Key="LblBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="Label"
+               x:Key="LblBigTitleStyle"
+               BasedOn="{StaticResource LblBaseStyle}">
+            <Setter Property="FontSize"
+                    Value="{StaticResource TitleFontSize}" />
+            <Setter Property="FontWeight"
+                    Value="{StaticResource TitleFontWeight}" />
+        </Style>
+        <Style TargetType="Label"
+               x:Key="LblVerifyDefault"
+               BasedOn="{StaticResource LblBaseStyle}">
+            <Setter Property="Content"
+                    Value="*" />
+            <Setter Property="Foreground"
+                    Value="LightGray" />
+            <Setter Property="Grid.Column"
+                    Value="2" />
+            <Setter Property="HorizontalContentAlignment"
+                    Value="Center" />
+            <Setter Property="Padding"
+                    Value="0" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=Children[1].Text.Length}"
+                             Value="0">
+                    <Setter Property="Foreground"
+                            Value="Red" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="Label"
+               x:Key="LblVerifyNotEmptyStar"
+               BasedOn="{StaticResource LblVerifyDefault}">
+            <Setter Property="FontSize"
+                    Value="25" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=Children[1].Text.Length}"
+                             Value="0">
+                    <Setter Property="Foreground"
+                            Value="Red" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="Label"
+               x:Key="LblVerifyNotEmptyWarning"
+               BasedOn="{StaticResource LblVerifyDefault}">
+            <Setter Property="Foreground"
+                    Value="Red" />
+        </Style>
+        <Style TargetType="Label"
+               x:Key="LblVerifyCbSelected"
+               BasedOn="{StaticResource LblVerifyDefault}">
+            <Setter Property="FontSize"
+                    Value="25" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=Children[1].SelectedIndex}"
+                             Value="0">
+                    <Setter Property="Foreground"
+                            Value="Red" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="TextBox"
+               x:Key="TbDefaultStyle">
+            <Setter Property="Height"
+                    Value="{StaticResource TbHeight}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="TextBox"
+               x:Key="TbBigTextStyle">
+            <Setter Property="AcceptsReturn"
+                    Value="True" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+    </Page.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="1*" />
+        </Grid.RowDefinitions>
+        <Grid Name="GridCaseOpsInfo">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <ToggleButton Name="TBtnRitm"
+                          Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTBtnRitm}">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton"
+                           BasedOn="{StaticResource TBtnBaseStyle}">
+                        <Setter Property="IsChecked"
+                                Value="True" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=TBtnInc, Path=IsChecked}"
+                                         Value="True">
+                                <Setter Property="IsChecked"
+                                        Value="False" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
+            <ToggleButton Name="TBtnInc"
+                          Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTBtnInc}"
+                          Grid.Column="1">
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton"
+                           BasedOn="{StaticResource TBtnBaseStyle}">
+                        <Setter Property="IsChecked"
+                                Value="True" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=TBtnRitm, Path=IsChecked}"
+                                         Value="True">
+                                <Setter Property="IsChecked"
+                                        Value="False" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ToggleButton.Style>
+            </ToggleButton>
+            <ComboBox Name="CbSavedCases"
+                      DisplayMemberPath="Name"
+                      Grid.Column="3"
+                      Height="{StaticResource BtnHeight}"
+                      ItemsSource="{Binding Source={StaticResource CvsSavedCases}}"
+                      SelectedIndex="0"
+                      Width="300" />
+            <Button Name="BtnLoadCase"
+                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnLoadCase}"
+                    Grid.Column="4">
+                <Button.Style>
+                    <Style TargetType="Button"
+                           BasedOn="{StaticResource BtnBaseStyle}">
+                        <Setter Property="IsEnabled"
+                                Value="True" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=CbSavedCases, Path=SelectedIndex}"
+                                         Value="0">
+                                <Setter Property="IsEnabled"
+                                        Value="False" />
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding ElementName=CbSavedCases, Path=SelectedIndex}"
+                                         Value="-1">
+                                <Setter Property="IsEnabled"
+                                        Value="False" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+            <Button Name="BtnSaveCase"
+                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSaveCase}"
+                    Grid.Row="1"
+                    IsEnabled="False"
+                    Style="{StaticResource BtnBaseStyle}" />
+            <Label Name="LblOutputPath"
+                   Grid.Column="1"
+                   Grid.ColumnSpan="2"
+                   Grid.Row="1" />
+            <Button Name="BtnReset"
+                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnReset}"
+                    Grid.Column="1"
+                    Grid.Row="1"
+                    Style="{StaticResource BtnBaseStyle}"
+                    Visibility="Hidden" />
+            <Button Name="BtnRemoveCaseInfo"
+                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnRemoveCaseInfo}"
+                    Grid.Column="4"
+                    Grid.Row="1"
+                    Style="{StaticResource BtnBaseStyle}"
+                    Visibility="Hidden" />
+        </Grid>
+        <Grid Name="GridUserINfo"
+              Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <GroupBox Name="GbUserInfo"
+                      Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbUserInfo}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Name="LblUserIdTitle"
+                               Style="{StaticResource LblBaseStyle}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblUserIdTitle}" />
+                        <TextBox Name="TbUserId"
+                                 Grid.Column="1"
+                                 Style="{StaticResource TbDefaultStyle}" />
+                        <Label Name="LblVerifyUserId"
+                               Style="{StaticResource LblVerifyNotEmptyStar}" />
+                        <Label Name="LblUserIdInvalid"
+                               Grid.Column="3"
+                               Style="{StaticResource LblVerifyNotEmptyWarning}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblUserIdInvalid}"
+                               FontSize="12"
+                               Visibility="Hidden" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Name="LblUserTelephoneTitle"
+                               Grid.Row="1"
+                               Style="{StaticResource LblBaseStyle}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblUserTelephoneTitle}" />
+                        <TextBox Name="TbUserTelephone"
+                                 Grid.Column="1"
+                                 Grid.Row="1"
+                                 Style="{StaticResource TbDefaultStyle}" />
+                        <Label Name="LblVerifyUserTelephone"
+                               Style="{StaticResource LblVerifyNotEmptyStar}" />
+                        <Label Name="LblUserTelephoneInvalid"
+                               Grid.Column="3"
+                               Style="{StaticResource LblVerifyNotEmptyWarning}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblUserTelephoneInvalid}"
+                               FontSize="12"
+                               Visibility="Hidden" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Name="LblUserMailTitle"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblUserMailTitle}"
+                               Grid.Row="2"
+                               Style="{StaticResource LblBaseStyle}" />
+                        <TextBox Name="TbUserMail"
+                                 Grid.Column="1"
+                                 Grid.Row="2"
+                                 Style="{StaticResource TbDefaultStyle}" />
+                        <Label Name="LblVerifyUserMail"
+                               Style="{StaticResource LblVerifyNotEmptyStar}" />
+                        <Label Name="LblUserMailInvalid"
+                               Grid.Column="3"
+                               Style="{StaticResource LblVerifyNotEmptyWarning}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblUserMailInvalid}"
+                               FontSize="12"
+                               Visibility="Hidden" />
+                    </Grid>
+                </StackPanel>
+            </GroupBox>
+            <GroupBox Name="GbOrdererInfo"
+                      Grid.Column="1"
+                      Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbOrdererInfo}">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Name="LblOrdererIdTitle"
+                               Style="{StaticResource LblBaseStyle}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblOrdererIdTitle}" />
+                        <TextBox Name="TbOrdererId"
+                                 Grid.Column="1"
+                                 Style="{StaticResource TbDefaultStyle}" />
+                        <Label Name="LblVerifyOrdererId"
+                               Style="{StaticResource LblVerifyNotEmptyStar}" />
+                        <Label Name="LblOrdererIdInvalid"
+                               Grid.Column="3"
+                               Style="{StaticResource LblVerifyNotEmptyWarning}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblOrdererIdInvalid}"
+                               FontSize="12"
+                               Visibility="Hidden" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Name="LblOrdererTelephoneTitle"
+                               Grid.Row="1"
+                               Style="{StaticResource LblBaseStyle}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblOrdererTelephoneTitle}" />
+                        <TextBox Name="TbOrdererTelephone"
+                                 Grid.Column="1"
+                                 Grid.Row="1"
+                                 Style="{StaticResource TbDefaultStyle}" />
+                        <Label Name="LblVerifyOrdererTelephone"
+                               Style="{StaticResource LblVerifyNotEmptyStar}" />
+                        <Label Name="LblOrdererTelephoneInvalid"
+                               Grid.Column="3"
+                               Style="{StaticResource LblVerifyNotEmptyWarning}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblOrdererTelephoneInvalid}"
+                               Visibility="Hidden" />
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                            <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <Label Name="LblOrdererMailTitle"
+                               Grid.Row="2"
+                               Style="{StaticResource LblBaseStyle}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblOrdererMailTitle}" />
+                        <TextBox Name="TbOrdererMail"
+                                 Grid.Column="1"
+                                 Grid.Row="2"
+                                 Style="{StaticResource TbDefaultStyle}" />
+                        <Label Name="LblVerifyOrdererMail"
+                               Style="{StaticResource LblVerifyNotEmptyStar}" />
+                        <Label Name="LblOrdererMailInvalid"
+                               Grid.Column="3"
+                               Style="{StaticResource LblVerifyNotEmptyWarning}"
+                               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblOrdererMailInvalid}"
+                               FontSize="12"
+                               Visibility="Hidden" />
+                    </Grid>
+                </StackPanel>
+            </GroupBox>
+        </Grid>
+        <Grid Name="GridCaseInfo"
+              Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblWayOfContactTitle"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblWayOfContactTitle}" />
+                    <ComboBox Name="CbWayOfContact"
+                              Grid.Column="1" />
+                    <Label Name="LblVerifyWayOfContact"
+                           Style="{StaticResource LblVerifyCbSelected}" />
+                </Grid>
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility"
+                                    Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=TBtnInc, Path=IsChecked}"
+                                             Value="True">
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblCategoryTitle"
+                           Grid.Row="1"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblCategoryTitle}" />
+                    <ComboBox Name="CbCategory"
+                              Grid.Column="1"
+                              Grid.Row="1" />
+                    <Label Name="LblVerifyCategory"
+                           Style="{StaticResource LblVerifyCbSelected}" />
+                </Grid>
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="IsEnabled"
+                                    Value="True" />
+                            <Setter Property="Visibility"
+                                    Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=TBtnInc, Path=IsChecked}"
+                                             Value="True">
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=CbSubCategory, Path=Items.Count}"
+                                             Value="0">
+                                    <Setter Property="IsEnabled"
+                                            Value="False" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblSubCategoryTitle"
+                           Grid.Row="2"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblSubCategoryTitle}" />
+                    <ComboBox Name="CbSubCategory"
+                              Grid.Column="1"
+                              Grid.Row="2" />
+                    <Label Name="LblVerifySubCategory"
+                           Style="{StaticResource LblVerifyCbSelected}" />
+                </Grid>
+            </StackPanel>
+            <WrapPanel Grid.Row="1"
+                       Orientation="Horizontal">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblServiceTitle"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblServiceTitle}"
+                           ToolTip="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblServiceTitleTT}" />
+                    <TextBox Name="TbService"
+                             Grid.Column="1"
+                             Style="{StaticResource TbDefaultStyle}"
+                             ToolTip="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblServiceTitleTT}" />
+                    <Label Name="LblVerifyService"
+                           Style="{StaticResource LblVerifyNotEmptyStar}" />
+                </Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblConfigObjTitle"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblConfigObjTitle}"
+                           ToolTip="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblServiceTitleTT}" />
+                    <TextBox Name="TbConfigObj"
+                             Grid.Column="1"
+                             Style="{StaticResource TbDefaultStyle}"
+                             ToolTip="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblServiceTitleTT}" />
+                </Grid>
+                <Grid>
+                    <Grid.Style>
+                        <Style TargetType="Grid">
+                            <Setter Property="Visibility"
+                                    Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=TBtnRitm, Path=IsChecked}"
+                                             Value="True">
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblOrderedArticleTitle"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblOrderedArticleTitle}" />
+                    <ComboBox Name="CbOrderedArticle"
+                              Grid.Column="1" />
+                    <Label Name="LblVerifyOrderedArticle"
+                           Style="{StaticResource LblVerifyCbSelected}" />
+                </Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblInternalAddressTitle"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblInternalAddressTitle}" />
+                    <TextBox Name="TbInternalAddress"
+                             Grid.Column="1"
+                             Style="{StaticResource TbDefaultStyle}" />
+                </Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblComputerNameTitle"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblComputerNameTitle}" />
+                    <TextBox Name="TbComputerName"
+                             Grid.Column="1"
+                             Style="{StaticResource TbDefaultStyle}" />
+                </Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblIpAddressTitle"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblIpAddressTitle}" />
+                    <TextBox Name="TbIpAddress"
+                             Grid.Column="1"
+                             Style="{StaticResource TbDefaultStyle}" />
+                </Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblPrinterQueueTitle"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblPrinterQueueTitle}" />
+                    <TextBox Name="TbPrinterQueue"
+                             Grid.Column="1"
+                             Style="{StaticResource TbDefaultStyle}" />
+                </Grid>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="{StaticResource CdValTitleWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdValWidth}" />
+                        <ColumnDefinition Width="{StaticResource CdVerificationWidth}" />
+                    </Grid.ColumnDefinitions>
+                    <Label Name="LblNetworkSocket"
+                           Style="{StaticResource LblBaseStyle}"
+                           Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblNetworkSocketTitle}" />
+                    <TextBox Name="TbNetworkSocket"
+                             Grid.Column="1"
+                             Style="{StaticResource TbDefaultStyle}" />
+                </Grid>
+            </WrapPanel>
+        </Grid>
+        <Grid Grid.Row="3">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="1*" />
+                <RowDefinition Height="1*" />
+                <RowDefinition Height="1*" />
+            </Grid.RowDefinitions>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Label Name="LblTitleTitle"
+                       Style="{StaticResource LblBigTitleStyle}"
+                       Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblTitleTitle}" />
+                <TextBox Name="TbTitle"
+                         Grid.ColumnSpan="2"
+                         Grid.Row="1"
+                         Style="{StaticResource TbDefaultStyle}" />
+                <Label Name="LblVerifyTitle"
+                       Grid.Column="1"
+                       HorizontalAlignment="Left"
+                       Style="{StaticResource LblVerifyNotEmptyStar}" />
+            </Grid>
+            <Grid Grid.Row="1">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Label Name="LblDescTitle"
+                       Style="{StaticResource LblBigTitleStyle}"
+                       Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblDescTitle}" />
+                <TextBox Name="TbDesc"
+                         Grid.ColumnSpan="2"
+                         Grid.Row="1"
+                         Style="{StaticResource TbBigTextStyle}" />
+                <Label Name="LblVerifyDesc"
+                       Grid.Column="1"
+                       HorizontalAlignment="Left"
+                       Style="{StaticResource LblVerifyNotEmptyStar}" />
+            </Grid>
+            <Grid Name="GridWorklog"
+                  Grid.Row="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Label Name="LblWorklogTitle"
+                       Style="{StaticResource LblBigTitleStyle}"
+                       Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblWorklogTitle}" />
+                <TextBox Name="TbWorklog"
+                         Grid.Row="1"
+                         Style="{StaticResource TbBigTextStyle}" />
+            </Grid>
+            <Grid Name="GridCaseEnd"
+                  Grid.Row="3">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Label Name="LblCaseEndMessageTitle"
+                       Style="{StaticResource LblBigTitleStyle}"
+                       Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblCaseEndMessageTitle}" />
+                <TextBox Name="TbCaseEndMessage"
+                         Grid.Row="1"
+                         Style="{StaticResource TbBigTextStyle}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Page>
