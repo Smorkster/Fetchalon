@@ -341,31 +341,53 @@ function GetScriptInfo
 			Where-Object { $_ } | `
 			ForEach-Object `
 				-Begin {
-					$ListInputData = [System.Collections.ArrayList]::new()
+					$ListInputData = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 				} `
 				-Process {
 					$_ -match "\s*(?<InfoType>(?!(Parameter)|(Outputs))\w+)\s+(?<Rest>.*)" | Out-Null
 					if ( "InputData" -eq $Matches.InfoType )
 					{
-						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\s*?(?<InputComment>.*)" | Out-Null
-						$ListInputData.Add( (
-							[pscustomobject]@{
-								Name = $Matches.InputVar
-								InputType = "String"
-								InputDescription = $Matches.InputComment.Trim()
-								EnteredValue = ""
+						$Name, $Mandatory, $Desc = $Matches.Rest.Trim() -split ",", 3
+						try
+						{
+							$ListInputData.Add( (
+								[pscustomobject]@{
+									Name = $Name
+									InputType = "String"
+									Mandatory = "True" -eq $Mandatory.Trim()
+									InputDescription = $Desc.Trim()
+									EnteredValue = ""
 								}
 							) ) | Out-Null
+						}
+						catch
+						{
+							Write-Error $Matches.Rest
+						}
 					}
 					elseif ( "InputDataList" -eq $Matches.InfoType )
 					{
-						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\s*?(?<InputList>.*)" | Out-Null
+						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\W*?,\W*?(?<Mandatory>\w*)\W*?,\W*?(?<DefaultValue>\w*)\W*?,\W*?(?<InputList>.*)" | Out-Null
 						$ListInputData.Add( (
 							[pscustomobject]@{
 								Name = $Matches.InputVar
 								InputType = "List"
 								InputList = [System.Collections.ArrayList] ( $Matches.InputList.Trim() -split "," )
+								DefaultValue = $Matches.DefaultValue.Trim()
+								Mandatory = "True" -eq $Matches.Mandatory.Trim()
 								EnteredValue = ""
+							}
+						) ) | Out-Null
+					}
+					elseif ( "InputDataBool" -eq $Matches.InfoType )
+					{
+						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\s*?(?<InputComment>.*)" | Out-Null
+						$ListInputData.Add( (
+							[pscustomobject]@{
+								Name = $Matches.InputVar
+								InputType = "Bool"
+								InputDescription = $Matches.InputComment.Trim()
+								EnteredValue = $false
 							}
 						) ) | Out-Null
 					}
