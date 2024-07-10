@@ -118,7 +118,7 @@ function Add-Menuitem
 			}
 
 			# Create a CollectionViewSource for the menuitems in the submenu
-			$ResourceName = "CvsMi$( $CvsTopName )Sub$( $MiObject.SubMenu )"
+			$ResourceName = "$( $CvsTopName )Sub$( $MiObject.SubMenu )"
 			if ( $syncHash.Window.Resources.Keys -notcontains $ResourceName )
 			{
 				$Cvs = [System.Windows.Data.CollectionViewSource]::new()
@@ -345,10 +345,12 @@ function Get-PropHandlers
 
 	$syncHash.Code = @{}
 	$syncHash.Code.PropHandlers = @{}
+	$syncHash.Code.PropLocalizations = @{}
 	Get-ChildItem -Path "$BaseDir\Modules\PropHandlers" | `
 		ForEach-Object {
 			$Module = $_.BaseName -replace "PropHandlers"
 			$syncHash.Code.PropHandlers."$( $Module )" = @{}
+			$syncHash.Code.PropLocalizations."$( $Module )" = @{}
 			( Import-Module $_.FullName -PassThru ).ExportedVariables.GetEnumerator() | `
 				ForEach-Object {
 					if ( $null -ne $_.Value.Value.Code )
@@ -363,6 +365,15 @@ function Get-PropHandlers
 						{
 							$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title = $syncHash.Data.msgTable.StrRunHandler
 						}
+					}
+
+					if ( $_.Key -eq "IntMsgTable" )
+					{
+						$_.Value.Value.GetEnumerator() | `
+							Where-Object { $_.Name -match "^PL" } | `
+							ForEach-Object {
+								$syncHash.Code.PropLocalizations."$( $Module )"."$( $_.Name )" = $_.Value
+							}
 					}
 				}
 		}
@@ -597,7 +608,6 @@ function Run-ScriptNoRunspace
 	param ( $ScriptObject, $EnteredInput )
 
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
-	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $syncHash.Data.msgTable.StrScriptRunningWithoutRunspace }, [System.Windows.Threading.DispatcherPriority]::Send )
 
 	$EnteredInput = @{}
 	$syncHash.GridFunctionOp.DataContext.InputData | `
@@ -621,7 +631,7 @@ function Run-ScriptNoRunspace
 		}
 	}
 
-	$syncHash.Window.Dispatcher.Invoke( [action] { $syncHash.Window.Resources['MainOutput'].Title = $msgTable.StrDefaultMainTitle } )
+	$syncHash.Window.Resources['MainOutput'].Title = $msgTable.StrDefaultMainTitle
 }
 
 function Set-DefaultSettings
@@ -678,6 +688,8 @@ function Set-Localizations
 	$syncHash.Window.Resources['MainOutput'].Resources['StrCompressedDateTimeFormat'] = "yyMMdd HH:mm"
 	$syncHash.Window.Resources['MainOutput'].Resources['StrDateFormat'] = $DateTimeFormats.ShortDatePattern
 	$syncHash.Window.Resources['MainOutput'].Resources['StrFullDateTimeFormat'] = "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )"
+	$syncHash.Window.Resources['MainOutput'].Resources['StrGbFunctionInputTitle'] = $syncHash.Data.msgTable.ContentGbFunctionInputTitle
+	$syncHash.Window.Resources['MainOutput'].Resources['StrScriptRunningWithoutRunspace'] = $syncHash.Data.msgTable.StrScriptRunningWithoutRunspace
 	$syncHash.Window.Resources['MainOutput'].Resources['StrTimeFormat'] = $DateTimeFormats.LongTimePattern
 	$syncHash.Window.Resources['StrCompressedDateTimeFormat'] = "yyMMdd HH:mm"
 	$syncHash.Window.Resources['StrDateFormat'] = $DateTimeFormats.ShortDatePattern
@@ -689,10 +701,12 @@ function Set-Localizations
 	$syncHash.Window.Resources['BtnCopyOutputObjectStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.CopyOutputObject
 	$syncHash.Window.Resources['BtnCopyPropertyStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.CopyProperty
 	$syncHash.Window.Resources['BtnRunPropStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.RunPropHandler
+	$syncHash.Window.Resources['CbInputStyle'].Setters.Where( { $_.Event.Name -match "SelectionChanged" } )[0].Handler = $syncHash.Code.MandatoryFuncComboboxInputVerification
 	$syncHash.Window.Resources['DgrFuncOutputStyle'].Setters.Where( { $_.Event.Name -match "RequestBringIntoView" } )[0].Handler = $syncHash.Code.DataGridRowDisableBringIntoView
 	$syncHash.Window.Resources['MiSubLevelFunctionsStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
 	$syncHash.Window.Resources['MiSubLevelToolStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
 	$syncHash.Window.Resources['TbInputStyle'].Setters.Where( { $_.Event.Name -match "Loaded" } )[0].Handler = $syncHash.Code.InputTextBoxLoaded
+	$syncHash.Window.Resources['TbInputStyle'].Setters.Where( { $_.Event.Name -match "TextChanged" } )[0].Handler = $syncHash.Code.MandatoryFuncTextboxInputVerification
 	$syncHash.Window.Resources['TblHlStyle'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.HyperLinkClick
 
 	$syncHash.IcSourceFilter.Resources['ChbFilterStyle'].Setters.Where( { $_.Event.Name -match "Checked" } )[0].Handler = $syncHash.Code.SourceFilterChecked
@@ -701,12 +715,20 @@ function Set-Localizations
 	$syncHash.MiOutputHistory.ItemContainerStyle.Setters[0].Handler = $syncHash.Code.ShowOutputItem
 
 	# Initialize collections
-	'CvsDetailedProps', 'CvsPropsList', 'CvsMiAbout', 'CvsMiTools', 'CvsMiOutputHistory', 'CvsMiSeparateToolsFunctions', 'CvsPropSourceFilters',
-	'CvsMiComputerFunctions', 'CvsMiDirectoryInfoFunctions', 'CvsMiFileInfoFunctions', 'CvsMiGroupFunctions', 'CvsMiOtherFunctions', 'CvsMiPrintQueueFunctions', 'CvsMiUserFunctions',
-	'CvsMiO365DistributionlistFunctions', 'CvsMiO365ResourceFunctions', 'CvsMiO365RoomFunctions', 'CvsMiO365SharedMailboxFunctions', 'CvsMiO365UserFunctions' | `
+	'CvsDetailedProps', 'CvsPropsList', 'CvsPropSourceFilters' | `
 		ForEach-Object {
 			$syncHash.Window.Resources[$_].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 		}
+
+	$syncHash.Window.Resources.GetEnumerator() | `
+		Where-Object { $_.Name -match "^CvsMi" } | `
+		ForEach-Object {
+			$Cvs = $_.Value
+			$Cvs.Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+			$syncHash.Window.Resources["SdcTopMenuItems"].GetEnumerator() | `
+				ForEach-Object {
+					$Cvs.SortDescriptions.Add( $_ ) }
+			}
 
 	# Enabled collection synchronization over threads
 	"DgSearchResults", "IcObjectDetailed", "IcPropsList", "MiOutputHistory" | `
@@ -987,6 +1009,11 @@ function Start-Search
 	$syncHash.Jobs.SearchJobHandle = $syncHash.Jobs.SearchJob.BeginInvoke()
 }
 
+function Update-PHPropvalue
+{
+	
+}
+
 ############################################ Script start
 
 Show-Splash -Text "" -SelfAdmin
@@ -994,7 +1021,7 @@ WriteLog -Text "Start" -Success $true | Out-Null
 
 $controls = [System.Collections.ArrayList]::new()
 [void] $controls.Add( @{ CName = "BrdAsterixWarning" ; Props = @( @{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
-[void] $controls.Add( @{ CName = "BtnEnterFunctionInput" ; Props = @( @{ PropName = "Content" ; PropVal = $msgTable.ContentBtnEnterFunctionInput } ) } )
+[void] $controls.Add( @{ CName = "BtnEnterFunctionInput" ; Props = @( @{ PropName = "Content" ; PropVal = $msgTable.ContentBtnEnterFunctionInput } ; @{ PropName = "IsEnabled" ; PropVal = $true } ) } )
 [void] $controls.Add( @{ CName = "BtnSearch" ; Props = @( @{ PropName = "IsEnabled" ; PropVal = $false } ) } )
 [void] $controls.Add( @{ CName = "DgSearchResults" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[object]]::new() } ) } )
 [void] $controls.Add( @{ CName = "GridProgress" ; Props = @( @{ PropName = "Visibility"; PropVal = ( [System.Windows.Visibility]::Collapsed ) } ) } )
@@ -1002,6 +1029,8 @@ $controls = [System.Collections.ArrayList]::new()
 [void] $controls.Add( @{ CName = "PbSearchProgress" ; Props = @( @{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
 [void] $controls.Add( @{ CName = "TblAsterixWarning" ; Props = @( @{ PropName = "Text" ; PropVal = $msgTable.ContentTblAsterixWarning } ) } )
 [void] $controls.Add( @{ CName = "TblFailedSearchMessage" ; Props = @( @{ PropName = "Text" ; PropVal = "" } ) } )
+[void] $controls.Add( @{ CName = "TblUnfinishedInputCount" ; Props = @( @{ PropName = "Text" ; PropVal = 0 } ) } )
+[void] $controls.Add( @{ CName = "TblUnfinishedInputCountTitle" ; Props = @( @{ PropName = "Text" ; PropVal = $msgTable.ContentTblUnfinishedInputCountTitle } ) } )
 [void] $controls.Add( @{ CName = "TbSearch" ; Props = @( @{ PropName = "Text"; PropVal = "" } ) } )
 
 Update-SplashText -Text $msgTable.StrSplashCreatingWindow
@@ -1112,8 +1141,6 @@ $syncHash.Code.ListItem =
 				$syncHash.Data.SearchedItem.MemberOf.Where( { $_ -match $syncHash.Data.msgTable.CodeOrgGrpNamePrefix } )[0] -match $syncHash.Data.msgTable.CodeOrgGrpCaptureRegex | Out-Null
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "PCRoll" -Value $Matches.role
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Organisation" -Value $Matches.org
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ProcessList" -Value ( [System.Collections.ArrayList]::new() )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other.ProcessList.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrPHComputerOtherProcessListColName = $syncHash.Data.msgTable.StrPropDataNotFetched ; $syncHash.Data.msgTable.StrPHComputerOtherProcessListColId = 0 } ) ) | Out-Null
 
 				break
 			}
@@ -1433,6 +1460,7 @@ $syncHash.Code.ListProperties =
 											Source = "Exchange"
 											Type = $null
 											Handler = $null
+											NameLocalization = ""
 											CheckedForVisible = $null
 										}
 									}
@@ -1444,6 +1472,7 @@ $syncHash.Code.ListProperties =
 											Source = "AD"
 											Type = $null
 											Handler = $null
+											NameLocalization = ""
 											CheckedForVisible = $null
 										}
 									}
@@ -1464,6 +1493,7 @@ $syncHash.Code.ListProperties =
 											Source = $Source
 											Type = $null
 											Handler = $null
+											NameLocalization = ""
 											CheckedForVisible = $null
 										}
 									}
@@ -1490,6 +1520,7 @@ $syncHash.Code.ListProperties =
 							Source = $_.MandatorySource
 							Type = $null
 							Handler = $null
+							NameLocalization = ""
 							CheckedForVisible = $null
 						}
 					}
@@ -1553,16 +1584,27 @@ $syncHash.Code.ListProperties =
 					$Prop.Type = "ArrayList"
 				}
 
+				# Check if there is a PropHandler for this property
 				if ( $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PH$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )" )
 				{
 					$Prop.Handler = $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."PH$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )"
 				}
+
+				# Check if there a PropLocalization for this property
+				if ( $syncHash.Code.PropLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PL$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )" )
+				{
+					$Prop.NameLocalization = $syncHash.Code.PropLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )"."PL$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )"
+				}
+
 				$Prop.CheckedForVisible = ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.Name -eq $Prop.Name -and $_.MandatorySource -eq $Prop.Source } ).Count -gt 0 )
 
+				# Should the prop be added to the DetailedProps-list?
 				if ( $Detailed )
 				{
 					$syncHash.Window.Resources['CvsDetailedProps'].Source.Add( $Prop )
 				}
+
+				# Should the prop be added to the list of selected visible properties?
 				if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -eq $Prop.Source -and $_.Name -eq $Prop.Name } ) -or `
 					$OtherObjectClass )
 				{
@@ -1755,26 +1797,26 @@ $(
 							MsgTable = $page.Data.msgTable
 						}
 						$SenderObject.DataContext.PageObject = $page
-						$syncHash.Window.Resources.Add( $name , $page.Page )
+						$syncHash.Window.Resources.Add( "LoadedPage$( $name )" , $page )
 
 						Import-Module $SenderObject.DataContext.PS -ArgumentList $page -Force
 
 						if ( $SenderObject.DataContext.Name -eq "Send-Feedback" )
 						{
-							if ( $null -eq $syncHash.Window.Resources[$name].Resources['CvsFunctions'].Source )
+							if ( $null -eq $syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source )
 							{
-								$syncHash.Window.Resources[$name].Resources['CvsFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+								$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 								$syncHash.Window.Resources.GetEnumerator() | `
 									Where-Object { $_.Name -match "CvsMi.*((Functions)|(Tools)|(About))" } | `
 									ForEach-Object { $_.Value.Source } | `
 									Where-Object { $_.Name -notmatch "Temp" } | `
 									Select-Object -Property @{ Name="Name" ; Expression = { $_.Name.Trim() } }, @{ Name="Author" ; Expression = { $_.Author.Trim() } }, @{ Name="Description" ; Expression = { $_.Description.Trim() } } | `
-									ForEach-Object { $_; $syncHash.Window.Resources[$name].Resources['CvsFunctions'].Source.Add( $_ ) }
+									ForEach-Object { $_; $syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source.Add( $_ ) }
 							}
 						}
 						elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
 						{
-							$syncHash.Window.Resources[$name].Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
+							$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
 						}
 					}
 					catch
@@ -1793,10 +1835,10 @@ $(
 				# Copy SearchedItem to page resource
 				if ( $SenderObject.DataContext.ObjectOperations -eq $syncHash.Data.SearchedItem.ObjectClass )
 				{
-					$syncHash.Window.Resources[$name].Resources['SearchedItem'] = $syncHash.Data.SearchedItem
+					$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['SearchedItem'] = $syncHash.Data.SearchedItem
 				}
 
-				$syncHash.FrameTool.Navigate( $syncHash.Window.Resources[$name] )
+				$syncHash.FrameTool.Navigate( $syncHash.Window.Resources["LoadedPage$( $name )"].Page )
 			}
 			# The tool is handling its GUI by itself, in separate window
 			else
@@ -1840,8 +1882,23 @@ $(
 
 			if ( $SenderObject.DataContext.InputData.Count -gt 0 )
 			{
-				$SenderObject.DataContext.InputData | ForEach-Object { $_.EnteredValue = "" }
+				$SenderObject.DataContext.InputData | `
+					ForEach-Object {
+						if ( $_.InputType -eq "String" )
+						{
+							$_.EnteredValue = ""
+						}
+					}
 				$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
+				if ( $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count -gt 0 )
+				{
+					$syncHash.BtnEnterFunctionInput.IsEnabled = $false
+					$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count
+				}
+				else
+				{
+					$syncHash.BtnEnterFunctionInput.IsEnabled = $true
+				}
 			}
 			Prepare-ToRunScript $SenderObject.DataContext
 		}
@@ -1853,6 +1910,58 @@ $(
 [System.Windows.RoutedEventHandler] $syncHash.Code.SourceFilterChecked =
 {
 	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
+}
+
+# Verify tht all mandatory input values are entered
+[System.Windows.Controls.SelectionChangedEventHandler] $syncHash.Code.MandatoryFuncComboboxInputVerification =
+{
+	param ( $SenderObject, $e )
+
+	$SenderObject.TemplatedParent.TemplatedParent.Parent.DataContext.EnteredValue = $SenderObject.SelectedItem
+	if ( $SenderObject.SelectionIndex -eq -1 )
+	{
+		$SenderObject.TemplatedParent.TemplatedParent.Parent.Children[2].Foreground = "Red"
+	}
+	else
+	{
+		$SenderObject.TemplatedParent.TemplatedParent.Parent.Children[2].Foreground = "#FFD3D3D3"
+	}
+
+	if ( ( $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count ) -eq 0 )
+	{
+		$syncHash.DC.BtnEnterFunctionInput[1] = $true
+	}
+	else
+	{
+		$syncHash.DC.BtnEnterFunctionInput[1] = $false
+	}
+	$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count
+}
+
+# Verify tht all mandatory input values are entered
+[System.Windows.Controls.TextChangedEventHandler] $syncHash.Code.MandatoryFuncTextboxInputVerification =
+{
+	param ( $SenderObject, $e )
+
+	$SenderObject.TemplatedParent.TemplatedParent.Parent.DataContext.EnteredValue = $SenderObject.Text
+	if ( $SenderObject.Text.Length -eq 0 )
+	{
+		$SenderObject.TemplatedParent.TemplatedParent.Parent.Children[2].Foreground = "Red"
+	}
+	else
+	{
+		$SenderObject.TemplatedParent.TemplatedParent.Parent.Children[2].Foreground = "#FFD3D3D3"
+	}
+
+	if ( ( $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count ) -eq 0 )
+	{
+		$syncHash.DC.BtnEnterFunctionInput[1] = $true
+	}
+	else
+	{
+		$syncHash.DC.BtnEnterFunctionInput[1] = $false
+	}
+	$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count
 }
 
 # Code for running a function and display its output
@@ -2167,9 +2276,13 @@ $syncHash.MiCloseObj.Add_Click( {
 $syncHash.MiCopyObj.Add_Click( {
 	$OFS = "`n`t"
 	if ( $syncHash.IcObjectDetailed.Visibility -eq [System.Windows.Visibility]::Visible )
-	{ $Props = $syncHash.IcObjectDetailed.ItemsSource }
+	{
+		$Props = $syncHash.IcObjectDetailed.ItemsSource
+	}
 	else
-	{ $Props = $syncHash.IcPropsList.ItemsSource }
+	{
+		$Props = $syncHash.IcPropsList.ItemsSource
+	}
 
 	$OFS = "`n`t"
 	$Props | ForEach-Object {
@@ -2233,7 +2346,7 @@ $syncHash.MiShowHideOutputView.Add_Click( {
 	}
 } )
 
-#
+# Get extra info from SysMan
 $syncHash.MiGetSysManInfo.Add_Click( {
 	Get-ExtraInfoFromSysMan
 } )
