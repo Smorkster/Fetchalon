@@ -6,7 +6,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         MinHeight="955"
         MinWidth="1442"
-        Title="{Binding ElementName=FrameTool, Path=Content.Title}">
+        Title="{Binding ElementName=FrameTool, Path=Content.Title, BindsDirectlyToSource=True, IsAsync=True, NotifyOnSourceUpdated=True}">
     <WindowChrome.WindowChrome>
         <WindowChrome GlassFrameThickness="-1"
                       ResizeBorderThickness="4"
@@ -27,7 +27,7 @@
                         <TextBlock FontSize="18"
                                    FontWeight="Bold"
                                    Margin="0,5,0,0"
-                                   Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Title}"
+                                   Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Title, BindsDirectlyToSource=True, IsAsync=True, NotifyOnSourceUpdated=True}"
                                    TextAlignment="Center"
                                    VerticalAlignment="Center" />
                     </Grid>
@@ -194,20 +194,13 @@
         <!--#endregion-->
 
         <!--#region Viewsources -->
-        <CollectionViewSource x:Key="CvsMiAbout">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiComputerFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Descending"
-                                                PropertyName="IsSubMenuHeader" />
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
+        <componentmodel:SortDescriptionCollection x:Key="SdcTopMenuItems">
+            <componentmodel:SortDescription Direction="Descending"
+                                            PropertyName="IsSubMenuHeader" />
+            <componentmodel:SortDescription Direction="Ascending"
+                                            PropertyName="MenuItem" />
+        </componentmodel:SortDescriptionCollection>
+
         <CollectionViewSource x:Key="CvsDetailedProps"
                               IsLiveFilteringRequested="True">
             <CollectionViewSource.SortDescriptions>
@@ -216,105 +209,10 @@
                 </componentmodel:SortDescription>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiFileInfoFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem">
-                </componentmodel:SortDescription>
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiDirectoryInfoFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem">
-                </componentmodel:SortDescription>
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiGroupFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiOtherFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiOutputHistory">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Descending"
-                                                PropertyName="Finished" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiPrintQueueFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiSeparateToolsFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Descending"
-                                                PropertyName="Separate" />
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiTools">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Descending"
-                                                PropertyName="Separate" />
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiUserFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem" />
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
         <CollectionViewSource x:Key="CvsPropsList">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
                                                 PropertyName="Name">
-                </componentmodel:SortDescription>
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiO365UserFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem">
-                </componentmodel:SortDescription>
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiO365SharedMailboxFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem">
-                </componentmodel:SortDescription>
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiO365DistributionlistFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem">
-                </componentmodel:SortDescription>
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiO365ResourceFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem">
-                </componentmodel:SortDescription>
-            </CollectionViewSource.SortDescriptions>
-        </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsMiO365RoomFunctions">
-            <CollectionViewSource.SortDescriptions>
-                <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="MenuItem">
                 </componentmodel:SortDescription>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
@@ -325,6 +223,23 @@
                 </componentmodel:SortDescription>
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
+
+        <CollectionViewSource x:Key="CvsMiAbout" />
+        <CollectionViewSource x:Key="CvsMiComputerFunctions" />
+        <CollectionViewSource x:Key="CvsMiFileInfoFunctions" />
+        <CollectionViewSource x:Key="CvsMiDirectoryInfoFunctions" />
+        <CollectionViewSource x:Key="CvsMiGroupFunctions" />
+        <CollectionViewSource x:Key="CvsMiOtherFunctions" />
+        <CollectionViewSource x:Key="CvsMiOutputHistory" />
+        <CollectionViewSource x:Key="CvsMiPrintQueueFunctions" />
+        <CollectionViewSource x:Key="CvsMiSeparateToolsFunctions" />
+        <CollectionViewSource x:Key="CvsMiTools" />
+        <CollectionViewSource x:Key="CvsMiUserFunctions" />
+        <CollectionViewSource x:Key="CvsMiO365UserFunctions" />
+        <CollectionViewSource x:Key="CvsMiO365SharedMailboxFunctions" />
+        <CollectionViewSource x:Key="CvsMiO365DistributionlistFunctions" />
+        <CollectionViewSource x:Key="CvsMiO365ResourceFunctions" />
+        <CollectionViewSource x:Key="CvsMiO365RoomFunctions" />
         <!--#endregion-->
 
         <!--#region Dependant styles -->
@@ -486,6 +401,9 @@
                             <EventTrigger RoutedEvent="Keyboard.PreviewLostKeyboardFocus">
                                 <StopStoryboard BeginStoryboardName="BtnFocusStory" />
                             </EventTrigger>
+                            <EventTrigger RoutedEvent="Keyboard.LostKeyboardFocus">
+                                <StopStoryboard BeginStoryboardName="BtnFocusStory" />
+                            </EventTrigger>
                             <!--#endregion Button got focus -->
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -543,6 +461,7 @@
 
         <Style TargetType="ComboBox"
                x:Key="CbInputStyle">
+            <EventSetter Event="SelectionChanged" />
         </Style>
         <Style TargetType="CheckBox"
                x:Key="CbPropValueStyle">
@@ -1109,7 +1028,7 @@
             <Setter Property="TextWrapping"
                     Value="Wrap" />
             <Setter Property="VerticalAlignment"
-                    Value="Center" />
+                    Value="Bottom" />
         </Style>
         <Style TargetType="TextBlock"
                x:Key="TblHlStyle">
@@ -1154,6 +1073,7 @@
                x:Key="TbInputStyle"
                BasedOn="{StaticResource TbBaseStyle}">
             <EventSetter Event="Loaded" />
+            <EventSetter Event="TextChanged" />
         </Style>
         <Style TargetType="TextBox"
                x:Key="TbListValueBaseStyle"
@@ -1358,9 +1278,12 @@
         <Page x:Key="MainOutput"
               Name="MainOutput">
             <Page.Resources>
+                <sys:Double x:Key="IconSize">25</sys:Double>
                 <sys:String x:Key="StrCompressedDateTimeFormat">x</sys:String>
                 <sys:String x:Key="StrDateFormat">x</sys:String>
                 <sys:String x:Key="StrFullDateTimeFormat">x</sys:String>
+                <sys:String x:Key="StrGbFunctionInputTitle">x</sys:String>
+                <sys:String x:Key="StrScriptRunningWithoutRunspace">x</sys:String>
                 <sys:String x:Key="StrTimeFormat">x</sys:String>
             </Page.Resources>
             <Grid Name="GridOutputs">
@@ -1384,121 +1307,270 @@
                             </Style.Triggers>
                         </Style>
                     </Grid.Style>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition />
+                    </Grid.ColumnDefinitions>
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
                         <RowDefinition />
                         <RowDefinition Height="Auto" />
-                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TextBlock Style="{StaticResource TblMenuTitleStyle}"
-                               Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Name}"
-                               ToolTip="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Description}" />
-                    <ItemsControl Name="IcFunctionInput"
-                                  Grid.Row="1"
-                                  ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.InputData}">
-                        <ItemsControl.Style>
-                            <Style TargetType="ItemsControl"
-                                   BasedOn="{StaticResource IcBaseStyle}">
-                                <Setter Property="IsEnabled"
-                                        Value="True" />
-                                <Setter Property="Visibility"
-                                        Value="Visible" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=ItemsSource.Count}"
-                                                 Value="0">
-                                        <Setter Property="Visibility"
-                                                Value="Collapsed" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=ItemsSource.Count}"
-                                                 Value="{x:Null}">
-                                        <Setter Property="Visibility"
-                                                Value="Collapsed" />
-                                    </DataTrigger>
-                                    <DataTrigger Binding="{Binding ElementName=GridProgress, Path=Visibility}"
-                                                 Value="Visible">
-                                        <Setter Property="IsEnabled"
-                                                Value="False" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </ItemsControl.Style>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition Width="Auto" />
-                                        <ColumnDefinition />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition />
-                                        <RowDefinition />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock FontSize="13"
-                                               FontWeight="Bold"
-                                               Margin="{StaticResource StdMargin}"
-                                               Text="{Binding Path=Name, Mode=OneWay}" />
-                                    <TextBlock FontSize="13"
-                                               Grid.Column="1"
-                                               Margin="{StaticResource StdMargin}"
-                                               Text="{Binding Path=InputDescription, Mode=OneWay}" />
-                                    <TextBox Name="TbValueInput"
-                                             Grid.ColumnSpan="3"
-                                             Grid.Row="1"
-                                             Height="30"
-                                             Margin="5,0"
-                                             Padding="{StaticResource StdPadding}"
-                                             Text="{Binding Path=EnteredValue, Mode=TwoWay}"
-                                             VerticalContentAlignment="Center">
-                                        <TextBox.Style>
-                                            <Style TargetType="TextBox"
-                                                   BasedOn="{StaticResource TbInputStyle}">
-                                                <Setter Property="Visibility"
-                                                        Value="Collapsed" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Path=InputType}"
-                                                                 Value="String">
-                                                        <Setter Property="Visibility"
-                                                                Value="Visible" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBox.Style>
-                                    </TextBox>
-                                    <ComboBox Name="CbValueInput"
-                                              Grid.ColumnSpan="3"
-                                              Grid.Row="1"
-                                              Height="30"
-                                              ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.InputList}"
-                                              Margin="5,0"
-                                              Padding="{StaticResource StdPadding}"
-                                              Text="{Binding Path=EnteredValue, Mode=TwoWay}"
-                                              VerticalContentAlignment="Center">
-                                        <ComboBox.Style>
-                                            <Style TargetType="ComboBox"
-                                                   BasedOn="{StaticResource CbInputStyle}">
-                                                <Setter Property="Visibility"
-                                                        Value="Collapsed" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Path=InputType}"
-                                                                 Value="List">
-                                                        <Setter Property="Visibility"
-                                                                Value="Visible" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-
-                                        </ComboBox.Style>
-                                    </ComboBox>
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Style="{StaticResource TblMenuTitleStyle}"
+                                   HorizontalAlignment="Left"
+                                   Margin="{StaticResource StdMargin}"
+                                   Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.MenuItem}" />
+                        <Grid Grid.Row="1">
+                            <Grid.Style>
+                                <Style TargetType="Grid">
+                                    <Setter Property="Visibility"
+                                            Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.NoRunspace}"
+                                                     Value="True">
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Grid.Style>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <Ellipse Fill="White"
+                                     Height="{StaticResource IconSize}"
+                                     UseLayoutRounding="True"
+                                     Width="{StaticResource IconSize}" />
+                            <Path Name="PathNoRunspaceInfo"
+                                  Fill="LightBlue"
+                                  Height="{StaticResource IconSize}"
+                                  StrokeThickness="3"
+                                  UseLayoutRounding="True"
+                                  Width="{StaticResource IconSize}">
+                                <Path.Data>
+                                    <Geometry>M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z</Geometry>
+                                </Path.Data>
+                            </Path>
+                            <TextBlock FontStyle="Italic"
+                                       Grid.Column="1"
+                                       Margin="{StaticResource StdMargin}"
+                                       Text="{DynamicResource StrScriptRunningWithoutRunspace}"
+                                       TextWrapping="Wrap" />
+                        </Grid>
+                    </Grid>
+                    <Grid Grid.Column="1">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Margin="{StaticResource StdMargin}"
+                                   Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Synopsis}" />
+                        <TextBlock Grid.Row="1"
+                                   Margin="{StaticResource StdMargin}"
+                                   Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Description}" />
+                    </Grid>
+                    <GroupBox Grid.ColumnSpan="2"
+                              Grid.Row="2"
+                              Margin="5,10,5,5"
+                              MaxHeight="700">
+                        <GroupBox.Header>
+                            <TextBlock FontSize="16"
+                                       FontWeight="Bold"
+                                       Text="{DynamicResource StrGbFunctionInputTitle}" />
+                        </GroupBox.Header>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="1*" />
+                            </Grid.RowDefinitions>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Name="TblUnfinishedInputCountTitle"
+                                           Margin="{StaticResource StdMargin}" />
+                                <TextBlock Name="TblUnfinishedInputCount"
+                                           Grid.Column="1"
+                                           Margin="{StaticResource StdMargin}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="FontWeight"
+                                                    Value="Bold" />
+                                            <Setter Property="Foreground"
+                                                    Value="Red" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text}"
+                                                             Value="0">
+                                                    <Setter Property="Foreground"
+                                                            Value="Green" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </Grid>
+                            <ScrollViewer Grid.Row="1"
+                                          Margin="{StaticResource StdMargin}"
+                                          VerticalScrollBarVisibility="Auto">
+                                <ItemsControl Name="IcFunctionInput"
+                                              ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.InputData}"
+                                              Margin="{StaticResource StdMargin}">
+                                    <ItemsControl.Style>
+                                        <Style TargetType="ItemsControl"
+                                               BasedOn="{StaticResource IcBaseStyle}">
+                                            <Setter Property="IsEnabled"
+                                                    Value="True" />
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=ItemsSource.Count}"
+                                                             Value="0">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=ItemsSource.Count}"
+                                                             Value="{x:Null}">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ElementName=GridProgress, Path=Visibility}"
+                                                             Value="Visible">
+                                                    <Setter Property="IsEnabled"
+                                                            Value="False" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </ItemsControl.Style>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.Style>
+                                                    <Style TargetType="Grid">
+                                                        <Setter Property="Background"
+                                                                Value="#0000" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}"
+                                                                         Value="True">
+                                                                <Setter Property="Background"
+                                                                        Value="{StaticResource ScbPropListItemMouseOver}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Grid.Style>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition />
+                                                </Grid.ColumnDefinitions>
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition />
+                                                    <RowDefinition />
+                                                </Grid.RowDefinitions>
+                                                <TextBlock FontSize="13"
+                                                           FontWeight="Bold"
+                                                           Margin="{StaticResource StdMargin}"
+                                                           Text="{Binding Path=Name, Mode=OneWay}" />
+                                                <TextBlock FontSize="13"
+                                                           Grid.Column="1"
+                                                           Margin="{StaticResource StdMargin}"
+                                                           Text="{Binding Path=InputDescription, Mode=OneWay}" />
+                                                <Label Content="*"
+                                                       Focusable="False"
+                                                       FontSize="25"
+                                                       Grid.Column="2"
+                                                       IsTabStop="False">
+                                                    <Label.Style>
+                                                        <Style TargetType="Label">
+                                                            <Setter Property="Foreground"
+                                                                    Value="Red" />
+                                                            <Setter Property="Padding"
+                                                                    Value="0" />
+                                                            <Setter Property="VerticalContentAlignment"
+                                                                    Value="Center" />
+                                                            <Setter Property="Visibility"
+                                                                    Value="Visible" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Mandatory}"
+                                                                             Value="{x:Null}">
+                                                                    <Setter Property="Visibility"
+                                                                            Value="Collapsed" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Label.Style>
+                                                </Label>
+                                                <ContentControl Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
+                                                                Grid.Row="1"
+                                                                IsTabStop="False">
+                                                    <ContentControl.Style>
+                                                        <Style TargetType="ContentControl">
+                                                            <Setter Property="ContentTemplate">
+                                                                <Setter.Value>
+                                                                    <DataTemplate>
+                                                                        <TextBox Height="30"
+                                                                                 Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.EnteredValue, Mode=TwoWay}"
+                                                                                 Style="{StaticResource TbInputStyle}"
+                                                                                 VerticalContentAlignment="Center" />
+                                                                    </DataTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.InputType}"
+                                                                             Value="List">
+                                                                    <Setter Property="ContentTemplate">
+                                                                        <Setter.Value>
+                                                                            <DataTemplate>
+                                                                                <ComboBox Height="30"
+                                                                                          ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.InputList}"
+                                                                                          Margin="{StaticResource StdMargin}"
+                                                                                          SelectedItem="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.DefaultValue, Mode=TwoWay}"
+                                                                                          Style="{StaticResource CbInputStyle}"
+                                                                                          Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.EnteredValue, Mode=TwoWay}"
+                                                                                          VerticalContentAlignment="Center" />
+                                                                            </DataTemplate>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.InputType}"
+                                                                             Value="Bool">
+                                                                    <Setter Property="ContentTemplate">
+                                                                        <Setter.Value>
+                                                                            <DataTemplate>
+                                                                                <CheckBox Height="30"
+                                                                                          IsChecked="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.EnteredValue, Mode=TwoWay}"
+                                                                                          Margin="{StaticResource StdMargin}"
+                                                                                          VerticalContentAlignment="Center" />
+                                                                            </DataTemplate>
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ContentControl.Style>
+                                                </ContentControl>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                        </Grid>
+                    </GroupBox>
                     <Button Name="BtnEnterFunctionInput"
                             Content="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.MsgTable.ContentBtnEnterFunctionInput}"
-                            Grid.Row="2"
+                            Grid.Column="1"
+                            Grid.Row="3"
                             HorizontalAlignment="Right"
-                            Padding="{StaticResource StdPadding}"
+                            Margin="10"
+                            Padding="7"
                             Visibility="{Binding ElementName=IcFunctionInput, Path=Visibility}" />
                 </Grid>
                 <ItemsControl Name="IcOutputObjects"
@@ -3405,9 +3477,22 @@
                                                     <RowDefinition Height="Auto" />
                                                     <RowDefinition />
                                                 </Grid.RowDefinitions>
-                                                <TextBlock Style="{StaticResource PropTitleStyle}"
-                                                           Text="{Binding Path=Name}"
-                                                           TextAlignment="Center" />
+                                                <TextBlock TextAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource PropTitleStyle}">
+                                                            <Setter Property="Text"
+                                                                    Value="{Binding Path=NameLocalization}" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Path=NameLocalization}"
+                                                                             Value="{x:Static sys:String.Empty}">
+                                                                    <Setter Property="Text"
+                                                                            Value="{Binding Path=Name}" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                                 <TextBlock FontSize="13"
                                                            Grid.Column="1"
                                                            Style="{StaticResource PropTitleStyle}"
