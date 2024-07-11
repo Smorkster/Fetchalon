@@ -27,9 +27,9 @@ function Install-SysManPrinter
 	.OutputType
 		String
 	.InputData
-		Printers Printernames, separated by spaces
+		Printers, True, Printernames, separated by spaces
 	.InputData
-		Computers Computernames, separate by spaces
+		Computers, True, Computernames, separate by spaces
 	.State
 		Prod
 	.Author
@@ -158,9 +158,9 @@ function Uninstall-SysManPrinter
 	.OutputType
 		String
 	.InputData
-		Printers Printer names, separated by spaces
+		Printers, True, Printer names, separated by spaces
 	.InputData
-		ComputerNames Computer names, separated by spaces
+		ComputerNames, True, Computer names, separated by spaces
 	.State
 		Prod
 	.Author

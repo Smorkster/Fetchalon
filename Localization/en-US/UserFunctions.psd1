@@ -24,8 +24,25 @@ GetO365AccountStatusParamOMigFalse = Not a member
 GetO365AccountStatusParamTitleType = Check
 GetO365AccountStatusParamTitleValue = Status
 GetO365AccountStatusValOk = OK
+GetSharedAccountsByDepIdAdSearchBasePrefix = ou=Custom,ou=Users,ou=
+GetSharedAccountsByDepIdAdSearchBaseSuffix = ,ou=Dep,dc=Domain,dc=DC
+GetSharedAccountsByDepIdDepAdProp = ADPropName
+GetSharedAccountsByDepIdNoAccounts = No accounts found
+GetSharedAccountsByDepIdObjClass = ADObjClass
+GetSharedAccountsByDepIdOrgRegex = (Org0|Org1|Org2)
+GetSharedAccountsByDepIdPropTitleActive = Active account
+GetSharedAccountsByDepIdPropTitleComputer = At computer
+GetSharedAccountsByDepIdPropTitleDepId = Costcenter
+GetSharedAccountsByDepIdPropTitleName = Shared account
+GetSharedAccountsByDepIdPropTitlePwdExpDate = Password expiration date
+GetSharedAccountsByDepIdPropTitlePwdExpDateLong = days, report to Op
+GetSharedAccountsByDepIdPropTitlePwdExpDateNo = Does not expire
+GetSharedAccountsByDepIdPropTitlePwdLocked = Locked due to bad password
+GetSharedAccountsByDepIdPropTitleType = Accounttype
+GetSharedAccountsByDepIdPropValNo = No
+GetSharedAccountsByDepIdPropValYes = Yes
 RemoveProfileVKNotValidOrg = The organization does not use vClient
-RemoveProfileVKProfileRemoved = The vClient profile has now been removed
+RemoveProfileVKProfileRemoved = The Client profile has now been removed
 RemoveProfileVKQuestion = What organization do the user work in?
 RemoveProfileVKQuestionReturn = Folder opened in Explorer
 RemoveProfileVKQuestionTitle = Enter organization
