@@ -367,10 +367,11 @@ function GetScriptInfo
 					}
 					elseif ( "InputDataList" -eq $Matches.InfoType )
 					{
-						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\W*?,\W*?(?<Mandatory>\w*)\W*?,\W*?(?<DefaultValue>\w*)\W*?,\W*?(?<InputList>.*)" | Out-Null
+						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\W*?,\W*?(?<Mandatory>\w*)\W*?,\W*?(?<Desc>\w*)\W*?,\W*?(?<DefaultValue>\w*)\W*?,\W*?(?<InputList>.*)" | Out-Null
 						$ListInputData.Add( (
 							[pscustomobject]@{
-								Name = $Matches.InputVar
+								Name = $Matches.InputVar.Trim()
+								InputDescription = $Matches.Desc.Trim()
 								InputType = "List"
 								InputList = [System.Collections.ArrayList] ( $Matches.InputList.Trim() -split "," )
 								DefaultValue = $Matches.DefaultValue.Trim()
@@ -381,12 +382,12 @@ function GetScriptInfo
 					}
 					elseif ( "InputDataBool" -eq $Matches.InfoType )
 					{
-						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\s*?(?<InputComment>.*)" | Out-Null
+						$Name, $Desc = $Matches.Rest.Trim() -split ",", 2
 						$ListInputData.Add( (
 							[pscustomobject]@{
-								Name = $Matches.InputVar
+								Name = $Name.Trim()
 								InputType = "Bool"
-								InputDescription = $Matches.InputComment.Trim()
+								InputDescription = $Desc.Trim()
 								EnteredValue = $false
 							}
 						) ) | Out-Null
