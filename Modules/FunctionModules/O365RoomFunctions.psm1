@@ -73,7 +73,7 @@ function Set-RoomMailTip
 	.MenuItem
 		Set mailtip
 	.InputData
-		MailTip Text to be displayed as a mailtip, maximum length 175 characters
+		MailTip, , Text to be displayed as a mailtip, maximum length 175 characters
 	.SearchedItemRequest
 		Required
 	.ObjectClass

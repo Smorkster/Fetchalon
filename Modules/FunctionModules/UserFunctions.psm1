@@ -28,7 +28,7 @@ function Compare-UserGroups
 		ObjectList
 	.NoRunspace
 	.InputData
-		Users List of users, separated by spaces
+		Users, True, List of users, separated by spaces
 	.State
 		Prod
 	.Author
@@ -302,6 +302,99 @@ function Get-O365AccountStatus
 	}
 
 	return $List
+}
+
+function Get-SharedAccountsByDepId
+{
+	<#
+	.Synopsis
+		List shared accounts by cost center
+	.Description
+		Find shared accounts that are listed on the same cost center
+	.MenuItem
+		List shared accounts
+	.SubMenu
+		List
+	.NoRunspace
+	.SearchedItemRequest
+		None
+	.InputData
+		Costcenter, True, List of cost centers, separated by comma (',')
+	.InputDataBool
+		Inactive, List inactive accounts
+	.OutputType
+		ObjectList
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $InputData )
+
+	$KsList = ,($InputData.Costcenter -split ",")
+	$Results = [System.Collections.ArrayList]::new()
+	$Splat = @{}
+	$Ks = ""
+	$Filter = 0
+
+	try
+	{
+		$KsList | `
+			ForEach-Object {
+				$Ks = $_.Trim()
+				$Splat.Properties = @( "pwdlastset", "lockedout", "accountExpires", "msDS-UserPasswordExpiryTimeComputed", "LogonWorkstations", $IntMsgTable.GetSharedAccountsByDepIdDepAdProp )
+
+				$OFS = ""
+				if ( $Ks -match $IntMsgTable.GetSharedAccountsByDepIdOrgRegex )
+				{
+					$Filter = 1
+					$Splat.LDAPFilter = "($( $IntMsgTable.GetSharedAccountsByDepIdDepAdProp )=*$( $Ks )*)"
+					$Splat.SearchBase = $IntMsgTable.GetSharedAccountsByDepIdAdSearchBasePrefix + $Ks.Substring( 0, 3 ) + $IntMsgTable.GetSharedAccountsByDepIdAdSearchBaseSuffix
+				}
+				else
+				{
+					$Filter = 2
+					$Splat.LDAPFilter = "($( $IntMsgTable.GetSharedAccountsByDepIdDepAdProp )=*$( $Ks )*)"
+				}
+
+				if ( -not $InputData.Inactive )
+				{
+					$Filter = 3
+					$Splat.LDAPFilter = "(&$( $Splat.LDAPFilter )(!(userAccountControl:1.2.840.113556.1.4.803:=2)))"
+				}
+
+				Get-ADUser @Splat | `
+					Where-Object { $_.SamAccountName.Length -gt 4 } | `
+					Select-Object @{ Name = "$( $IntMsgTable.GetSharedAccountsByDepIdPropTitleName )"; Expression = { $_.Name } }, `
+						@{ Name = "$( $IntMsgTable.GetSharedAccountsByDepIdPropTitleComputer )"; Expression = { $_.LogonWorkstations } }, `
+						@{ Name = "$( $IntMsgTable.GetSharedAccountsByDepIdPropTitleDepId )"; Expression = { $_."$( $IntMsgTable.GetSharedAccountsByDepIdDepAdProp )" } }, `
+						@{ Name = "$( $IntMsgTable.GetSharedAccountsByDepIdPropTitleActive )"; Expression = { if ( $_.Enabled ) { $IntMsgTable.GetSharedAccountsByDepIdPropValYes } else { $IntMsgTable.GetSharedAccountsByDepIdPropValNo } } }, `
+						@{ Name = "$( $IntMsgTable.GetSharedAccountsByDepIdPropTitleType )"; Expression = { $_.ObjectClass } }, `
+						@{ Name = "$( $IntMsgTable.GetSharedAccountsByDepIdPropTitlePwdLocked )"; Expression = { if ( $_.LockedOut ) { $IntMsgTable.GetSharedAccountsByDepIdPropValYes } else { $IntMsgTable.GetSharedAccountsByDepIdPropValNo } } }, `
+						@{ Name = "$( $IntMsgTable.GetSharedAccountsByDepIdPropTitlePwdExpDate )"; Expression = {
+							if ( $_.'msDS-UserPasswordExpiryTimeComputed' -eq 9223372036854775807 ) { $IntMsgTable.GetSharedAccountsByDepIdPropTitlePwdExpDateNo }
+							else { "$( ( ( [datetime]::FromFileTime( $_."msDS-UserPasswordExpiryTimeComputed" ) ) - ( Get-Date ) ).Days ) $( $IntMsgTable.GetSharedAccountsByDepIdPropTitlePwdExpDateLong ) " } } } | `
+					Sort-Object -Property @{ Expression = "$( $IntMsgTable.GetSharedAccountsByDepIdPropTitleDepId )" ; Ascending = $true }, @{ Expression = "$( $IntMsgTable.GetSharedAccountsByDepIdPropTitleName )" ; Ascending = $true } | `
+					ForEach-Object {
+						$Results.Add( $_ ) | Out-Null
+					}
+				$Splat.Clear()
+			}
+
+		if ( $Results.Count -eq 0 )
+		{
+			throw $IntMsgTable.GetSharedAccountsByDepIdNoAccounts
+		}
+		else
+		{
+			return $Results
+		}
+	}
+	catch
+	{
+		throw "$( $_.Exception.Message )`n$( $Ks )$( $InputData.Costcenter )`n$( $Filter )`n$( $Splat.LDAPFilter )"
+	}
 }
 
 function Open-SysManGroups

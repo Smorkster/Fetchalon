@@ -115,6 +115,8 @@ function Get-PollenRapport
 		Today's pollen report
 	.SearchedItemRequest
 		None
+	.InputDataList
+		Stad, True, , Sverige,Stockholm,Borlänge,Forshaga,Gävle,Jönköping,Visby,Bräkne-Hoby,Göteborg,Hässleholm,Kristianstad,Malmö,Nässjö,Eskilstuna,Norrköping,Skövde,Sundsvall,Umeå,Västervik,Östersund,Piteå,Kiruna,Ljusdal
 	.NoRunspace
 	.OutputType
 		ObjectList
@@ -335,7 +337,7 @@ function Write-String
 	.Description
 		Write string as input. Used to show how output is displayed
 	.InputData
-		String String to write
+		String, , String to write
 	.State
 		Dev
 	.Author

@@ -133,7 +133,7 @@ function Get-LastLoggedIn
 	.State
 		Prod
 	.InputData
-		ComputerName List of computer names
+		ComputerName, True, List of computer names
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -177,7 +177,7 @@ function Get-LoggedInUser
 	.MenuItem
 		Show currently logged in
 	.InputData
-		ComputerName Name of computer
+		ComputerName, True, Name of computer
 	.SearchedItemRequest
 		Allowed
 	.State
@@ -745,9 +745,9 @@ function Send-Toast
 	.Depends
 		WinRM
 	.InputData
-		Title Title of the message
+		Title, True, Title of the message
 	.InputData
-		Message Message text
+		Message, True, Message text
 	.State
 		Prod
 	.Author

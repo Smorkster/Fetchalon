@@ -24,8 +24,25 @@ GetO365AccountStatusParamOMigFalse = Ej medlem
 GetO365AccountStatusParamTitleType = Kontroll
 GetO365AccountStatusParamTitleValue = Status
 GetO365AccountStatusValOk = OK
+GetSharedAccountsByDepIdAdSearchBasePrefix = ou=Custom,ou=Users,ou=
+GetSharedAccountsByDepIdAdSearchBaseSuffix = ,ou=Dep,dc=Domain,dc=DC
+GetSharedAccountsByDepIdDepAdProp = ADPropName
+GetSharedAccountsByDepIdNoAccounts = Inga konton hittades
+GetSharedAccountsByDepIdObjClass = ADObjClass
+GetSharedAccountsByDepIdOrgRegex = (Org0|Org1|Org2)
+GetSharedAccountsByDepIdPropTitleActive = Aktivt konto
+GetSharedAccountsByDepIdPropTitleComputer = På dator
+GetSharedAccountsByDepIdPropTitleDepId = Kostnadsställe
+GetSharedAccountsByDepIdPropTitleName = Delat konto
+GetSharedAccountsByDepIdPropTitlePwdExpDate = Lösenordet går ut
+GetSharedAccountsByDepIdPropTitlePwdExpDateLong = dagar, anmäl detta till tredje linan
+GetSharedAccountsByDepIdPropTitlePwdExpDateNo = Går inte ut
+GetSharedAccountsByDepIdPropTitlePwdLocked = Låst pga fel lösen
+GetSharedAccountsByDepIdPropTitleType = Kontotyp
+GetSharedAccountsByDepIdPropValNo = Nej
+GetSharedAccountsByDepIdPropValYes = Ja
 RemoveProfileVKNotValidOrg = Organisationen använder inte vKlient
-RemoveProfileVKProfileRemoved = vKlient-profilen har nu tagits bort
+RemoveProfileVKProfileRemoved = Klient-profilen har nu tagits bort
 RemoveProfileVKQuestion = Vilken organisation arbetar användare i?
 RemoveProfileVKQuestionReturn = Mapp öppnad i Utforskaren
 RemoveProfileVKQuestionTitle = Ange organisation
