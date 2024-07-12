@@ -156,7 +156,8 @@
         <!--#region Sys variables -->
         <sys:Boolean x:Key="UseConverters">True</sys:Boolean>
         <sys:DateTime x:Key="DateTime" />
-        <sys:Double x:Key="BrdMaxHeight">300</sys:Double>
+        <sys:Double x:Key="BrdMaxHeight">400</sys:Double>
+        <sys:Double x:Key="PropValMaxHeight">315</sys:Double>
         <sys:String x:Key="StrCompressedDateTimeFormat">x</sys:String>
         <sys:String x:Key="StrDateFormat">x</sys:String>
         <sys:String x:Key="StrFullDateTimeFormat">x</sys:String>
@@ -854,12 +855,12 @@
                 <Trigger Property="DataGrid.AlternationCount"
                          Value="0">
                     <Setter Property="Background"
-                            Value="Transparent" />
+                            Value="White" />
                 </Trigger>
                 <Trigger Property="DataGrid.AlternationIndex"
                          Value="1">
                     <Setter Property="Background"
-                            Value="#e0e0e0" />
+                            Value="#e1e1e1" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -1601,6 +1602,7 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock FontSize="20"
                                                Margin="{StaticResource StdMargin}"
+                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblOutputTitle}"
                                                VerticalAlignment="Bottom">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -1613,8 +1615,6 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </TextBlock.Style>
-                                        <Run Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblOutputTitle}" />
-                                        <Run Text=" " />
                                     </TextBlock>
                                     <TextBlock FontSize="20"
                                                FontWeight="Bold"
@@ -1624,7 +1624,9 @@
                                                Text="{Binding Path=Script.Name}"
                                                ToolTip="{Binding Path=Script.Synopsis}" />
                                     <TextBlock FontSize="20"
+                                               Grid.Column="2"
                                                Margin="{StaticResource StdMargin}"
+                                               TextTrimming="CharacterEllipsis"
                                                VerticalAlignment="Bottom">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -1644,9 +1646,9 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </TextBlock.Style>
-                                        <Run Text="{Binding Path=Item.ObjectClass}" />
-                                        <Run Text=" " />
+                                        <Run Text="'" />
                                         <Run Text="{Binding Path=Item.Name}" />
+                                        <Run Text="'" />
                                     </TextBlock>
                                     <Label Content="{Binding Path=Finished}"
                                            ContentStringFormat="{DynamicResource StrFullDateTimeFormat}"
@@ -3475,6 +3477,7 @@
                                                 <Grid.RowDefinitions>
                                                     <RowDefinition Height="Auto" />
                                                     <RowDefinition Height="Auto" />
+                                                    <RowDefinition Height="Auto" />
                                                     <RowDefinition />
                                                 </Grid.RowDefinitions>
                                                 <TextBlock TextAlignment="Center">
@@ -3524,35 +3527,9 @@
                                                 <ProgressBar Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
                                                              Grid.Row="1"
                                                              Height="8"
-                                                             Maximum="{Binding Path=Handler.ProgressMax}">
-                                                    <ProgressBar.Style>
-                                                        <Style TargetType="ProgressBar">
-                                                            <Setter Property="IsIndeterminate"
-                                                                    Value="False" />
-                                                            <Setter Property="Visibility"
-                                                                    Value="Visible" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding Path=Handler.Progress}"
-                                                                             Value="-1">
-                                                                    <Setter Property="IsIndeterminate"
-                                                                            Value="True" />
-                                                                    <Setter Property="Visibility"
-                                                                            Value="Visible" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding Path=Handler.Progress}"
-                                                                             Value="0">
-                                                                    <Setter Property="Visibility"
-                                                                            Value="Collapsed" />
-                                                                </DataTrigger>
-                                                                <DataTrigger Binding="{Binding Path=Handler.Progress}"
-                                                                             Value="{x:Null}">
-                                                                    <Setter Property="Visibility"
-                                                                            Value="Collapsed" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </ProgressBar.Style>
-                                                </ProgressBar>
+                                                             IsIndeterminate="True"
+                                                             Maximum="{Binding Path=Handler.ProgressMax}"
+                                                             Visibility="Hidden" />
                                                 <ContentControl Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
                                                                 Grid.Row="2">
                                                     <ContentControl.Style>
@@ -3572,7 +3549,7 @@
                                                                     <Setter Property="ContentTemplate">
                                                                         <Setter.Value>
                                                                             <DataTemplate>
-                                                                                <ScrollViewer>
+                                                                                <ScrollViewer MaxHeight="{StaticResource PropValMaxHeight}">
                                                                                     <ScrollViewer.Resources>
                                                                                         <CollectionViewSource x:Key="CvsItems"
                                                                                                               Source="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Value}">
@@ -3672,9 +3649,11 @@
                                                                             <DataTemplate>
                                                                                 <DataGrid ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Value}"
                                                                                           MaxColumnWidth="300"
+                                                                                          MaxHeight="{StaticResource PropValMaxHeight}"
                                                                                           MaxWidth="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ActualWidth}"
                                                                                           ScrollViewer.CanContentScroll="False"
                                                                                           Style="{StaticResource DgPropValueStyle}"
+                                                                                          VerticalScrollBarVisibility="Auto"
                                                                                           Width="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ActualWidth}" />
                                                                             </DataTemplate>
                                                                         </Setter.Value>
