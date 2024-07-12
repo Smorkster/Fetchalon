@@ -17,10 +17,10 @@ Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName 
 
 # Handler to turn MemberOf-list to more readble strings
 $PHPrintQueueAdMemberOf = [pscustomobject]@{
-	Code = '$List = [System.Collections.ArrayList]::new()
-	$SenderObject.DataContext.Value | Get-ADGroup | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
-	$SenderObject.DataContext.Value = $List
-	$syncHash.IcPropsList.Items.Refresh()'
+	Code = '
+	$NewPropValue = [System.Collections.ArrayList]::new()
+	$SenderObject.DataContext.Value | Get-ADGroup | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $NewPropValue.Add( $_ ) | Out-Null }
+	'
 	Title = $IntMsgTable.HTPrintQueueAdMemberOf
 	Description = $IntMsgTable.HDescPrintQueueAdMemberOf
 	Progress = 0
@@ -29,11 +29,14 @@ $PHPrintQueueAdMemberOf = [pscustomobject]@{
 
 # Handler to open a printers webpage in Chrome, from its portname (IP)
 $PHPrintQueueAdportName = [pscustomobject]@{
-	Code = '[System.Diagnostics.Process]::Start( "chrome", "http://$( $SenderObject.DataContext.Value )/" )'
+	Code = '
+	[System.Diagnostics.Process]::Start( "chrome", "http://$( $SenderObject.DataContext.Value )/" )
+	'
 	Title = $IntMsgTable.HTPrintQueueAdOpenWebpage
 	Description = $IntMsgTable.HDescPrintQueueAdOpenWebpage
 	Progress = 0
 	MandatorySource = "AD"
 }
 
+Export-ModuleMember -Variable IntMsgTable
 Export-ModuleMember -Variable PHPrintQueueAdMemberOf, PHPrintQueueAdportName

@@ -22,14 +22,15 @@ $PHUserAdHomeDirectory = [pscustomobject]@{
 
 # Handler to turn MemberOf-list to more readble strings
 $PHUserAdMemberOf = [pscustomobject]@{
-	Code = '$List = [System.Collections.ArrayList]::new()
-	$SenderObject.DataContext.Value | Get-ADGroup | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
-	$SenderObject.DataContext.Value = $List
-	$syncHash.IcPropsList.Items.Refresh()'
+	Code = '
+	$NewPropValue = [System.Collections.ArrayList]::new()
+	$SenderObject.DataContext.Value | Get-ADGroup | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $NewPropValue.Add( $_ ) | Out-Null }
+	'
 	Title = $IntMsgTable.HTUserAdMemberOf
 	Description = $IntMsgTable.HDescUserAdMemberOf
 	Progress = 0
 	MandatorySource = "AD"
 }
 
+Export-ModuleMember -Variable IntMsgTable
 Export-ModuleMember -Variable PHUserAdHomeDirectory, PHUserAdMemberOf

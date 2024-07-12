@@ -23,14 +23,12 @@ $PHFileInfoAdFullName = [pscustomobject]@{
 # Handler to turn WritePermissions-list to more readble names
 $PHFileInfoOtherWritePermissions = [pscustomobject]@{
 	Code = 'try {
-		$List = [System.Collections.ArrayList]::new()
-		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
-	} catch {}
-	if ( $List.Count -gt 0 )
-	{
-		$SenderObject.DataContext.Value = $List
-		$syncHash.IcPropsList.Items.Refresh()
-	}'
+		$NewPropValue = [System.Collections.ArrayList]::new()
+		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $NewPropValue.Add( $_ ) | Out-Null }
+	}
+	catch
+	{}
+	'
 	Title = $IntMsgTable.HTFileInfoOtherWritePermissions
 	Description = $IntMsgTable.HDescFileInfoOtherWritePermissions
 	Progress = 0
@@ -41,18 +39,17 @@ $PHFileInfoOtherWritePermissions = [pscustomobject]@{
 $PHFileInfoOtherReadPermissions = [pscustomobject]@{
 	Code = '
 	try {
-		$List = [System.Collections.ArrayList]::new()
-		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
-	} catch {}
-	if ( $List.Count -gt 0 )
-	{
-		$SenderObject.DataContext.Value = $List
-		$syncHash.IcPropsList.Items.Refresh()
-	}'
+		$NewPropValue = [System.Collections.ArrayList]::new()
+		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $NewPropValue.Add( $_ ) | Out-Null }
+	}
+	catch
+	{}
+	'
 	Title = $IntMsgTable.HTFileInfoOtherReadPermissions
 	Description = $IntMsgTable.HDescFileInfoOtherReadPermissions
 	Progress = 0
 	MandatorySource = "Other"
 }
 
+Export-ModuleMember -Variable IntMsgTable
 Export-ModuleMember -Variable PHFileInfoAdFullName, PHFileInfoOtherReadPermissions, PHFileInfoOtherWritePermissions

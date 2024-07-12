@@ -12,48 +12,31 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 # Handler to open directory in Explorer
-$PHDirectoryInfoOtherDirectoryInventory = [pscustomobject]@{
-	Code = 'explorer $syncHash.Data.SearchedItem.FullName'
-	Title = $IntMsgTable.HTDirectoryInfoOtherOpenDirectory
-	Description = $IntMsgTable.HDescDirectoryInfoOtherOpenDirectory
-	Progress = 0
-	MandatorySource = "Other"
-}
-
-# Handler to turn WritePermissions-list to more readble names
-$PHDirectoryInfoOtherWritePermissions = [pscustomobject]@{
-	Code = 'try {
-		$List = [System.Collections.ArrayList]::new()
-		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilectlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
-	} catch {}
-	if ( $List.Count -gt 0 )
-	{
-		$SenderObject.DataContext.Value = $List
-		$syncHash.IcPropsList.Items.Refresh()
-	}'
-	Title = $IntMsgTable.HTDirectoryInfoOtherWritePermissions
-	Description = $IntMsgTable.HDescDirectoryInfoOtherWritePermissions
-	Progress = 0
-	MandatorySource = "Other"
-}
-
-# Handler to turn ReadPermissions-list to more readble names
-$PHDirectoryInfoOtherReadPermissions = [pscustomobject]@{
+$PHDirectoryInfoADFullName = [pscustomobject]@{
 	Code = '
-	$syncHash.Data.Test = $SenderObject
-	try {
-		$List = [System.Collections.ArrayList]::new()
-		$SenderObject.DataContext.Value | Get-ADObject -ErrorAction SilectlyContinue | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
-	} catch {}
-	if ( $List.Count -gt 0 )
-	{
-		$SenderObject.DataContext.Value = $List
-		$syncHash.IcPropsList.Items.Refresh()
-	}'
-	Title = $IntMsgTable.HTDirectoryInfoOtherReadPermissions
-	Description = $IntMsgTable.HDescDirectoryInfoOtherReadPermissions
+	explorer $syncHash.Data.SearchedItem.FullName
+	'
+	Title = $IntMsgTable.HTDirectoryInfoADFullName
+	Description = $IntMsgTable.HDescDirectoryInfoADFullName
 	Progress = 0
 	MandatorySource = "Other"
 }
 
-Export-ModuleMember -Variable PHDirectoryInfoOtherDirectoryInventory, PHDirectoryInfoOtherReadPermissions, PHDirectoryInfoOtherWritePermissions
+# Handler to list directory content
+$PHDirectoryInfoOtherDirectoryInventory = [pscustomobject]@{
+	Code = '
+	$NewPropValue = [System.Collections.ArrayList]::new()
+	Get-ChildItem $SenderObject.DataContext.Value.FullName | `
+		Select-Object Name, Attributes | `
+		ForEach-Object {
+			$NewPropValue.Add( $_ ) | Out-Null
+		}
+	'
+	Title = $IntMsgTable.HTDirectoryInfoOtherDirectoryInventory
+	Description = $IntMsgTable.HDescDirectoryInfoOtherDirectoryInventory
+	Progress = 0
+	MandatorySource = "Other"
+}
+
+Export-ModuleMember -Variable IntMsgTable
+Export-ModuleMember -Variable PHDirectoryInfoOtherDirectoryInventory, PHDirectoryInfoADFullName
