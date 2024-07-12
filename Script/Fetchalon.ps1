@@ -290,7 +290,7 @@ function Get-ExtraInfoFromSysMan
 	}
 	elseif ( "Computer" -eq $syncHash.Data.SearchedItem.ObjectClass )
 	{
-		$syncHash.Data.SearchedItem.ExtraInfo.Base = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
+		$syncHash.Data.SearchedItem.ExtraInfo.SysManBase = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
 		$syncHash.Data.SearchedItem.ExtraInfo.Manufacturer = Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.StrSysManApi )HardwareModel/$( $syncHash.Data.SearchedItem.ExtraInfo.Base.hardwareModelId )" -Method Get -UseDefaultCredentials -ContentType "application/json"
 		$syncHash.Data.SearchedItem.ExtraInfo.Sccm = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/SccmInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
 
@@ -1204,6 +1204,7 @@ $syncHash.Code.ListItem =
 				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
 				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
 
+				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "DirectoryInventory" -Value ( [System.Collections.ArrayList]::new( @( [pscustomobject]@{ $syncHash.Data.msgTable.StrPropDataNotFetched = $syncHash.Data.msgTable.StrPropDataNotFetched } ) ) ) -Force
 				try
 				{
 					$Grp = ( ( ( Get-Acl $syncHash.Data.SearchedItem.FullName ).Access | `
@@ -1644,7 +1645,32 @@ Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximu
 	param ( $SenderObject, $e )
 
 	WriteLog -Text "$( $syncHash.Data.msgTable.LogStrPropHandlerRun ): $( $syncHash.Data.SearchedItem.ObjectClass )::$( $SenderObject.DataContext.Name )::$( $SenderObject.DataContext.Source )" -Success $true
-	. ( [scriptblock]::Create( $SenderObject.DataContext.Handler.Code ) )
+
+	$p = [powershell]::Create()
+	$PHCode = '
+	param ( $syncHash, $SenderObject, $Modules )
+	Import-Module $Modules
+	$NewPropValue = $null
+
+	' + $SenderObject.DataContext.Handler.Code
+	if ( $SenderObject.DataContext.Handler.Code -match "NewPropValue" )
+	{
+		$SenderObject.Parent.Children[5].Visibility = [System.Windows.Visibility]::Visible
+		$PHCode = $PHCode + '
+		$syncHash.Window.Dispatcher.Invoke( [action] {
+			$SenderObject.Parent.Children[5].Visibility = [System.Windows.Visibility]::Hidden
+			$syncHash.Window.Resources[''CvsPropsList''].Source.Where( { $_.Name -eq $SenderObject.DataContext.Name } )[0].Value = $NewPropValue
+			$syncHash.Window.Resources[''CvsPropsList''].View.Refresh()
+		} )'
+	}
+
+	$p.AddScript( $PHCode )
+	$p.AddArgument( $syncHash )
+	$p.AddArgument( ( $SenderObject | Select-Object * ) )
+	$p.AddArgument( ( Get-Module ) )
+	$p.Runspace = $syncHash.Jobs.SearchRunspace
+	$JobName = "$( $syncHash.Data.SearchedItem.ObjectClass )$( $SenderObject.DataContext.Source )$( $SenderObject.DataContext.Name )"
+	$syncHash.Jobs.$JobName = [pscustomobject]@{ P = $p ; H = $p.BeginInvoke() }
 }
 
 # Eventhandler to copy function output
@@ -2547,6 +2573,11 @@ $syncHash.Window.Add_Closed( {
 					}
 			}
 	}
+
+	Get-EventSubscriber | `
+		ForEach-Object {
+			Unregister-Event -SourceIdentifier $_.SourceIdentifier
+		}
 
 	# Close runspaces and windows opened for tools
 	$syncHash.GetEnumerator() | `
