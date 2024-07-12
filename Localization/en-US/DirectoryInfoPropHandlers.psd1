@@ -1,8 +1,6 @@
 ﻿ConvertFrom-StringData @'
-HDescDirectoryInfoOtherOpenDirectory = Open folder in Explorer
-HDescDirectoryInfoOtherReadPermissions = Change the names to easy-to-read names
-HDescDirectoryInfoOtherWritePermissions = Change the names to easy-to-read names
-HTDirectoryInfoOtherOpenDirectory = Open folder
-HTDirectoryInfoOtherReadPermissions = Display easy to read
-HTDirectoryInfoOtherWritePermissions = Display easy to read
+HDescDirectoryInfoADFullName = Open folder in Explorer
+HDescDirectoryInfoOtherDirectoryInventory = List files and folders in the folder
+HTDirectoryInfoADFullName = Open folder
+HTDirectoryInfoOtherDirectoryInventory = List content
 '@

@@ -13,10 +13,10 @@ Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName 
 
 # Handler to turn MemberOf-list to more readble strings
 $PHGroupAdMemberOf = [pscustomobject]@{
-	Code = '$List = [System.Collections.ArrayList]::new()
-	$SenderObject.DataContext.Value | Get-ADGroup | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
-	$SenderObject.DataContext.Value = $List
-	$syncHash.IcPropsList.Items.Refresh()'
+	Code = '
+	$NewPropValue = [System.Collections.ArrayList]::new()
+	$SenderObject.DataContext.Value | Get-ADGroup | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $NewPropValue.Add( $_ ) | Out-Null }
+	'
 	Title = $IntMsgTable.HTGroupAdMemberOf
 	Description = $IntMsgTable.HDescGroupAdMemberOf
 	Progress = 0
@@ -25,14 +25,15 @@ $PHGroupAdMemberOf = [pscustomobject]@{
 
 # Handler to turn Members-list to more readble strings
 $PHGroupAdMembers = [pscustomobject]@{
-	Code = '$List = [System.Collections.ArrayList]::new()
-	$SenderObject.DataContext.Value | Get-ADObject | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $List.Add( $_ ) | Out-Null }
-	$SenderObject.DataContext.Value = $List
-	$syncHash.IcPropsList.Items.Refresh()'
+	Code = '
+	$NewPropValue = [System.Collections.ArrayList]::new()
+	$SenderObject.DataContext.Value | Get-ADObject | Select-Object -ExpandProperty Name | Sort-Object | ForEach-Object { $NewPropValue.Add( $_ ) | Out-Null }
+	'
 	Title = $IntMsgTable.HTGroupAdMembers
 	Description = $IntMsgTable.HDescGroupAdMembers
 	Progress = 0
 	MandatorySource = "AD"
 }
 
+Export-ModuleMember -Variable IntMsgTable
 Export-ModuleMember -Variable PHGroupAdMemberOf, PHGroupAdMembers
