@@ -76,7 +76,7 @@ if ( $BaseDir -notmatch "Development" )
 		}
 }
 
-function Add-Menuitem
+function Add-MenuItem
 {
 	<#
 	.Synopsis
@@ -166,6 +166,11 @@ function Add-Menuitem
 			{
 				$syncHash.Window.Resources['CvsMiTools'].Source.Add( $MiObject )
 			}
+		}
+
+		if ( $MiObject.EnableQuickAccess -ne $null )
+		{
+			$syncHash.Data.QuickAccessWordList."$( $MiObject.EnableQuickAccess )" = ( $MiObject | Select-Object * )
 		}
 	}
 }
@@ -379,11 +384,13 @@ function Get-PropHandlers
 		}
 }
 
-function Open-Tool
+function Open-SeparateTool
 {
 	<#
 	.Synopsis
 		Start a tool
+	.Description
+		Start a tool which handles its own GUI
 	#>
 
 	param ( $SenderObject )
@@ -745,268 +752,277 @@ function Start-Search
 	#>
 
 	Reset-Info
-	WriteLog -Text "Search" -UserInput $syncHash.DC.TbSearch[0] -Success $true | Out-Null
-	if ( $syncHash.DC.TbSearch[0] -in $syncHash.Data.TestSearches.Keys )
+	if ( $syncHash.Data.QuickAccessWordList.ContainsKey( ( $QAWord = ( $syncHash.DC.TbSearch[0] -split "\s" )[0] ) ) )
 	{
-		$syncHash.DC.TbSearch[0] = $syncHash.Data.TestSearches."$( $syncHash.DC.TbSearch[0] )"
+		WriteLog -Text "QuickAccess $( $QAWord )" -UserInput $syncHash.DC.TbSearch[0] -Success $true | Out-Null
+		$SO = [pscustomobject]@{ DataContext = $syncHash.Data.QuickAccessWordList."$( $QAWord )" }
+		$syncHash.Code.MenuItemClick.Invoke( $SO, $null )
 	}
-	Display-View -ViewName "None"
-
-	$syncHash.Jobs.SearchJob = [powershell]::Create()
-	$syncHash.Jobs.SearchJob.AddScript( {
-		param ( $syncHash, $Modules, $O365Connected )
-		Import-Module $Modules | Out-Null
-
-		function Test-Mail
+	else
+	{
+		WriteLog -Text "Search" -UserInput $syncHash.DC.TbSearch[0] -Success $true | Out-Null
+		if ( $syncHash.DC.TbSearch[0] -in $syncHash.Data.TestSearches.Keys )
 		{
-			param ( [string] $Address )
-			
-			try
-			{
-				Resolve-DnsName -Name ( [mailaddress]$Address ).Host -Type MX -ErrorAction Stop | Out-Null
-				return $true
-			}
-			catch
-			{
-				return $false
-			}
+			$syncHash.DC.TbSearch[0] = $syncHash.Data.TestSearches."$( $syncHash.DC.TbSearch[0] )"
 		}
+		Display-View -ViewName "None"
 
-		$syncHash.Window.Dispatcher.Invoke( [action] {
-			$syncHash.PopupMenu.IsOpen = $true
-			$syncHash.DC.PbSearchProgress[0] = [System.Windows.Visibility]::Visible
-		}, [System.Windows.Threading.DispatcherPriority]::DataBind )
+		$syncHash.Jobs.SearchJob = [powershell]::Create()
+		$syncHash.Jobs.SearchJob.AddScript( {
+			param ( $syncHash, $Modules, $O365Connected )
+			Import-Module $Modules | Out-Null
 
-		# Check if text is a path for file/directory
-		if ( Test-Path $syncHash.DC.TbSearch[0].Trim() )
-		{
-			$FoundObject = Get-Item $syncHash.DC.TbSearch[0]
-			Add-Member -InputObject $FoundObject -MemberType NoteProperty -Name "ObjectClass" -Value ( $FoundObject.GetType().Name )
-
-			$syncHash.DC.DgSearchResults[0].Add( $FoundObject )
-		}
-		# Searchstring match an mailaddress
-		elseif ( ( Test-Mail -Address $syncHash.DC.TbSearch[0].Trim() ) )
-		{
-			$Objects = [System.Collections.ArrayList]::new()
-
-			Get-ADUser -LDAPFilter "(Mail=$( $syncHash.DC.TbSearch[0].Trim() ))" | `
-				ForEach-Object {
-					$Objects.Add( $_ ) | Out-Null
-				}
-			if ( $O365Connected )
+			function Test-Mail
 			{
-				Get-EXORecipient $syncHash.DC.TbSearch[0].Trim() | `
-					ForEach-Object {
-						$Obj = $_
-						$ObjectClass = switch ( $Obj.RecipientTypeDetails )
-						{
-							"EquipmentMailbox" { "O365Resource" }
-							"MailUniversalDistributionGroup" { "O365Distributionlist" }
-							"RoomMailbox" { "O365Room" }
-							"SharedMailbox" { "O365SharedMailbox" }
-							"UserMailbox" { "O365User" }
-						}
-						Add-Member -InputObject $Obj -MemberType NoteProperty -Name "ObjectClass" -Value $ObjectClass
-						$Objects.Add( $Obj ) | Out-Null
-					}
-			}
-
-			$Objects | `
-				ForEach-Object {
-					$syncHash.DC.DgSearchResults[0].Add( $_ )
-				}
-		}
-		# Searchstring match name of Azure-group
-		elseif ( $syncHash.DC.TbSearch[0].Trim() -match $syncHash.Data.msgTable.CodeAzureGrpName )
-		{
-			if ( $O365Connected )
-			{
-				switch -Regex ( $syncHash.DC.TbSearch[0].Trim() )
-				{
-					"^MB-" {
-						$AzureObject = Get-AzureADMSGroup -Filter "startswith(DisplayName,'$( $syncHash.DC.TbSearch[0].Trim() )')"
-						break
-					}
-					"^\w* Funk .*" {
-						$FoundObject = Get-EXORecipient $syncHash.DC.TbSearch[0].Trim()
-						break
-					}
-					"^DL-" {
-						$AzureObject = Get-AzureADMSGroup -Filter "DisplayName eq '$( $syncHash.DC.TbSearch[0].Trim() )'"
-						break
-					}
-					"^\w* Dist .*" {
-						$FoundObject = Get-EXORecipient $syncHash.DC.TbSearch[0].Trim()
-						break
-					}
-					"^RES-" {
-						$AzureObject = Get-AzureADMSGroup -Filter "startswith(DisplayName, '$( $syncHash.DC.TbSearch[0].Trim() )')"
-						break
-					}
-					"^\w* (resurs)|(rum) .*" {
-						$FoundObject = Get-EXORecipient $syncHash.DC.TbSearch[0].Trim()
-						break
-					}
-				}
-				if ( $AzureObject )
-				{
-					$AzureObject[0].DisplayName -match "^\w*-(?<Name>.*)-\w*$" | Out-Null
-					$FoundObject = Get-EXORecipient $Matches.Name
-				}
-
-				$OC = switch ( $FoundObject.RecipientTypeDetails )
-				{
-					"SharedMailbox" { "O365SharedMailbox" }
-					"EquipmentMailbox" { "O365Resource" }
-					"RoomMailbox" { "O365Room" }
-					"MailUniversalDistributionGroup" { "O365Distributionlist" }
-				}
-				Add-Member -InputObject $FoundObject -MemberType NoteProperty -Name "ObjectClass" -Value $OC
-
-				if ( $null -ne $FoundObject )
-				{
-					$syncHash.DC.DgSearchResults[0].Add( $FoundObject )
-				}
-			}
-			else
-			{
-				$syncHash.DC.TblFailedSearchMessage[0] = $syncHash.Data.msgTable.ErrSearchO365NotConnected
-			}
-		}
-		# Check if text matches an IP-address
-		elseif ( $syncHash.DC.TbSearch[0].Trim() -match "^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$" )
-		{
-			$FoundObject = [System.Net.Dns]::GetHostByAddress( $syncHash.DC.TbSearch[0].Trim() )
-			$ComputerItems = Get-ADObject -LDAPFilter "(&(ObjectClass=computer)(Name=$( ( $FoundObject.hostname -split "\." )[0] ) ))" -Properties *
-			$PrinterItems = Get-ADObject -LDAPFilter "(&(ObjectClass=printQueue)(PortName=$( $syncHash.DC.TbSearch[0].Trim() )))" -Properties *
-
-			$ComputerItems, $PrinterItems | `
-				ForEach-Object {
-					$syncHash.DC.DgSearchResults[0].Add( $_ )
-				}
-		}
-		# Check if text matches an PowerShell-cmdlet
-		elseif ( $syncHash.DC.TbSearch[0].Trim() -match "^(?<Command>Get-\w*)\s*" )
-		{
-			$syncHash.DC.TbSearch[0].Trim() -split " " | `
-				Where-Object { $_ -notmatch "(Compare)|(Find)|(Get)|(Measure)|(Out)|(Read)|(Search)|(Select)|(Test)-" } | `
-				ForEach-Object `
-					-Begin { $NotAllowedCmdLet = $false } `
-					-Progess {
-						try
-						{
-							Get-Command $_ -ErrorAction Stop | Out-Null
-							$NotAllowedCmdLet = $true
-						}
-						catch {}
-					}
-			if ( $NotAllowedCmdLet )
-			{
-				$ForbiddenCmdLet = [System.Management.Automation.ErrorRecord]::new( $syncHash.Data.msgTable.ErrForbiddenCmdLet, "0", [System.Management.Automation.ErrorCategory]::PermissionDenied , $null )
-				$syncHash.DC.DgSearchResults[0].Add( $CmdLetResult )
-			}
-			else
-			{
+				param ( [string] $Address )
+				
 				try
 				{
-					Get-Command $Matches.Command -ErrorAction Stop | Out-Null
-					$CmdLetResult = Invoke-Expression $syncHash.DC.TbSearch[0].Trim()
+					Resolve-DnsName -Name ( [mailaddress]$Address ).Host -Type MX -ErrorAction Stop | Out-Null
+					return $true
 				}
 				catch
 				{
-					$CmdLetResult = $_
+					return $false
 				}
-				$syncHash.DC.DgSearchResults[0].Add( $CmdLetResult )
 			}
-		}
-		# None of the above, searchstring may be an id or name for an AD-object
-		else
-		{
-			$Id = $syncHash.DC.TbSearch[0].Trim()
-			$LDAPSearches = [System.Collections.ArrayList]::new()
 
-			if ( $Id -match "\w{5}\d{8}" )
+			$syncHash.Window.Dispatcher.Invoke( [action] {
+				$syncHash.PopupMenu.IsOpen = $true
+				$syncHash.DC.PbSearchProgress[0] = [System.Windows.Visibility]::Visible
+			}, [System.Windows.Threading.DispatcherPriority]::DataBind )
+
+			# Check if text is a path for file/directory
+			if ( Test-Path $syncHash.DC.TbSearch[0].Trim() )
 			{
-				$LDAPSearches.Add( "(&(ObjectClass=computer)(Name=$Id))" ) | Out-Null
+				$FoundObject = Get-Item $syncHash.DC.TbSearch[0]
+				Add-Member -InputObject $FoundObject -MemberType NoteProperty -Name "ObjectClass" -Value ( $FoundObject.GetType().Name )
+
+				$syncHash.DC.DgSearchResults[0].Add( $FoundObject )
 			}
-			elseif ( $Id -match "(?i)^[a-z0-9]{4}$" )
+			# Searchstring match an mailaddress
+			elseif ( ( Test-Mail -Address $syncHash.DC.TbSearch[0].Trim() ) )
 			{
-				$LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null
-				$LDAPSearches.Add( "(&(ObjectClass=group)(($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id))" ) | Out-Null
+				$Objects = [System.Collections.ArrayList]::new()
+
+				Get-ADUser -LDAPFilter "(Mail=$( $syncHash.DC.TbSearch[0].Trim() ))" | `
+					ForEach-Object {
+						$Objects.Add( $_ ) | Out-Null
+					}
+				if ( $O365Connected )
+				{
+					Get-EXORecipient $syncHash.DC.TbSearch[0].Trim() | `
+						ForEach-Object {
+							$Obj = $_
+							$ObjectClass = switch ( $Obj.RecipientTypeDetails )
+							{
+								"EquipmentMailbox" { "O365Resource" }
+								"MailUniversalDistributionGroup" { "O365Distributionlist" }
+								"RoomMailbox" { "O365Room" }
+								"SharedMailbox" { "O365SharedMailbox" }
+								"UserMailbox" { "O365User" }
+							}
+							Add-Member -InputObject $Obj -MemberType NoteProperty -Name "ObjectClass" -Value $ObjectClass
+							$Objects.Add( $Obj ) | Out-Null
+						}
+				}
+
+				$Objects | `
+					ForEach-Object {
+						$syncHash.DC.DgSearchResults[0].Add( $_ )
+					}
 			}
-			# Searchstring may be a name
+			# Searchstring match name of Azure-group
+			elseif ( $syncHash.DC.TbSearch[0].Trim() -match $syncHash.Data.msgTable.CodeAzureGrpName )
+			{
+				if ( $O365Connected )
+				{
+					switch -Regex ( $syncHash.DC.TbSearch[0].Trim() )
+					{
+						"^MB-" {
+							$AzureObject = Get-AzureADMSGroup -Filter "startswith(DisplayName,'$( $syncHash.DC.TbSearch[0].Trim() )')"
+							break
+						}
+						"^\w* Funk .*" {
+							$FoundObject = Get-EXORecipient $syncHash.DC.TbSearch[0].Trim()
+							break
+						}
+						"^DL-" {
+							$AzureObject = Get-AzureADMSGroup -Filter "DisplayName eq '$( $syncHash.DC.TbSearch[0].Trim() )'"
+							break
+						}
+						"^\w* Dist .*" {
+							$FoundObject = Get-EXORecipient $syncHash.DC.TbSearch[0].Trim()
+							break
+						}
+						"^RES-" {
+							$AzureObject = Get-AzureADMSGroup -Filter "startswith(DisplayName, '$( $syncHash.DC.TbSearch[0].Trim() )')"
+							break
+						}
+						"^\w* (resurs)|(rum) .*" {
+							$FoundObject = Get-EXORecipient $syncHash.DC.TbSearch[0].Trim()
+							break
+						}
+					}
+					if ( $AzureObject )
+					{
+						$AzureObject[0].DisplayName -match "^\w*-(?<Name>.*)-\w*$" | Out-Null
+						$FoundObject = Get-EXORecipient $Matches.Name
+					}
+
+					$OC = switch ( $FoundObject.RecipientTypeDetails )
+					{
+						"SharedMailbox" { "O365SharedMailbox" }
+						"EquipmentMailbox" { "O365Resource" }
+						"RoomMailbox" { "O365Room" }
+						"MailUniversalDistributionGroup" { "O365Distributionlist" }
+					}
+					Add-Member -InputObject $FoundObject -MemberType NoteProperty -Name "ObjectClass" -Value $OC
+
+					if ( $null -ne $FoundObject )
+					{
+						$syncHash.DC.DgSearchResults[0].Add( $FoundObject )
+					}
+				}
+				else
+				{
+					$syncHash.DC.TblFailedSearchMessage[0] = $syncHash.Data.msgTable.ErrSearchO365NotConnected
+				}
+			}
+			# Check if text matches an IP-address
+			elseif ( $syncHash.DC.TbSearch[0].Trim() -match "^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$" )
+			{
+				$FoundObject = [System.Net.Dns]::GetHostByAddress( $syncHash.DC.TbSearch[0].Trim() )
+				$ComputerItems = Get-ADObject -LDAPFilter "(&(ObjectClass=computer)(Name=$( ( $FoundObject.hostname -split "\." )[0] ) ))" -Properties *
+				$PrinterItems = Get-ADObject -LDAPFilter "(&(ObjectClass=printQueue)(PortName=$( $syncHash.DC.TbSearch[0].Trim() )))" -Properties *
+
+				$ComputerItems, $PrinterItems | `
+					ForEach-Object {
+						$syncHash.DC.DgSearchResults[0].Add( $_ )
+					}
+			}
+			# Check if text matches an PowerShell-cmdlet
+			elseif ( $syncHash.DC.TbSearch[0].Trim() -match "^(?<Command>Get-\w*)\s*" )
+			{
+				$syncHash.DC.TbSearch[0].Trim() -split " " | `
+					Where-Object { $_ -notmatch "(Compare)|(Find)|(Get)|(Measure)|(Out)|(Read)|(Search)|(Select)|(Test)-" } | `
+					ForEach-Object `
+						-Begin { $NotAllowedCmdLet = $false } `
+						-Progess {
+							try
+							{
+								Get-Command $_ -ErrorAction Stop | Out-Null
+								$NotAllowedCmdLet = $true
+							}
+							catch {}
+						}
+				if ( $NotAllowedCmdLet )
+				{
+					$ForbiddenCmdLet = [System.Management.Automation.ErrorRecord]::new( $syncHash.Data.msgTable.ErrForbiddenCmdLet, "0", [System.Management.Automation.ErrorCategory]::PermissionDenied , $null )
+					$syncHash.DC.DgSearchResults[0].Add( $CmdLetResult )
+				}
+				else
+				{
+					try
+					{
+						Get-Command $Matches.Command -ErrorAction Stop | Out-Null
+						$CmdLetResult = Invoke-Expression $syncHash.DC.TbSearch[0].Trim()
+					}
+					catch
+					{
+						$CmdLetResult = $_
+					}
+					$syncHash.DC.DgSearchResults[0].Add( $CmdLetResult )
+				}
+			}
+			# None of the above, searchstring may be an id or name for an AD-object
 			else
 			{
-				# Group
-				switch -Regex ( $Id )
+				$Id = $syncHash.DC.TbSearch[0].Trim()
+				$LDAPSearches = [System.Collections.ArrayList]::new()
+
+				if ( $Id -match "\w{5}\d{8}" )
 				{
-					"_$" { $LDAPSearches.Add( "(&(ObjectClass=group)(Name=$Id*))" ) | Out-Null ; break }
-					"_" { $LDAPSearches.Add( "(&(ObjectClass=group)(Name=$Id))" ) | Out-Null ; break }
-					"\*" { $LDAPSearches.Add( "(&(ObjectClass=group)(|(Name=$Id)($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id)))" ) | Out-Null ; break }
-					default { $LDAPSearches.Add( "(&(ObjectClass=group)(|(Name=*$Id*)($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id)))" ) | Out-Null ; break }
+					$LDAPSearches.Add( "(&(ObjectClass=computer)(Name=$Id))" ) | Out-Null
+				}
+				elseif ( $Id -match "(?i)^[a-z0-9]{4}$" )
+				{
+					$LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null
+					$LDAPSearches.Add( "(&(ObjectClass=group)(($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id))" ) | Out-Null
+				}
+				# Searchstring may be a name
+				else
+				{
+					# Group
+					switch -Regex ( $Id )
+					{
+						"_$" { $LDAPSearches.Add( "(&(ObjectClass=group)(Name=$Id*))" ) | Out-Null ; break }
+						"_" { $LDAPSearches.Add( "(&(ObjectClass=group)(Name=$Id))" ) | Out-Null ; break }
+						"\*" { $LDAPSearches.Add( "(&(ObjectClass=group)(|(Name=$Id)($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id)))" ) | Out-Null ; break }
+						default { $LDAPSearches.Add( "(&(ObjectClass=group)(|(Name=*$Id*)($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id)))" ) | Out-Null ; break }
+					}
+
+					# User
+					switch -Regex ( $Id )
+					{
+						"(?i)^$( $syncHash.Data.msgTable.StrSysAdmSANPrefix )" { $LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null ; break }
+						"(?i)f\w{3}\d*" { $LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null ; break }
+						"(?i)[aeiuoyåäöÀ-ÿ ].*[^\d]$" { $LDAPSearches.Add( "(&(ObjectClass=user)(Name=*$Id*))" ) | Out-Null ; break }
+						"\*" { $LDAPSearches.Add( "(&(ObjectClass=user)(|(SamAccountName=$Id)(Name=$Id)))" ) | Out-Null ; break }
+					}
+
+					# Computer
+					$LDAPSearches.Add( "(&(ObjectClass=computer)(SamAccountName=$Id*))" ) | Out-Null
+
+					# PrintQueue
+					$LDAPSearches.Add( "(&(ObjectClass=printQueue)(Name=$Id*))" ) | Out-Null
 				}
 
-				# User
-				switch -Regex ( $Id )
-				{
-					"(?i)^$( $syncHash.Data.msgTable.StrSysAdmSANPrefix )" { $LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null ; break }
-					"(?i)f\w{3}\d*" { $LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null ; break }
-					"(?i)[aeiuoyåäöÀ-ÿ ].*[^\d]$" { $LDAPSearches.Add( "(&(ObjectClass=user)(Name=*$Id*))" ) | Out-Null ; break }
-					"\*" { $LDAPSearches.Add( "(&(ObjectClass=user)(|(SamAccountName=$Id)(Name=$Id)))" ) | Out-Null ; break }
-				}
-
-				# Computer
-				$LDAPSearches.Add( "(&(ObjectClass=computer)(SamAccountName=$Id*))" ) | Out-Null
-
-				# PrintQueue
-				$LDAPSearches.Add( "(&(ObjectClass=printQueue)(Name=$Id*))" ) | Out-Null
+				$LDAPSearches | `
+					ForEach-Object {
+						$P = $_
+						Get-ADObject -LDAPFilter $_ -Properties * } |`
+					Sort-Object -Property ObjectClass, Name | `
+					ForEach-Object {
+						$syncHash.DC.DgSearchResults[0].Add( $_ )
+					}
 			}
 
-			$LDAPSearches | `
-				ForEach-Object {
-					$P = $_
-					Get-ADObject -LDAPFilter $_ -Properties * } |`
-				Sort-Object -Property ObjectClass, Name | `
-				ForEach-Object {
-					$syncHash.DC.DgSearchResults[0].Add( $_ )
-				}
-		}
+			$syncHash.Window.Dispatcher.Invoke( [action] {
+				$syncHash.DgSearchResults.SelectedIndex = 0
+				$syncHash.DC.PbSearchProgress[0] = [System.Windows.Visibility]::Collapsed
+				$syncHash.DgSearchResultsColRunCount.Text = $syncHash.DC.DgSearchResults[0].Count
+			}, [System.Windows.Threading.DispatcherPriority]::Send )
 
-		$syncHash.Window.Dispatcher.Invoke( [action] {
-			$syncHash.DgSearchResults.SelectedIndex = 0
-			$syncHash.DC.PbSearchProgress[0] = [System.Windows.Visibility]::Collapsed
-			$syncHash.DgSearchResultsColRunCount.Text = $syncHash.DC.DgSearchResults[0].Count
-		}, [System.Windows.Threading.DispatcherPriority]::Send )
-
-		$syncHash.Window.Dispatcher.Invoke( [action] {
-			if ( 0 -eq $syncHash.DC.DgSearchResults[0].Count )
-			{
-				$syncHash.GridFailedSearch.Visibility = [System.Windows.Visibility]::Visible
-			}
-			else
-			{
-				$syncHash.GridObj.Visibility = [System.Windows.Visibility]::Visible
-
-				if ( $syncHash.DC.DgSearchResults[0].Count -eq 1 )
+			$syncHash.Window.Dispatcher.Invoke( [action] {
+				if ( 0 -eq $syncHash.DC.DgSearchResults[0].Count )
 				{
-					Invoke-Command -ScriptBlock $syncHash.Code.ListItem -ArgumentList $syncHash.DC.DgSearchResults.Item( 0 ) -NoNewScope
-					$syncHash.IcPropsList.Focus()
+					$syncHash.GridFailedSearch.Visibility = [System.Windows.Visibility]::Visible
 				}
-				elseif ( $syncHash.DC.DgSearchResults[0].Count -gt 1 )
+				else
 				{
-					# This sets keyboard focus on DgSearchResults
-					$a = $syncHash.DgSearchResults.ItemContainerGenerator.ContainerFromIndex( 0 )
-					$a.MoveFocus( ( [System.Windows.Input.TraversalRequest]::new( ( [System.Windows.Input.FocusNavigationDirection]::Next ) ) ) )
+					$syncHash.GridObj.Visibility = [System.Windows.Visibility]::Visible
+
+					if ( $syncHash.DC.DgSearchResults[0].Count -eq 1 )
+					{
+						Invoke-Command -ScriptBlock $syncHash.Code.ListItem -ArgumentList $syncHash.DC.DgSearchResults.Item( 0 ) -NoNewScope
+						$syncHash.IcPropsList.Focus()
+					}
+					elseif ( $syncHash.DC.DgSearchResults[0].Count -gt 1 )
+					{
+						# This sets keyboard focus on DgSearchResults
+						$a = $syncHash.DgSearchResults.ItemContainerGenerator.ContainerFromIndex( 0 )
+						$a.MoveFocus( ( [System.Windows.Input.TraversalRequest]::new( ( [System.Windows.Input.FocusNavigationDirection]::Next ) ) ) )
+					}
 				}
-			}
-		}, [System.Windows.Threading.DispatcherPriority]::Send )
-	} )
-	$syncHash.Jobs.SearchJob.AddArgument( $syncHash )
-	$syncHash.Jobs.SearchJob.AddArgument( ( Get-Module | Where-Object { ( Test-Path $_.Path ) -and ( $_.Name -notmatch "^tmpEXO" ) } ) )
-	$syncHash.Jobs.SearchJob.AddArgument( $syncHash.Data.O365Connected )
-	$syncHash.Jobs.SearchJob.Runspace = $syncHash.Jobs.SearchRunspace
-	$syncHash.Jobs.SearchJobHandle = $syncHash.Jobs.SearchJob.BeginInvoke()
+			}, [System.Windows.Threading.DispatcherPriority]::Send )
+		} )
+		$syncHash.Jobs.SearchJob.AddArgument( $syncHash )
+		$syncHash.Jobs.SearchJob.AddArgument( ( Get-Module | Where-Object { ( Test-Path $_.Path ) -and ( $_.Name -notmatch "^tmpEXO" ) } ) )
+		$syncHash.Jobs.SearchJob.AddArgument( $syncHash.Data.O365Connected )
+		$syncHash.Jobs.SearchJob.Runspace = $syncHash.Jobs.SearchRunspace
+		$syncHash.Jobs.SearchJobHandle = $syncHash.Jobs.SearchJob.BeginInvoke()
+	}
 }
 
 function Update-PHPropvalue
@@ -1043,7 +1059,7 @@ $syncHash.Data.InitArgs = $InitArgs
 $syncHash.Data.msgTable = $msgTable
 $syncHash.Data.SettingsPath = "$( $env:UserProfile )\FetchalonSettings.json"
 $syncHash.Data.UserGroups = ( Get-ADUser -Identity ( [Environment]::UserName ) -Properties memberof ).memberof | Get-ADGroup | Select-Object -ExpandProperty Name
-
+$syncHash.Data.QuickAccessWordList = @{}
 try
 {
 	$syncHash.Window.Language = [System.Windows.Markup.XmlLanguage]::GetLanguage( $culture )
@@ -1811,7 +1827,7 @@ $(
 			if ( $SenderObject.DataContext.Separate -eq $false )
 			{
 				$name = $SenderObject.DataContext.Name -replace "\W"
-				if ( -not $syncHash.Window.Resources.Contains( $name ) )
+				if ( -not ( $syncHash.Window.Resources.Keys.Contains( $name ) ) )
 				{
 					try
 					{
@@ -1836,13 +1852,18 @@ $(
 									Where-Object { $_.Name -match "CvsMi.*((Functions)|(Tools)|(About))" } | `
 									ForEach-Object { $_.Value.Source } | `
 									Where-Object { $_.Name -notmatch "Temp" } | `
-									Select-Object -Property @{ Name="Name" ; Expression = { $_.Name.Trim() } }, @{ Name="Author" ; Expression = { $_.Author.Trim() } }, @{ Name="Description" ; Expression = { $_.Description.Trim() } } | `
+									Select-Object -Property @{ Name = "Name" ; Expression = { $_.Name.Trim() } }, @{ Name = "Author" ; Expression = { $_.Author.Trim() } }, @{ Name = "Description" ; Expression = { $_.Description.Trim() } } | `
 									ForEach-Object { $_; $syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source.Add( $_ ) }
 							}
 						}
 						elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
 						{
 							$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
+							$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsQuickAccessWordList'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+							$syncHash.Data.QuickAccessWordList.GetEnumerator() | `
+								ForEach-Object {
+									$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsQuickAccessWordList'].Source.Add( $_ ) | Out-Null
+								}
 						}
 					}
 					catch
@@ -1851,7 +1872,7 @@ $(
 						{
 							Show-MessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
 						}
-						else
+						elseif ( $_.Exception.Message -notmatch "Item has already been added.*$( $Name )" )
 						{
 							Show-MessageBox -Text $_
 						}
@@ -1864,6 +1885,12 @@ $(
 					$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['SearchedItem'] = $syncHash.Data.SearchedItem
 				}
 
+				if ( $SenderObject -is [pscustomobject] )
+				{
+					$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['QuickAccessParam'] = ( $syncHash.DC.TbSearch[0] -split " ", 2 )[1]
+					$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Hidden
+					$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Visible
+				}
 				$syncHash.FrameTool.Navigate( $syncHash.Window.Resources["LoadedPage$( $name )"].Page )
 			}
 			# The tool is handling its GUI by itself, in separate window
@@ -1874,7 +1901,7 @@ $(
 					# The tool has previously not been opened
 					if ( $null -eq $SenderObject.DataContext.Process )
 					{
-						Open-Tool $SenderObject
+						Open-SeparateTool $SenderObject
 					}
 					# The tool has been opened, display that window
 					else
@@ -1892,7 +1919,7 @@ $(
 				# Some error occured, start the tool-script
 				catch
 				{
-					Open-Tool $SenderObject
+					Open-SeparateTool $SenderObject
 				}
 			}
 		}
@@ -1913,6 +1940,33 @@ $(
 						if ( $_.InputType -eq "String" )
 						{
 							$_.EnteredValue = ""
+						}
+						elseif ( $_.InputType -eq "List" )
+						{
+							if ( $SenderObject -is [pscustomobject] )
+							{
+								$QuickAccessParam = ( ( $syncHash.DC.TbSearch[0] ) -split "\s", 2 )[1]
+								if ( $_.InputList -match $QuickAccessParam )
+								{
+									$c = 0
+									for ( ; $c -lt $_.InputList.Count ; $c++ )
+									{
+										if ( $_.InputList[ $c ] -match $QuickAccessParam )
+										{
+											break
+										}
+									}
+									$_.EnteredValue = $_.InputList[ $c ]
+								}
+								else
+								{
+									$_.EnteredValue = $_.DefaultValue
+								}
+							}
+							else
+							{
+								$_.EnteredValue = $_.DefaultValue
+							}
 						}
 					}
 				$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
