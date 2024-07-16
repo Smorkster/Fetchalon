@@ -1533,9 +1533,8 @@
                                                                                 <ComboBox Height="30"
                                                                                           ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.InputList}"
                                                                                           Margin="{StaticResource StdMargin}"
-                                                                                          SelectedItem="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.DefaultValue, Mode=TwoWay}"
+                                                                                          SelectedItem="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.EnteredValue, Mode=TwoWay}"
                                                                                           Style="{StaticResource CbInputStyle}"
-                                                                                          Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.EnteredValue, Mode=TwoWay}"
                                                                                           VerticalContentAlignment="Center" />
                                                                             </DataTemplate>
                                                                         </Setter.Value>
