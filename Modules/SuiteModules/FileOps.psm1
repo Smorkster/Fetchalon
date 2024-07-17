@@ -367,7 +367,7 @@ function GetScriptInfo
 					}
 					elseif ( "InputDataList" -eq $Matches.InfoType )
 					{
-						$Matches.Rest.Trim() -match "^(?<InputVar>\w+)\W*?,\W*?(?<Mandatory>\w*)\W*?,\W*?(?<Desc>\w*)\W*?,\W*?(?<DefaultValue>\w*)\W*?,\W*?(?<InputList>.*)" | Out-Null
+						$Matches.Rest.Trim() -match "^\s*(?<InputVar>\w+).*?\|\s*(?<Mandatory>\w*)\s*?\|(?<Desc>.*?)\|\s*(?<DefaultValue>\w*)\s*\|(?<InputList>.*)" | Out-Null
 						$ListInputData.Add( (
 							[pscustomobject]@{
 								Name = $Matches.InputVar.Trim()
