@@ -5,6 +5,8 @@
 	Testing to reach target 
 .ObjectOperations
 	Computer
+.EnableQuickAccess
+	ping
 .State
 	Prod
 .Author
@@ -39,26 +41,38 @@ function Reset
 
 ##################### Scriptstart
 
-$syncHash.Data.T = [System.Collections.ArrayList]::new()
+$syncHash.Data.StatusCode_ReturnValue = @{
+	0 = 'Success'
+	11001 = 'Buffer Too Small'
+	11002 = 'Destination Net Unreachable'
+	11003 = 'Destination Host Unreachable'
+	11004 = 'Destination Protocol Unreachable'
+	11005 = 'Destination Port Unreachable'
+	11006 = 'No Resources'
+	11007 = 'Bad Option'
+	11008 = 'Hardware Error'
+	11009 = 'Packet Too Big'
+	11010 = 'Request Timed Out'
+	11011 = 'Bad Request'
+	11012 = 'Bad Route'
+	11013 = 'TimeToLive Expired Transit'
+	11014 = 'TimeToLive Expired Reassembly'
+	11015 = 'Parameter Problem'
+	11016 = 'Source Quench'
+	11017 = 'Option Too Big'
+	11018 = 'Bad Destination'
+	11032 = 'Negotiating IPSEC'
+	11050 = 'General Failure'
+}
 
-$syncHash.Controls.GetEnumerator() | `
-	Where-Object { $_.Name -cmatch "Tb[^a-z](?!arget)" } | `
-	ForEach-Object {
-		$_.Value.Add_PreviewKeyDown( {
-			$syncHash.Data.T.Add($args)|Out-Null
-			if ( $args[1].SystemKey -eq "None" )
-			{
-				$args[1].Handled = $args[1].Key -notmatch "\d|(Ctrl)|(Alt)|(Back)|(F\d)|(Tab)"
-			}
-		} )
-	}
+Reset
 
 # Reset default values
 $syncHash.Controls.BtnReset.Add_Click( {
 	Reset
 } )
 
-# Add to PageSize number
+# Run connection test
 $syncHash.Controls.BtnStart.Add_Click( {
 	$syncHash.Controls.Window.Resources['CvsTestConnResults'].Source.Clear()
 	$syncHash.Controls.Window.Resources['CvsTestConnResults'].View.Refresh()
@@ -92,17 +106,47 @@ $syncHash.Controls.BtnStart.Add_Click( {
 
 	$syncHash.Jobs.TestJob = Test-Connection @TestSettings
 	Wait-Job $syncHash.Jobs.TestJob
-	$TempRes = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-	$syncHash.Controls.Window.Resources['CvsTestConnResults'].Source = ( Receive-Job $syncHash.Jobs.TestJob )
+
+	Receive-Job $syncHash.Jobs.TestJob | `
+		ForEach-Object {
+			$Res = $_
+			$FriendlyStatus =  if ( $Res.StatusCode -eq $null )
+			{
+				"N/A"
+			}
+			else
+			{
+				$syncHash.Data.StatusCode_ReturnValue[( [int]$Res.StatusCode )]
+			}
+			Add-Member -InputObject $Res -MemberType NoteProperty -Name "FriendlyStatus" -Value $FriendlyStatus
+
+			$syncHash.Controls.Window.Resources['CvsTestConnResults'].Source.Add( ( $Res | Select-Object * ) )
+		}
 
 	$syncHash.Controls.Window.Resources['CvsTestConnResults'].View.Refresh()
 	$syncHash.Controls.PbRunningTest.Visibility = [System.Windows.Visibility]::Collapsed
-	$syncHash.Data.TestSettings = $TestSettings
+} )
 
+#
+$syncHash.Controls.Window.Add_IsVisibleChanged( {
+	if ( $this.IsVisible )
+	{
+		if ( -not [string]::IsNullOrEmpty( $syncHash.Controls.Window.Resources.QuickAccessParam ) )
+		{
+			$syncHash.Controls.TbTarget.Text = ( $syncHash.Controls.Window.Resources.QuickAccessParam )
+			$syncHash.Controls.BtnStart.RaiseEvent( [System.Windows.Controls.Button]::ClickEvent )
+		}
+		elseif ( $syncHash.Controls.Window.Resources.SearchedItem.Enabled -eq $true )
+		{
+			$syncHash.Controls.TbTarget.Text = $syncHash.Controls.Window.Resources.SearchedItem.Name
+		}
+	}
 } )
 
 # Window is first loaded
 $syncHash.Controls.Window.Add_Loaded( {
-
-	Reset
+	if ( $syncHash.Controls.Window.Resources.SearchedItem.Enabled -eq $true )
+	{
+		$syncHash.Controls.TbTarget.Text = $syncHash.Controls.Window.Resources.SearchedItem.Name
+	}
 } )
