@@ -24,6 +24,17 @@
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
         </Style>
+        <Style TargetType="Label"
+               x:Key="LblBaseStyle">
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="Label"
+               x:Key="LblTitleStyle"
+               BasedOn="{StaticResource LblBaseStyle}">
+            <Setter Property="FontWeight"
+                    Value="Bold" />
+        </Style>
         <Style TargetType="RowDefinition"
                x:Key="RowDefHiddenStyle">
             <Setter Property="Height"
@@ -42,6 +53,8 @@
         </Style>
         <Style TargetType="TextBox"
                x:Key="TbBaseStyle">
+            <Setter Property="Height"
+                    Value="30" />
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
             <Setter Property="VerticalContentAlignment"
@@ -64,7 +77,11 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
-            <TextBlock Name="TblTargetTitle" />
+            <Label Name="LblTargetTitle"
+                   Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblTargetTitle}"
+                   FontWeight="Bold"
+                   Style="{StaticResource LblTitleStyle}"
+                   VerticalContentAlignment="Center" />
             <TextBox Name="TbTarget"
                      Grid.Column="1"
                      Style="{StaticResource TbBaseStyle}" />
@@ -159,8 +176,9 @@
                               Grid.Row="3">
                         <GroupBox.Header>
                             <WrapPanel>
-                                <TextBlock Name="TblProtocolTitle"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblProtocolTitle}" />
+                                <Label Name="LblProtocolTitle"
+                                       Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblProtocolTitle}"
+                                       Style="{StaticResource LblTitleStyle}"/>
                                 <ComboBox Name="CbProtocol">
                                     <ComboBoxItem>None</ComboBoxItem>
                                     <ComboBoxItem>DCOM</ComboBoxItem>
@@ -276,7 +294,6 @@
                             </Grid>
                         </WrapPanel>
                     </GroupBox>
-
                 </Grid>
             </Expander>
         </Grid>
@@ -309,98 +326,183 @@
                             </Style>
                         </Expander.Resources>
                         <Expander.Header>
-                            <Border BorderThickness="3,0,0,2"
-                                    Padding="{StaticResource StdMargin}">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="BorderBrush"
-                                                Value="Black" />
+                            <ContentControl>
+                                <ContentControl.Style>
+                                    <Style TargetType="ContentControl">
+                                        <Setter Property="ContentTemplate">
+                                            <Setter.Value>
+                                                <DataTemplate>
+                                                    <Border BorderThickness="3,0,0,2"
+                                                            Padding="{StaticResource StdMargin}">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="BorderBrush"
+                                                                        Value="Red" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=IsExpanded}"
+                                                                                 Value="True">
+                                                                        <Setter Property="BorderBrush"
+                                                                                Value="Cyan" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <Grid HorizontalAlignment="Stretch">
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="1*" />
+                                                                <ColumnDefinition Width="1*" />
+                                                            </Grid.ColumnDefinitions>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition />
+                                                                <RowDefinition />
+                                                            </Grid.RowDefinitions>
+                                                            <TextBlock Grid.Column="0"
+                                                                       Grid.Row="0"
+                                                                       Margin="{StaticResource StdMargin}"
+                                                                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadAddress}" />
+                                                            <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=DataContext.Address}">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Grid.Column"
+                                                                                Value="0" />
+                                                                        <Setter Property="Grid.Row"
+                                                                                Value="1" />
+                                                                        <Setter Property="Margin"
+                                                                                Value="{StaticResource StdMargin}" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=IsExpanded}"
+                                                                                         Value="True">
+                                                                                <Setter Property="Grid.Column"
+                                                                                        Value="1" />
+                                                                                <Setter Property="Grid.Row"
+                                                                                        Value="0" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+
+                                                            <TextBlock Grid.Column="1"
+                                                                       Grid.Row="0"
+                                                                       Style="{StaticResource TblExpandedStyle}"
+                                                                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadFriendlyStatus}">
+                                                            </TextBlock>
+                                                            <TextBlock Grid.Column="1"
+                                                                       Grid.Row="1"
+                                                                       Style="{StaticResource TblExpandedStyle}"
+                                                                       Text="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=DataContext.FriendlyStatus}" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </Setter.Value>
+                                        </Setter>
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=IsExpanded}"
-                                                         Value="True">
-                                                <Setter Property="BorderBrush"
-                                                        Value="Cyan" />
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=DataContext.StatusCode}"
+                                                         Value="0">
+                                                <Setter Property="ContentTemplate">
+                                                    <Setter.Value>
+                                                        <DataTemplate>
+                                                            <Border BorderThickness="3,0,0,2"
+                                                                    Padding="{StaticResource StdMargin}">
+                                                                <Border.Style>
+                                                                    <Style TargetType="Border">
+                                                                        <Setter Property="BorderBrush"
+                                                                                Value="Black" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=IsExpanded}"
+                                                                                         Value="True">
+                                                                                <Setter Property="BorderBrush"
+                                                                                        Value="Cyan" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Border.Style>
+                                                                <Grid HorizontalAlignment="Stretch">
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="1*" />
+                                                                        <ColumnDefinition Width="1*" />
+                                                                        <ColumnDefinition Width="1*" />
+                                                                        <ColumnDefinition Width="1*" />
+                                                                        <ColumnDefinition Width="1*" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Grid.RowDefinitions>
+                                                                        <RowDefinition />
+                                                                        <RowDefinition />
+                                                                    </Grid.RowDefinitions>
+                                                                    <TextBlock Grid.Column="0"
+                                                                               Grid.Row="0"
+                                                                               Margin="{StaticResource StdMargin}"
+                                                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadAddress}" />
+                                                                    <TextBlock Text="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=DataContext.Address}">
+                                                                        <TextBlock.Style>
+                                                                            <Style TargetType="TextBlock">
+                                                                                <Setter Property="Grid.Column"
+                                                                                        Value="0" />
+                                                                                <Setter Property="Grid.Row"
+                                                                                        Value="1" />
+                                                                                <Setter Property="Margin"
+                                                                                        Value="{StaticResource StdMargin}" />
+                                                                                <Style.Triggers>
+                                                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=IsExpanded}"
+                                                                                                 Value="True">
+                                                                                        <Setter Property="Grid.Column"
+                                                                                                Value="1" />
+                                                                                        <Setter Property="Grid.Row"
+                                                                                                Value="0" />
+                                                                                    </DataTrigger>
+                                                                                </Style.Triggers>
+                                                                            </Style>
+
+                                                                        </TextBlock.Style>
+                                                                    </TextBlock>
+
+                                                                    <TextBlock Grid.Column="1"
+                                                                               Grid.Row="0"
+                                                                               Style="{StaticResource TblExpandedStyle}"
+                                                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadIPV4Address}">
+                                                                    </TextBlock>
+                                                                    <TextBlock Grid.Column="1"
+                                                                               Grid.Row="1"
+                                                                               Style="{StaticResource TblExpandedStyle}"
+                                                                               Text="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=DataContext.IPV4Address}" />
+
+                                                                    <TextBlock Grid.Column="2"
+                                                                               Grid.Row="0"
+                                                                               Style="{StaticResource TblExpandedStyle}"
+                                                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadIPV6Address}" />
+                                                                    <TextBlock Grid.Column="2"
+                                                                               Grid.Row="1"
+                                                                               Style="{StaticResource TblExpandedStyle}"
+                                                                               Text="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=DataContext.IPV6Address}" />
+
+                                                                    <TextBlock Grid.Column="3"
+                                                                               Grid.Row="0"
+                                                                               Style="{StaticResource TblExpandedStyle}"
+                                                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadBufferSize}" />
+                                                                    <TextBlock Grid.Column="3"
+                                                                               Grid.Row="1"
+                                                                               Style="{StaticResource TblExpandedStyle}"
+                                                                               Text="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=DataContext.BufferSize}" />
+
+                                                                    <TextBlock Grid.Column="4"
+                                                                               Grid.Row="0"
+                                                                               Style="{StaticResource TblExpandedStyle}"
+                                                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadResponseTime}" />
+                                                                    <TextBlock Grid.Column="4"
+                                                                               Grid.Row="1"
+                                                                               Style="{StaticResource TblExpandedStyle}"
+                                                                               Text="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=DataContext.ResponseTime}" />
+                                                                </Grid>
+                                                            </Border>
+                                                        </DataTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
                                             </DataTrigger>
                                         </Style.Triggers>
                                     </Style>
-                                </Border.Style>
-                                <Grid HorizontalAlignment="Stretch">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="1*" />
-                                        <ColumnDefinition Width="1*" />
-                                        <ColumnDefinition Width="1*" />
-                                        <ColumnDefinition Width="1*" />
-                                        <ColumnDefinition Width="1*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition />
-                                        <RowDefinition />
-                                    </Grid.RowDefinitions>
-                                    <TextBlock Grid.Column="0"
-                                               Grid.Row="0"
-                                               Margin="{StaticResource StdMargin}"
-                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadAddress}" />
-                                    <TextBlock Text="{Binding Path=Address}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Grid.Column"
-                                                        Value="0" />
-                                                <Setter Property="Grid.Row"
-                                                        Value="1" />
-                                                <Setter Property="Margin"
-                                                        Value="{StaticResource StdMargin}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Expander}, Path=IsExpanded}"
-                                                                 Value="True">
-                                                        <Setter Property="Grid.Column"
-                                                                Value="1" />
-                                                        <Setter Property="Grid.Row"
-                                                                Value="0" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-
-                                        </TextBlock.Style>
-                                    </TextBlock>
-
-                                    <TextBlock Grid.Column="1"
-                                               Grid.Row="0"
-                                               Style="{StaticResource TblExpandedStyle}"
-                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadIPV4Address}">
-                                    </TextBlock>
-                                    <TextBlock Grid.Column="1"
-                                               Grid.Row="1"
-                                               Style="{StaticResource TblExpandedStyle}"
-                                               Text="{Binding Path=IPV4Address}" />
-
-                                    <TextBlock Grid.Column="2"
-                                               Grid.Row="0"
-                                               Style="{StaticResource TblExpandedStyle}"
-                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadIPV6Address}" />
-                                    <TextBlock Grid.Column="2"
-                                               Grid.Row="1"
-                                               Style="{StaticResource TblExpandedStyle}"
-                                               Text="{Binding Path=IPV6Address}" />
-
-                                    <TextBlock Grid.Column="3"
-                                               Grid.Row="0"
-                                               Style="{StaticResource TblExpandedStyle}"
-                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadBufferSize}" />
-                                    <TextBlock Grid.Column="3"
-                                               Grid.Row="1"
-                                               Style="{StaticResource TblExpandedStyle}"
-                                               Text="{Binding Path=BufferSize}" />
-
-                                    <TextBlock Grid.Column="4"
-                                               Grid.Row="0"
-                                               Style="{StaticResource TblExpandedStyle}"
-                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpHeadResponseTime}" />
-                                    <TextBlock Grid.Column="4"
-                                               Grid.Row="1"
-                                               Style="{StaticResource TblExpandedStyle}"
-                                               Text="{Binding Path=ResponseTime}" />
-                                </Grid>
-                            </Border>
+                                </ContentControl.Style>
+                            </ContentControl>
                         </Expander.Header>
                         <ItemsControl ItemsSource="{Binding Path=Properties}">
                             <ItemsControl.ItemsPanel>
@@ -410,10 +512,23 @@
                             </ItemsControl.ItemsPanel>
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
-                                    <Grid Margin="{StaticResource StdMargin}">
+                                    <Grid Margin="10"
+                                          MaxWidth="300"
+                                          Width="300">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
+                                                                 Value="True">
+                                                        <Setter Property="Background"
+                                                                Value="White" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
                                         <Grid.ColumnDefinitions>
-                                            <ColumnDefinition />
-                                            <ColumnDefinition />
+                                            <ColumnDefinition Width="1*" />
+                                            <ColumnDefinition Width="Auto"/>
                                         </Grid.ColumnDefinitions>
                                         <TextBlock FontWeight="Bold"
                                                    Margin="{StaticResource StdMargin}"
