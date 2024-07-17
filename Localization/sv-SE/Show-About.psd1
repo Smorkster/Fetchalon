@@ -1,10 +1,16 @@
 ConvertFrom-StringData @'
-ContentTblVersionTitle = Version
+ContentQATitleDesc = Beskrivning
+ContentQATitleMi = Visas i menyn som
+ContentQATitleName = Namn
+ContentQATitleSeparate = Öppnas i separat fönster
 ContentTblModulesTitle = Inlästa moduler
+ContentTblO365AccountTitle = Inloggad mot O365 konto
 ContentTblPSVersionTableTitle = PSVersion
-ContentTblValueTtVersion = Version
+ContentTblQuickAccessTitle = QuickAccess-ord
+ContentTblQuickAccessTitleTt = Ord som kan användas för att enklare starta verktyg och funktioner
 ContentTblValueTtDescription = Beskrivning
 ContentTblValueTtPath = Sökväg
-ContentTblO365AccountTitle = Inloggad mot O365 konto
+ContentTblValueTtVersion = Version
+ContentTblVersionTitle = Version
 ErrO365NotLoggedIn = Inte inloggad
 '@

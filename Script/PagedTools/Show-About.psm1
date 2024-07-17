@@ -48,6 +48,7 @@ $syncHash.Controls.TblPSVersionTable.Text = $PSVersionTable.PSVersion.ToString()
 
 $syncHash.Controls.Window.Add_Loaded( {
 	$syncHash.Controls.Window.Resources['CvsModules'].View.Refresh()
+	$syncHash.Controls.Window.Resources['CvsQuickAccessWordList'].View.Refresh()
 } )
 
 Export-ModuleMember
