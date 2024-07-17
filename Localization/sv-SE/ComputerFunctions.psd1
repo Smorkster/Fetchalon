@@ -1,5 +1,10 @@
 ﻿ConvertFrom-StringData @'
 ClearNetIdCacheFinished = Tog bort följande filer:
+GetLastBootUpTimeNoData = Ingen dator hittades
+GetLastBootUpTimeNoDateInfo = Kan ej nås
+GetLastBootUpTimePropDateInfoTitle = Senaste uppstart
+GetLastBootUpTimePropNameTitle = Datornamn
+GetLastBootUpTimePropSMTitle = Senaste datum från SysMan
 GetLastLoggedInErrNoUser = Användare hittas inte i AD
 GetLastLoggedInStrCompNotFound = Datornamn hittas inte i SysMan
 GetLastLoggedInStrCompTitle = Datornamn
@@ -10,5 +15,5 @@ ResetOutlookViewsFinished = Vyer återställda
 SendToastSuccess = Meddelande skickat
 StrAppId = Meddelande från Servicedesk
 StrSameCostCenterPropName = CcPropName
-SysManServerUrl = http://sysman.test.com/Sysman
+SysManServerUrl = http://sysman.test.com/
 '@

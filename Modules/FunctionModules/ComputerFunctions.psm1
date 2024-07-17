@@ -115,6 +115,76 @@ function Get-Drivers
 	}
 }
 
+function Get-LastBootUpTime
+{
+	<#
+	.Synopsis
+		Get last bootup time
+	.Description
+		Get date and time when the computer was last booted
+	.MenuItem
+		Last boot time
+	.SearchedItemRequest
+		Allowed
+	.InputData
+		ComputerName, True, List computers
+	.OutputType
+		ObjectList
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item, $InputData )
+
+	$L = [System.Collections.ArrayList]::new()
+	( ( $InputData.ComputerName -split "\W" ) + $Item.Name ) | `
+		Where-Object { $_ -and ( Get-ADObject -LDAPFilter "(&(Name=$( $_ ))(ObjectClass=computer))" ) } | `
+		ForEach-Object {
+			$CName = $_.ToUpper()
+			try
+			{
+				$C = Get-CimInstance Win32_OperatingSystem -ComputerName $CName -ErrorAction Stop | `
+					Select-Object PSComputerName, LastBootUpTime
+			}
+			catch
+			{
+				
+				$C = [pscustomobject]@{
+					PSComputerName = $CName
+					LastBootUpTime = $IntMsgTable.GetLastBootUpTimeNoDateInfo
+				}
+			}
+			$SClient = Invoke-RestMethod -Method Get -Uri "$( $IntMsgTable.SysManServerUrl )/api/Client/?Name=$( $CName )" -UseDefaultCredentials
+			$SInfo = Invoke-RestMethod -Method Get -Uri "$( $IntMsgTable.SysManServerUrl )/api/reporting/client?clientId=$( $SClient.Id )" -UseDefaultCredentials
+
+			Add-Member -InputObject $C -MemberType NoteProperty -Name "SysManLastBootTime" -Value $SInfo.lastBootTime
+			$L.Add( $C ) | Out-Null
+		}
+
+	if ( $L.Count -eq 0 )
+	{
+		$L.Add( ( [pscustomobject]@{ PSComputerName = $IntMsgTable.GetLastBootUpTimeNoData } ) ) | Out-Null
+	}
+
+	return $L | `
+		Sort-Object -Property PSComputerName | `
+		Select-Object -Property @{ Name = "$( $IntMsgTable.GetLastBootUpTimePropNameTitle )" ; Expression = { $_.PSComputerName } }, `
+			@{ Name = "$( $IntMsgTable.GetLastBootUpTimePropDateInfoTitle )" ; Expression = {
+				if ( $_.LastBootUpTime -is [datetime] )
+				{
+					Get-Date $_.LastBootUpTime -Format "yyyy-MM-dd HH:mm:ss"
+				}
+				else
+				{
+					$_.LastBootUpTime
+				}
+			} } , `
+			@{ Name = "$( $IntMsgTable.GetLastBootUpTimePropSMTitle )"
+			Expression = { Get-Date $_.SysManLastBootTime -Format "yyyy-MM-dd HH:mm:ss" } }
+}
+
 function Get-LastLoggedIn
 {
 	<#
