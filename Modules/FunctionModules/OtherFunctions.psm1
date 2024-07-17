@@ -116,7 +116,7 @@ function Get-PollenRapport
 	.SearchedItemRequest
 		None
 	.InputDataList
-		Stad, True, , Sverige,Stockholm,Borlänge,Forshaga,Gävle,Jönköping,Visby,Bräkne-Hoby,Göteborg,Hässleholm,Kristianstad,Malmö,Nässjö,Eskilstuna,Norrköping,Skövde,Sundsvall,Umeå,Västervik,Östersund,Piteå,Kiruna,Ljusdal
+		Stad | True | Välj stad att visa prognos för | Stockholm | Stockholm,Borlänge,Forshaga,Gävle,Jönköping,Visby,Bräkne-Hoby,Göteborg,Hässleholm,Kristianstad,Malmö,Nässjö,Eskilstuna,Norrköping,Skövde,Sundsvall,Umeå,Västervik,Östersund,Piteå,Kiruna,Ljusdal
 	.NoRunspace
 	.OutputType
 		ObjectList
@@ -337,7 +337,11 @@ function Write-String
 	.Description
 		Write string as input. Used to show how output is displayed
 	.InputData
-		String, , String to write
+		String, True, String to write
+	.InputData
+		String2, True, String to write
+	.InputDataList
+		Strings | True | | | 1,2,3,4
 	.State
 		Dev
 	.Author
