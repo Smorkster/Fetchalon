@@ -2100,12 +2100,12 @@
                                         <Setter Property="Background"
                                                 Value="Transparent" />
                                         <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Path=SearchedItem.ExtraInfo.Other.IsOnline}"
+                                            <DataTrigger Binding="{Binding ElementName=LblComputerOnlineStatus, Path=Content, NotifyOnSourceUpdated=True}"
                                                          Value="Online">
                                                 <Setter Property="Background"
                                                         Value="LightGreen" />
                                             </DataTrigger>
-                                            <DataTrigger Binding="{Binding Path=SearchedItem.ExtraInfo.Other.IsOnline}"
+                                            <DataTrigger Binding="{Binding ElementName=LblComputerOnlineStatus, Path=Content, NotifyOnSourceUpdated=True}"
                                                          Value="Offline">
                                                 <Setter Property="Background"
                                                         Value="Coral" />
@@ -2113,28 +2113,8 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <Path Name="PathComputerOnlineStatus"
-                                      Fill="Black"
-                                      Stroke="Black">
-                                    <Path.Style>
-                                        <Style TargetType="Path">
-                                            <Setter Property="Data"
-                                                    Value="{StaticResource ComputerOnlineUnknown}" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Path=SearchedItem.ExtraInfo.Other.IsOnline}"
-                                                             Value="Online">
-                                                    <Setter Property="Data"
-                                                            Value="{StaticResource ComputerOnlineTrue}" />
-                                                </DataTrigger>
-                                                <DataTrigger Binding="{Binding Path=SearchedItem.ExtraInfo.Other.IsOnline}"
-                                                             Value="Offline">
-                                                    <Setter Property="Data"
-                                                            Value="{StaticResource ComputerOnlineFalse}" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Path.Style>
-                                </Path>
+                                <Label Name="LblComputerOnlineStatus"
+                                       VerticalContentAlignment="Center" />
                             </Border>
                         </StackPanel>
                         <Menu Name="MenuObject"
