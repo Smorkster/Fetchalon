@@ -10,8 +10,6 @@ ContentRbLastWeek = Senaste 7 dagarna
 ContentTblSearchComputer = Sök dator
 ContentTblSearchDate = Sök datum
 ContentTblSearchDomain = Sök domän
-ContentTblSearchId = Sök id
-StrLockoutComputer = Dator
-StrLockoutDate = Datum
-StrLockoutDomain = Domän
+ContentTblSearchId = Sök HSA-id
+StrNoLockoutInfo = Inga låsningar hittades för angiven input
 '@

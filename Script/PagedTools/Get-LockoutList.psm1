@@ -32,6 +32,7 @@ Set-Localizations
 $syncHash.Controls.BtnSearch.Add_Click( {
 	$syncHash.Controls.Window.Resources['CvsLockouts'].Source.Clear()
 	$syncHash.Controls.Window.Resources['CvsLockouts'].View.Refresh()
+	$syncHash.Controls.LblNoLockOutFound.Visibility = [System.Windows.Visibility]::Hidden
 
 	if ( [string]::IsNullOrEmpty( $syncHash.Controls.TbSearchId.Text ) )
 	{
@@ -81,14 +82,36 @@ $syncHash.Controls.BtnSearch.Add_Click( {
 			Where-Object { $_ -match $Pattern }
 	}
 
-	$LogList | `
-		ForEach-Object {
-			$Date, $User, $Computer, $Domain = $_ -split "`t"
-			[pscustomobject]@{ Date = $Date ; UserName = $User ; Computer = $Computer ; Domain  = $Domain }
-		} | `
-		Sort-Object @{ Expression = { $_.Date } ; Descending = $true } | `
-		ForEach-Object {
-			$syncHash.Controls.Window.Resources['CvsLockouts'].Source.Add( $_ )
-		}
+	if ( $LogList.Count -eq 0 )
+	{
+		$syncHash.Controls.LblNoLockOutFound.Visibility = [System.Windows.Visibility]::Visible
+	}
+	else
+	{
+		$LogList | `
+			ForEach-Object {
+				$Date, $User, $Computer, $Domain = $_ -split "`t"
+				[pscustomobject]@{ Date = $Date ; UserName = $User ; Computer = $Computer ; Domain  = $Domain }
+			} | `
+			Sort-Object @{ Expression = { $_.Date } ; Descending = $true } | `
+			ForEach-Object {
+				$syncHash.Controls.Window.Resources['CvsLockouts'].Source.Add( $_ )
+			}
+	}
+	$syncHash.Controls.Window.Resources['CvsLockouts'].View.Refresh()
+} )
+
+$syncHash.Controls.TbSearchComputer.Add_TextChanged( {
+	$syncHash.Controls.Window.Resources['CvsLockouts'].Source.Clear()
+	$syncHash.Controls.Window.Resources['CvsLockouts'].View.Refresh()
+} )
+
+$syncHash.Controls.TbSearchDomain.Add_TextChanged( {
+	$syncHash.Controls.Window.Resources['CvsLockouts'].Source.Clear()
+	$syncHash.Controls.Window.Resources['CvsLockouts'].View.Refresh()
+} )
+
+$syncHash.Controls.TbSearchId.Add_TextChanged( {
+	$syncHash.Controls.Window.Resources['CvsLockouts'].Source.Clear()
 	$syncHash.Controls.Window.Resources['CvsLockouts'].View.Refresh()
 } )

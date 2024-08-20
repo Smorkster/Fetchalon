@@ -1,8 +1,9 @@
 <Page Name="Window"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:c="clr-namespace:FetchalonConverters;assembly=FetchalonConverterAssembly"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase">
+      xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Page.Resources>
         <Brush x:Key="DefaultFontForeground">#FF444444</Brush>
         <c:ADUserConverter x:Key="UserConverter" />
@@ -18,10 +19,6 @@
                     Value="{StaticResource StdMargin}" />
             <Setter Property="Padding"
                     Value="5" />
-        </Style>
-        <Style TargetType="DataGrid">
-            <Setter Property="Margin"
-                    Value="{StaticResource StdMargin}" />
         </Style>
         <Style TargetType="RadioButton"
                x:Key="RbBaseStyle">
@@ -73,6 +70,35 @@
                   Margin="{StaticResource StdMargin}"
                   HorizontalScrollBarVisibility="Auto"
                   VerticalScrollBarVisibility="Auto">
+            <DataGrid.Style>
+                <Style TargetType="DataGrid">
+                    <Setter Property="Margin"
+                            Value="{StaticResource StdMargin}" />
+                    <Setter Property="Visibility"
+                            Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=LblNoLockOutFound, Path=Visibility}"
+                                     Value="Visible">
+                            <Setter Property="Visibility"
+                                    Value="Hidden" />
+                        </DataTrigger>
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding ElementName=DgLockouts, Path=ItemsSource.Count}"
+                                           Value="0" />
+                                <Condition Binding="{Binding ElementName=TbSearchId, Path=Text}"
+                                           Value="{x:Static sys:String.Empty}" />
+                                <Condition Binding="{Binding ElementName=TbSearchComputer, Path=Text}"
+                                           Value="{x:Static sys:String.Empty}" />
+                                <Condition Binding="{Binding ElementName=TbSearchDomain, Path=Text}"
+                                           Value="{x:Static sys:String.Empty}" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter Property="Visibility"
+                                    Value="Hidden" />
+                        </MultiDataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </DataGrid.Style>
             <DataGrid.Columns>
                 <DataGridTextColumn Binding="{Binding Path=Date}" />
                 <DataGridTextColumn Binding="{Binding Path=UserName, Converter={StaticResource UserConverter}}" />
@@ -80,6 +106,13 @@
                 <DataGridTextColumn Binding="{Binding Path=Domain}" />
             </DataGrid.Columns>
         </DataGrid>
+        <Label Name="LblNoLockOutFound"
+               Content="{Binding ElementName=Window, Path=DataContext.MsgTable.StrNoLockoutInfo}"
+               FontSize="30"
+               Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
+               HorizontalContentAlignment="Center"
+               VerticalContentAlignment="Center"
+               Visibility="Hidden" />
         <Grid Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
               Grid.Row="1">
             <Grid.ColumnDefinitions>
