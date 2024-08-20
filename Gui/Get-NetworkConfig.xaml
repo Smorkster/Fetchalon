@@ -1,0 +1,310 @@
+<Page Name="Window"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
+      Width="1162">
+    <Page.Resources>
+        <CollectionViewSource x:Key="CvsIpConfigs" />
+        <CollectionViewSource x:Key="CvsIpAddresses" />
+
+        <Thickness x:Key="StdMargin">5</Thickness>
+        <sys:Double x:Key="FontSize">13</sys:Double>
+
+        <Style TargetType="Button">
+            <Setter Property="FontSize"
+                    Value="{StaticResource FontSize}" />
+            <Setter Property="FontWeight"
+                    Value="Bold" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="10" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="ItemsControl">
+            <Setter Property="ItemsPanel">
+                <Setter.Value>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="Label">
+            <Setter Property="FontSize"
+                    Value="{StaticResource FontSize}" />
+            <Setter Property="FontWeight"
+                    Value="Bold" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="ScrollViewer">
+            <Setter Property="VerticalScrollBarVisibility"
+                    Value="Auto" />
+        </Style>
+        <Style TargetType="TextBlock"
+               x:Key="TblTitleStyle">
+            <Setter Property="FontSize"
+                    Value="13" />
+            <Setter Property="FontWeight"
+                    Value="Bold" />
+            <Setter Property="Margin"
+                    Value="5,3,10,0" />
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="FontSize"
+                    Value="{StaticResource FontSize}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+    </Page.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Label Name="LblComputerTitle"
+                   Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblComputerTitle}" />
+            <TextBox Name="TbComputer"
+                     Grid.Column="1" />
+            <Button Name="BtnGet"
+                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnGet}"
+                    Grid.Column="2" />
+        </Grid>
+        <GroupBox Name="GbNetworkConfigs"
+                  Grid.Row="1">
+            <GroupBox.HeaderTemplate>
+                <DataTemplate>
+                    <TextBlock FontSize="18"
+                               FontWeight="Bold"
+                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbNetworkConfigsHeader}" />
+                </DataTemplate>
+            </GroupBox.HeaderTemplate>
+            <Grid HorizontalAlignment="Stretch">
+                <ScrollViewer>
+                    <Grid HorizontalAlignment="Stretch">
+                        <ItemsControl Name="IcNetworkConfigs"
+                                      ItemsSource="{Binding Source={StaticResource CvsIpConfigs}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel HorizontalAlignment="Stretch" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <Expander HorizontalAlignment="Stretch"
+                                                  IsExpanded="False"
+                                                  VerticalAlignment="Center">
+                                            <Expander.Resources>
+                                                <CollectionViewSource x:Key="Cvs"
+                                                                      Source="{Binding Path=Properties}">
+                                                    <CollectionViewSource.SortDescriptions>
+                                                        <componentmodel:SortDescription PropertyName="Name" />
+                                                    </CollectionViewSource.SortDescriptions>
+                                                </CollectionViewSource>
+                                            </Expander.Resources>
+                                            <Expander.Header>
+                                                <Grid HorizontalAlignment="Stretch">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="1*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="1*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Style="{StaticResource TblTitleStyle}"
+                                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentNetworkConfigsInterfaceAliasTitle}" />
+                                                    <Border BorderBrush="{x:Null}"
+                                                            Grid.Column="1">
+                                                        <TextBlock Grid.Column="1"
+                                                                   Text="{Binding Path=InterfaceAlias}"
+                                                                   VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <TextBlock Grid.Column="2"
+                                                               Style="{StaticResource TblTitleStyle}"
+                                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentNetworkConfigsDescriptionTitle}" />
+                                                    <Border BorderBrush="{x:Null}"
+                                                            Grid.Column="3">
+                                                        <TextBlock Text="{Binding Path=InterfaceDescription}"
+                                                                   VerticalAlignment="Center" />
+                                                    </Border>
+                                                </Grid>
+                                            </Expander.Header>
+                                            <Grid Grid.ColumnSpan="2"
+                                                  Grid.Row="1"
+                                                  HorizontalAlignment="Stretch">
+                                                <ItemsControl HorizontalAlignment="Stretch"
+                                                              ItemsSource="{Binding Source={StaticResource Cvs}}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <WrapPanel Orientation="Vertical" />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="{StaticResource StdMargin}"
+                                                                  MaxWidth="900">
+                                                                <Grid.Style>
+                                                                    <Style TargetType="Grid">
+                                                                        <Setter Property="Background"
+                                                                                Value="Transparent" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
+                                                                                         Value="True">
+                                                                                <Setter Property="Background"
+                                                                                        Value="White" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Grid.Style>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock FontWeight="Bold"
+                                                                           Style="{StaticResource TblTitleStyle}"
+                                                                           Text="{Binding Path=Name}" />
+                                                                <Border BorderBrush="{x:Null}"
+                                                                        Grid.Column="1">
+                                                                    <TextBlock Text="{Binding Path=Value}"
+                                                                               TextWrapping="WrapWithOverflow"
+                                                                               VerticalAlignment="Center" />
+                                                                </Border>
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Grid>
+                                        </Expander>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
+        </GroupBox>
+        <GroupBox Name="GbIpAddresses"
+                  Grid.Row="2">
+            <GroupBox.HeaderTemplate>
+                <DataTemplate>
+                    <TextBlock FontSize="18"
+                               FontWeight="Bold"
+                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbIpAddressesHeader}" />
+                </DataTemplate>
+            </GroupBox.HeaderTemplate>
+            <Grid HorizontalAlignment="Stretch">
+                <ScrollViewer>
+                    <Grid HorizontalAlignment="Stretch">
+                        <ItemsControl Name="IcIpAddresses"
+                                      ItemsSource="{Binding Source={StaticResource CvsIpAddresses}}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid HorizontalAlignment="Stretch">
+                                        <Expander HorizontalAlignment="Stretch"
+                                                  IsExpanded="False"
+                                                  VerticalAlignment="Center">
+                                            <Expander.Header>
+                                                <Grid HorizontalAlignment="Stretch">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="1*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                        <ColumnDefinition Width="1*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <TextBlock Style="{StaticResource TblTitleStyle}"
+                                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentIpAddressesInterfaceAliasTitle}" />
+                                                    <Border BorderBrush="{x:Null}"
+                                                            Grid.Column="1">
+                                                        <TextBlock Text="{Binding Path=InterfaceAlias}"
+                                                                   VerticalAlignment="Center" />
+                                                    </Border>
+                                                    <TextBlock Grid.Column="2"
+                                                               Style="{StaticResource TblTitleStyle}"
+                                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentIpAddressesIpAddressTitle}" />
+                                                    <Border BorderBrush="{x:Null}"
+                                                            Grid.Column="3">
+                                                        <TextBlock Text="{Binding Path=IPAddress}"
+                                                                   VerticalAlignment="Center" />
+                                                    </Border>
+                                                </Grid>
+                                            </Expander.Header>
+                                            <Expander.Resources>
+                                                <CollectionViewSource x:Key="Cvs"
+                                                                      Source="{Binding Path=Properties}">
+                                                    <CollectionViewSource.SortDescriptions>
+                                                        <componentmodel:SortDescription PropertyName="Name" />
+                                                    </CollectionViewSource.SortDescriptions>
+                                                </CollectionViewSource>
+                                            </Expander.Resources>
+                                            <Grid Grid.ColumnSpan="2"
+                                                  Grid.Row="1"
+                                                  HorizontalAlignment="Stretch">
+                                                <ItemsControl HorizontalAlignment="Stretch"
+                                                              ItemsSource="{Binding Source={StaticResource Cvs}}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <DockPanel />
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Grid Margin="{StaticResource StdMargin}">
+                                                                <Grid.Style>
+                                                                    <Style TargetType="Grid">
+                                                                        <Setter Property="Background"
+                                                                                Value="Transparent" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
+                                                                                         Value="True">
+                                                                                <Setter Property="Background"
+                                                                                        Value="White" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </Grid.Style>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                    <ColumnDefinition Width="Auto" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <TextBlock FontWeight="Bold"
+                                                                           Text="{Binding Path=Name}"
+                                                                           Style="{StaticResource TblTitleStyle}" />
+                                                                <Border BorderBrush="{x:Null}"
+                                                                        Grid.Column="1">
+                                                                    <TextBlock Text="{Binding Path=Value}"
+                                                                               TextWrapping="WrapWithOverflow"
+                                                                               VerticalAlignment="Center" />
+                                                                </Border>
+                                                            </Grid>
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                                </ItemsControl>
+                                            </Grid>
+                                        </Expander>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </ScrollViewer>
+            </Grid>
+        </GroupBox>
+    </Grid>
+</Page>
