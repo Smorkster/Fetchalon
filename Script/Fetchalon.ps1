@@ -754,7 +754,6 @@ function Start-Search
 	Reset-Info
 	if ( $syncHash.Data.QuickAccessWordList.ContainsKey( ( $QAWord = ( $syncHash.DC.TbSearch[0] -split "\s" )[0] ) ) )
 	{
-		WriteLog -Text "QuickAccess $( $QAWord )" -UserInput $syncHash.DC.TbSearch[0] -Success $true | Out-Null
 		$SO = [pscustomobject]@{ DataContext = $syncHash.Data.QuickAccessWordList."$( $QAWord )" }
 		$syncHash.Code.MenuItemClick.Invoke( $SO, $null )
 	}
@@ -1153,10 +1152,20 @@ $syncHash.Code.ListItem =
 							$d = $_ -split ":" ; "$( $d[0] ) - $( try { ( Get-ADUser $d[1] -ErrorAction Stop ).Name } catch { $d[1] } )"
 						} )
 				}
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "IsOnline" -Value "Unknown"
+
+				try
+				{
+					Get-CimInstance -ClassName win32_operatingsystem -ComputerName $syncHash.Data.SearchedItem.Name -ErrorAction Stop | Out-Null
+					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "IsOnline" -Value "Online"
+				}
+				catch
+				{
+					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "IsOnline" -Value "Unknown"
+				}
 				$syncHash.Data.SearchedItem.MemberOf.Where( { $_ -match $syncHash.Data.msgTable.CodeOrgGrpNamePrefix } )[0] -match $syncHash.Data.msgTable.CodeOrgGrpCaptureRegex | Out-Null
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "PCRoll" -Value $Matches.role
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Organisation" -Value $Matches.org
+				$syncHash.LblComputerOnlineStatus.Content = $syncHash.Data.SearchedItem.ExtraInfo.Other.IsOnline
 
 				break
 			}
@@ -1821,7 +1830,7 @@ $(
 		Display-View -ViewName "FrameTool"
 
 		# Menuitem represents a tool
-		if ( $null -ne $SenderObject.DataContext.PS )
+		if ( $SenderObject.DataContext.PS -ne $null )
 		{
 			# The tool has Xaml to be shown in main window
 			if ( $SenderObject.DataContext.Separate -eq $false )
@@ -1835,6 +1844,7 @@ $(
 						$page.Data.msgTable = Import-LocalizedData -BaseDirectory $SenderObject.DataContext.Localization.Directory.FullName -FileName $SenderObject.DataContext.Localization.Name
 						$page.Data.Modules = Get-Module
 						$page.Data.MainWindow = $syncHash.Window
+						$page.Data.ScriptInfo = $SenderObject.DataContext
 						$page.Page.DataContext = [pscustomobject]@{
 							MsgTable = $page.Data.msgTable
 						}
@@ -1847,11 +1857,12 @@ $(
 						{
 							if ( $null -eq $syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source )
 							{
+								# Insert a reference to all functions and tools
 								$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 								$syncHash.Window.Resources.GetEnumerator() | `
 									Where-Object { $_.Name -match "CvsMi.*((Functions)|(Tools)|(About))" } | `
 									ForEach-Object { $_.Value.Source } | `
-									Where-Object { $_.Name -notmatch "Temp" } | `
+									Where-Object { $_.Name -notmatch "Temp" -and $_.IsSubMenuHeader -ne 1 } | `
 									Select-Object -Property @{ Name = "Name" ; Expression = { $_.Name.Trim() } }, @{ Name = "Author" ; Expression = { $_.Author.Trim() } }, @{ Name = "Description" ; Expression = { $_.Description.Trim() } } | `
 									ForEach-Object { $_; $syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source.Add( $_ ) }
 							}
@@ -1945,18 +1956,20 @@ $(
 						{
 							if ( $SenderObject -is [pscustomobject] )
 							{
-								$QuickAccessParam = ( ( $syncHash.DC.TbSearch[0] ) -split "\s", 2 )[1]
-								if ( $_.InputList -match $QuickAccessParam )
+								if ( -not [string]::IsNullOrEmpty( ( $QuickAccessParam = ( ( $syncHash.DC.TbSearch[0] ) -split "\s", 2 )[1] ) ) )
 								{
-									$c = 0
-									for ( ; $c -lt $_.InputList.Count ; $c++ )
+									if ( $_.InputList -match $QuickAccessParam )
 									{
-										if ( $_.InputList[ $c ] -match $QuickAccessParam )
+										$c = 0
+										for ( ; $c -lt $_.InputList.Count ; $c++ )
 										{
-											break
+											if ( $_.InputList[ $c ] -match $QuickAccessParam )
+											{
+												break
+											}
 										}
+										$_.EnteredValue = $_.InputList[ $c ]
 									}
-									$_.EnteredValue = $_.InputList[ $c ]
 								}
 								else
 								{
@@ -1968,22 +1981,26 @@ $(
 								$_.EnteredValue = $_.DefaultValue
 							}
 						}
+						else
+						{
+							$_.EnteredValue = $_.DefaultValue
+						}
 					}
-				$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
-				if ( $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count -gt 0 )
-				{
-					$syncHash.BtnEnterFunctionInput.IsEnabled = $false
-					$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count
-				}
-				else
-				{
-					$syncHash.BtnEnterFunctionInput.IsEnabled = $true
-				}
+			}
+			$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
+			if ( $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count -gt 0 )
+			{
+				$syncHash.BtnEnterFunctionInput.IsEnabled = $false
+				$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count
+			}
+			else
+			{
+				$syncHash.BtnEnterFunctionInput.IsEnabled = $true
 			}
 			Prepare-ToRunScript $SenderObject.DataContext
 		}
-		WriteLog -Text "$( $syncHash.Data.msgTable.LogToolStarted ) $( $SenderObject.DataContext.Name )" -Success $true | Out-Null
 	}
+	WriteLog -Text "$( $syncHash.Data.msgTable.LogToolStarted ) $( $SenderObject.DataContext.Name )" -Success $true | Out-Null
 }
 
 # Handler for dynamic checkboxes for datasources of properties
@@ -2377,7 +2394,8 @@ $syncHash.MiCopyObj.Add_Click( {
 
 # If this menuitem is visible, connection at startup failed. Inform
 $syncHash.MiO365Connect.Add_Click( {
-	Connect-O365
+	Show-MessageBox -Text $syncHash.Data.msgTable.StrO365NotImplemented | Out-Null
+	# Connect-O365
 } )
 
 # Show a detailed overview of the object
