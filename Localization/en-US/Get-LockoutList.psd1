@@ -11,7 +11,5 @@ ContentTblSearchComputer = Search computer
 ContentTblSearchDate = Search date
 ContentTblSearchDomain = Search domain
 ContentTblSearchId = Search id
-StrLockoutComputer = Computer
-StrLockoutDate = Date
-StrLockoutDomain = Domain
+StrNoLockoutInfo = No lockouts were found for the specified input
 '@
