@@ -72,6 +72,7 @@ LogStrPropHandlerRun = Kört handler för
 LogStrSearchItemTitle = AD-objekt
 LogToolStarted = Startade
 StrAccountNeverExpires = < Inget slutdatum >
+StrAccountStatusOk = Aktiv
 StrCompOperatingSystemVersion = version
 StrComputerOnline = Online-status:
 StrCopyOutputEnteredInput = Detta angavs som indata

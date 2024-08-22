@@ -10,6 +10,7 @@
 #>
 
 # Initiate internal variables
+$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 $InitArgs = $args
 $culture = "sv-SE"
 $BaseDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
@@ -351,33 +352,44 @@ function Get-PropHandlers
 	$syncHash.Code = @{}
 	$syncHash.Code.PropHandlers = @{}
 	$syncHash.Code.PropLocalizations = @{}
+	$syncHash.Code.PropNameLocalizations = @{}
 	Get-ChildItem -Path "$BaseDir\Modules\PropHandlers" | `
 		ForEach-Object {
 			$Module = $_.BaseName -replace "PropHandlers"
 			$syncHash.Code.PropHandlers."$( $Module )" = @{}
 			$syncHash.Code.PropLocalizations."$( $Module )" = @{}
+			$syncHash.Code.PropNameLocalizations."$( $Module )" = @{}
 			( Import-Module $_.FullName -PassThru ).ExportedVariables.GetEnumerator() | `
 				ForEach-Object {
 					if ( $null -ne $_.Value.Value.Code )
 					{
 						$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )" = $_.Value.Value
 
+						# Check if PropertyHandler-description is specified
 						if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description ) )
 						{
 							$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description = $syncHash.Data.msgTable.StrDefaultHandlerDescription
 						}
+
+						# Check if PropertyHandler-title is specified
 						if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title ) )
 						{
 							$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title = $syncHash.Data.msgTable.StrRunHandler
 						}
 					}
 
+					# Check for any PropertyHandler localization
 					if ( $_.Key -eq "IntMsgTable" )
 					{
 						$_.Value.Value.GetEnumerator() | `
 							Where-Object { $_.Name -match "^PL" } | `
 							ForEach-Object {
 								$syncHash.Code.PropLocalizations."$( $Module )"."$( $_.Name )" = $_.Value
+							}
+						$_.Value.Value.GetEnumerator() | `
+							Where-Object { $_.Name -match "^PNL" } | `
+							ForEach-Object {
+								$syncHash.Code.PropNameLocalizations."$( $Module )"."$( $_.Name )" = $_.Value
 							}
 					}
 				}
@@ -671,6 +683,7 @@ function Set-DefaultSettings
 	$syncHash.Data.UserSettings.VisibleProperties.PrintQueue.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.User.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.User.Add( ( [pscustomobject]@{ Name = "info" ; MandatorySource = "AD" } ) ) | Out-Null
+	$syncHash.Data.UserSettings.VisibleProperties.User.Add( ( [pscustomobject]@{ Name = "AccountStatus" ; MandatorySource = "Other" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.O365User.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.O365SharedMailbox.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.O365Resource.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
@@ -1153,15 +1166,7 @@ $syncHash.Code.ListItem =
 						} )
 				}
 
-				try
-				{
-					Get-CimInstance -ClassName win32_operatingsystem -ComputerName $syncHash.Data.SearchedItem.Name -ErrorAction Stop | Out-Null
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "IsOnline" -Value "Online"
-				}
-				catch
-				{
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "IsOnline" -Value "Unknown"
-				}
+				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "IsOnline" -Value "Unknown"
 				$syncHash.Data.SearchedItem.MemberOf.Where( { $_ -match $syncHash.Data.msgTable.CodeOrgGrpNamePrefix } )[0] -match $syncHash.Data.msgTable.CodeOrgGrpCaptureRegex | Out-Null
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "PCRoll" -Value $Matches.role
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Organisation" -Value $Matches.org
@@ -1204,6 +1209,14 @@ $syncHash.Code.ListItem =
 				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
 
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "NeedPasswordChange" -Value ( $syncHash.Data.SearchedItem.PasswordLastSet -lt ( Get-Date "2022-04-29" ) )
+				if ( $syncHash.Data.SearchedItem.Enabled -eq $true )
+				{
+					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "AccountStatus" -Value $syncHash.Data.msgTable.StrAccountStatusOk
+				}
+				else
+				{
+					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "AccountStatus" -Value "?"
+				}
 
 				if ( $syncHash.Data.SearchedItem.otherTelephone -ne $null )
 				{
@@ -1597,6 +1610,7 @@ $syncHash.Code.ListProperties =
 						if ( $syncHash.Data.SearchedItem.ObjectClass -eq "user" )
 						{
 							$Prop.Value = $syncHash.Data.msgTable.StrAccountNeverExpires
+							$Prop.Type = "String"
 						}
 					}
 					else
@@ -1616,10 +1630,10 @@ $syncHash.Code.ListProperties =
 					$Prop.Handler = $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."PH$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )"
 				}
 
-				# Check if there a PropLocalization for this property
-				if ( $syncHash.Code.PropLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PL$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )" )
+				# Check if there a PropNameLocalization for this property
+				if ( $syncHash.Code.PropNameLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PNL$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )" )
 				{
-					$Prop.NameLocalization = $syncHash.Code.PropLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )"."PL$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )"
+					$Prop.NameLocalization = $syncHash.Code.PropNameLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )"."PNL$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )"
 				}
 
 				$Prop.CheckedForVisible = ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.Name -eq $Prop.Name -and $_.MandatorySource -eq $Prop.Source } ).Count -gt 0 )
@@ -1671,9 +1685,16 @@ Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximu
 
 	WriteLog -Text "$( $syncHash.Data.msgTable.LogStrPropHandlerRun ): $( $syncHash.Data.SearchedItem.ObjectClass )::$( $SenderObject.DataContext.Name )::$( $SenderObject.DataContext.Source )" -Success $true
 
+	$PropLocalization = @{}
+	$syncHash.Code.PropLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )".GetEnumerator() | `
+		Where-Object { $_.Name -match "PL$( $syncHash.Data.SearchedItem.ObjectClass )$( $SenderObject.DataContext.Source )$( $SenderObject.DataContext.Name )" } | `
+		ForEach-Object {
+			$PropLocalization.Add( $_.Name, $_.Value )
+		}
+
 	$p = [powershell]::Create()
 	$PHCode = '
-	param ( $syncHash, $SenderObject, $Modules )
+	param ( $syncHash, $SenderObject, $Modules, $SearchedItem, $PropLocalization )
 	Import-Module $Modules
 	$NewPropValue = $null
 
@@ -1693,6 +1714,8 @@ Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximu
 	$p.AddArgument( $syncHash )
 	$p.AddArgument( ( $SenderObject | Select-Object * ) )
 	$p.AddArgument( ( Get-Module ) )
+	$p.AddArgument( ( $syncHash.Data.SearchedItem | Select-Object * ) )
+	$p.AddArgument( $PropLocalization )
 	$p.Runspace = $syncHash.Jobs.SearchRunspace
 	$JobName = "$( $syncHash.Data.SearchedItem.ObjectClass )$( $SenderObject.DataContext.Source )$( $SenderObject.DataContext.Name )"
 	$syncHash.Jobs.$JobName = [pscustomobject]@{ P = $p ; H = $p.BeginInvoke() }

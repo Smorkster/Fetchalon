@@ -72,6 +72,7 @@ LogStrPropHandlerRun = Ran handler for
 LogStrSearchItemTitle = AD-object
 LogToolStarted = Started
 StrAccountNeverExpires = < No end date >
+StrAccountStatusOk = Active
 StrCompOperatingSystemVersion = version
 StrComputerOnline = Online-status:
 StrCopyOutputEnteredInput = This was entered as input
