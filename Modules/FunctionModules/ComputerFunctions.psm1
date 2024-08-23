@@ -48,6 +48,158 @@ function Clear-NetIdCache
 	return "$( $IntMsgTable.ClearNetIdCacheFinished )`n$( $Files -join "`n" )"
 }
 
+function Close-CurrentOpenRemoteConnections
+{
+	<#
+	.Synopsis
+		Close remote connections
+	.Description
+		Restart service for remote connections; will close all active remove connections
+	.MenuItem
+		Close remote connections
+	.SubMenu
+		Login
+	.SearchedItemRequest
+		Required
+	.State
+		Prod
+	.OutputType
+		String
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	try
+	{
+		Get-Service -ComputerName $Item.Name -Name CmRcService -ErrorAction Stop | Restart-Service
+	}
+	catch
+	{
+		throw $_
+	}
+
+	return $IntMsgTable.CloseCurrentOpenRemoteConnectionsSuccess
+}
+
+function Clear-DNSCache
+{
+	<#
+	.Synopsis
+		Flushes DNS cache on remote computer
+	.Description
+		Flushes DNS cache on remote computer
+	.MenuItem
+		Remove DNS cache
+	.SubMenu
+		Network
+	.Depends
+		WinRM
+	.SearchedItemRequest
+		Required
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	try
+	{
+		Invoke-Command -ComputerName $Item.Name -Scriptblock { ipconfig /flushdns }
+	}
+	catch
+	{
+		throw $_
+	}
+
+	return $IntMsgTable.ClearDNSCacheDone
+}
+
+function Connect-AsAdmin
+{
+	<#
+	.Synopsis
+		Renote connect as admin
+	.Description
+		Opens remote connection to connect as administrator
+	.MenuItem
+		Remove connect as admin
+	.SubMenu
+		Login
+	.SearchedItemRequest
+		Required
+	.State
+		Prod
+	.OutputType
+		None
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	try
+	{
+		Start-Process -Filepath "C:\Windows\System32\mstsc.exe" -ArgumentList "/v:$( $Item.Name ) /f"
+	}
+	catch
+	{
+		throw $_
+	}
+}
+
+function Send-ForceLogout
+{
+	<#
+	.Synopsis
+		Fore logout for all users
+	.Description
+		Force all currently loged in users to logout from remote computer
+	.MenuItem
+		Force logout
+	.SubMenu
+		Login
+	.SearchedItemRequest
+		Required
+	.State
+		Prod
+	.OutputType
+		List
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	try
+	{
+		$LogedIn = [System.Collections.ArrayList]::new()
+		quser /server:"$( $Item.Name )" |
+			Select-Object -Skip 1 | `
+			ForEach-Object {
+				$_ -split "\s" | `
+					Where-Object { $_ } | `
+					Select-Object -First 1 | `
+					Get-ADUser | `
+					Select-Object -ExpandProperty Name | `
+						ForEach-Object {
+							$LogedIn.Add( $_ ) | Out-Null
+						}
+			}
+		Invoke-CimMethod -ClassName Win32_Operatingsystem -ComputerName $Item.Name -MethodName Win32Shutdown -Arguments @{ Flags = 0 }
+	}
+	catch
+	{
+		throw $_
+	}
+	return $LogedIn
+}
+
 function Get-ComputersSameCostCenter
 {
 	<#
@@ -124,6 +276,8 @@ function Get-LastBootUpTime
 		Get date and time when the computer was last booted
 	.MenuItem
 		Last boot time
+	.SubMenu
+		Information
 	.SearchedItemRequest
 		Allowed
 	.InputData
@@ -246,6 +400,8 @@ function Get-LoggedInUser
 		List who is logged in to a given computer
 	.MenuItem
 		Show currently logged in
+	.SubMenu
+		Login
 	.InputData
 		ComputerName, True, Name of computer
 	.SearchedItemRequest
@@ -338,6 +494,8 @@ function Open-ServiceTagWebpage
 		Get the manufacturer and servicetag for the computer and then opens the webpage for the designated servicetag. Works with Dell and Lenovo
 	.MenuItem
 		Open servicetag webpage
+	.SubMenu
+		Information
 	.NoRunspace
 	.SearchedItemRequest
 		Required
@@ -872,6 +1030,8 @@ function Start-RemoteControl
 		Start remote control
 	.MenuItem
 		Start remote control
+	.SubMenu
+		Network
 	.SearchedItemRequest
 		Required
 	.OutputType

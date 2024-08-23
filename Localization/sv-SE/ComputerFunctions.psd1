@@ -1,5 +1,7 @@
 ﻿ConvertFrom-StringData @'
+ClearDNSCacheDone = Cache har rensats
 ClearNetIdCacheFinished = Tog bort följande filer:
+CloseCurrentOpenRemoteConnectionsSuccess = Remote service omstartad
 GetLastBootUpTimeNoData = Ingen dator hittades
 GetLastBootUpTimeNoDateInfo = Kan ej nås
 GetLastBootUpTimePropDateInfoTitle = Senaste uppstart
