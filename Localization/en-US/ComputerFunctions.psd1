@@ -1,5 +1,7 @@
 ﻿ConvertFrom-StringData @'
+ClearDNSCacheDone = Cache was removed
 ClearNetIdCacheFinished = Removed these files:
+CloseCurrentOpenRemoteConnectionsSuccess = Remote service restarted
 GetLastBootUpTimeNoData = No computer was found
 GetLastBootUpTimeNoDateInfo = Could not be reached
 GetLastBootUpTimePropDateInfoTitle = Last boot
