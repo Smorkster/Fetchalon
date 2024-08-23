@@ -15,7 +15,7 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-# Handler to turn MemberOf-list to more readble strings
+# Handler to turn MemberOf-list to more readable strings
 $PHComputerAdMemberOf = [pscustomobject]@{
 	Code = '
 		$NewPropValue = [System.Collections.ArrayList]::new()
@@ -33,6 +33,7 @@ $PHComputerAdMemberOf = [pscustomobject]@{
 	MandatorySource = "AD"
 }
 
+# Get computers listed at same costcenter
 $PHComputerAdOrgCostNo = [pscustomobject]@{
 	Code = '
 		$NewPropValue = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
@@ -56,12 +57,12 @@ $PHComputerOtherIsOnline = [pscustomobject]@{
 	Code = '
 		try
 		{
-			Get-CimInstance -ClassName win32_operatingsystem -ComputerName $SenderObject.DataContext.Value -ErrorAction Stop
-			$NewPropValue = "Online"
+			Get-CimInstance -ClassName win32_operatingsystem -ComputerName $SearchedItem.Name -ErrorAction Stop -OperationTimeoutSec 3 -Shallow -KeyOnly | Out-Null
+			$NewPropValue = $PropLocalization.PLComputerOtherIsOnlineStrOnline
 		}
 		catch
 		{
-			$NewPropValue = "Offline"
+			$NewPropValue = $PropLocalization.PLComputerOtherIsOnlineStrOffline
 		}
 	'
 	Title = $IntMsgTable.HTComputerOtherCheckOnline
