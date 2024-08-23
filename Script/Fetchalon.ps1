@@ -13,6 +13,14 @@
 $OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 $InitArgs = $args
 $culture = "sv-SE"
+if ( $args[0] -ne $null )
+{
+	try
+	{
+		$culture = [System.Globalization.CultureInfo]::GetCultureInfo( $args[0] ).Name
+	}
+	catch {}
+}
 $BaseDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName UIAutomationClient
@@ -242,10 +250,12 @@ function Connect-O365
 	{
 		$AzureAdAccount = Connect-AzureAD -ErrorAction Stop -WarningAction SilentlyContinue -InformationAction SilentlyContinue
 	} catch {}
+
 	try
 	{
 		Connect-ExchangeOnline -UserPrincipalName $AzureAdAccount.Account.Id -ErrorAction Stop -WarningAction SilentlyContinue
 	} catch {}
+
 	Import-Module -Name ActiveDirectory -Force -ErrorAction SilentlyContinue
 	Check-O365Connection | Out-Null
 	Check-O365Roles
@@ -1712,7 +1722,7 @@ Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximu
 
 	$p.AddScript( $PHCode )
 	$p.AddArgument( $syncHash )
-	$p.AddArgument( ( $SenderObject | Select-Object * ) )
+	$p.AddArgument( ( $SenderObject.Parent | Select-Object * ) )
 	$p.AddArgument( ( Get-Module ) )
 	$p.AddArgument( ( $syncHash.Data.SearchedItem | Select-Object * ) )
 	$p.AddArgument( $PropLocalization )
@@ -2724,6 +2734,7 @@ if ( $null -eq $InitArgs[1] )
 		Connect-O365
 		Set-SplashTopMost -TopMost
 	}
+
 	try
 	{
 		Update-SplashText -Text "$( $msgTable.StrSplashCheckO365Roles )`n$( ( Get-AzureADCurrentSessionInfo -ErrorAction Stop ).Account.Id )"
