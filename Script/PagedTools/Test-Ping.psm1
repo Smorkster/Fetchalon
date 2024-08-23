@@ -140,6 +140,7 @@ $syncHash.Controls.Window.Add_IsVisibleChanged( {
 		{
 			$syncHash.Controls.TbTarget.Text = $syncHash.Controls.Window.Resources.SearchedItem.Name
 		}
+		$syncHash.Controls.TbTarget.Focus()
 	}
 } )
 
@@ -149,4 +150,5 @@ $syncHash.Controls.Window.Add_Loaded( {
 	{
 		$syncHash.Controls.TbTarget.Text = $syncHash.Controls.Window.Resources.SearchedItem.Name
 	}
+	$syncHash.Controls.TbTarget.Focus()
 } )
