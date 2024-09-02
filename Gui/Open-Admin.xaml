@@ -7,6 +7,10 @@
       Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Page.Resources>
         <Brush x:Key="DefaultFontColor">#FF444444</Brush>
+
+        <Geometry x:Key="FileIcon">M6,2A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6M6,4H13V9H18V20H6V4M8,12V14H16V12H8M8,16V18H13V16H8Z</Geometry>
+        <Geometry x:Key="FolderIcon">M10,4H4C2.89,4 2,4.89 2,6V18A2,2 0 0,0 4,20H20A2,2 0 0,0 22,18V8C22,6.89 21.1,6 20,6H12L10,4Z</Geometry>
+
         <CollectionViewSource x:Key="CvsCbLogsScriptNames">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
@@ -619,31 +623,31 @@
                                                 <Setter Property="ContentTemplate">
                                                     <Setter.Value>
                                                         <DataTemplate>
-                                                            <Grid>
-                                                                <TextBlock>
-                                                                    <TextBlock.Style>
-                                                                        <Style TargetType="TextBlock"
-                                                                               BasedOn="{StaticResource TblBaseStyle}">
-                                                                            <Setter Property="Margin"
-                                                                                    Value="0" />
-                                                                            <Setter Property="Text"
-                                                                                    Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.DevLine}" />
-                                                                        </Style>
-                                                                    </TextBlock.Style>
-                                                                </TextBlock>
-                                                            </Grid>
+                                                            <Path>
+                                                                <Path.Style>
+                                                                    <Style TargetType="Path">
+                                                                        <Setter Property="Data"
+                                                                                Value="{StaticResource FileIcon}" />
+                                                                    </Style>
+                                                                </Path.Style>
+                                                            </Path>
                                                         </DataTemplate>
                                                     </Setter.Value>
                                                 </Setter>
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.DevLine}"
-                                                                 Value="{x:Static sys:String.Empty}">
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.Mode}"
+                                                                 Value="d-----">
                                                         <Setter Property="ContentTemplate">
                                                             <Setter.Value>
                                                                 <DataTemplate>
-                                                                    <Grid>
-                                                                        <TextBlock Style="{DynamicResource DiffDevLine}" />
-                                                                    </Grid>
+                                                                    <Path>
+                                                                        <Path.Style>
+                                                                            <Style TargetType="Path">
+                                                                                <Setter Property="Data"
+                                                                                        Value="{StaticResource FolderIcon}" />
+                                                                            </Style>
+                                                                        </Path.Style>
+                                                                    </Path>
                                                                 </DataTemplate>
                                                             </Setter.Value>
                                                         </Setter>
@@ -3331,6 +3335,20 @@
                                                 ElementStyle="{StaticResource ColumnElementStyleCenter}" />
                         </DataGrid.Columns>
                     </DataGrid>
+                </Grid>
+            </TabItem>
+            <TabItem Name="TiKbSummary">
+                <TabItem.Style>
+                    <Style TargetType="TabItem"
+                           BasedOn="{StaticResource TabItemBaseStyle}">
+                        <Setter Property="Header"
+                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiKbSummary}" />
+                    </Style>
+                </TabItem.Style>
+                <Grid>
+                    <Button Name="BtnCreateKdSummary"
+                            Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCreateKdSummary}"
+                            Style="{StaticResource BtnBaseStyle}" />
                 </Grid>
             </TabItem>
         </TabControl>

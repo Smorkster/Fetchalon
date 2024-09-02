@@ -1032,6 +1032,107 @@ $syncHash.Controls.BtnClearLogSearch.Add_Click( {
 	$syncHash.Data.ParsedLogs | ForEach-Object { $syncHash.Controls.Window.Resources['CvsLogsScriptNames'].Source.Add( $_ ) }
 } )
 
+# Creates a summary for all functions and tools, and outputs into HTML-code
+$syncHash.Controls.BtnCreateKdSummary.Add_Click( {
+	function ConvertTo-KbSummaryLine
+	{
+		<#
+		.Synopsis
+			Create a summary string from a menuitem object
+		#>
+
+		param ( $Mi )
+
+		$Styling = ""
+		$StylingPost = ""
+		$SummaryString = ""
+
+		if ( $Mi.Separate )
+		{
+			$Styling = "<strong>"
+			$StylingPost = "</strong>"
+		}
+		elseif ( $null -ne $Mi.PS )
+		{
+			$Styling = "<em>"
+			$StylingPost = "</em>"
+		}
+		$SummaryString = "<p>$( $Styling )$( $Mi.MenuItem ) - $( $Mi.Description )$( $StylingPost )</p>"
+
+		if ( $Mi.SearchedItemRequest -eq "Required" )
+		{
+			$SummaryString = "$( $SummaryString.TrimEnd( "</p>") ) <strong>$( $syncHash.Data.msgTable.StrKbSummaryNeedsSI )</strong></p>"
+		}
+		elseif ( $_.SearchedItemRequest -eq "Accepted" )
+		{
+			$SummaryString = "$( $SummaryString.TrimEnd( "</p>") )  $( $syncHash.Data.msgTable.StrKbSummaryAcceptsSI )</p>"
+		}
+		$StringBuilder.AppendLine( $SummaryString ) | Out-Null
+	}
+
+	$StringBuilder = [System.Text.StringBuilder]::new()
+	$StringBuilder.AppendLine( $syncHash.Data.msgTable.StrKbSummaryPreamble ) | Out-Null
+	$ForBo = [System.Collections.ArrayList]::new()
+
+	$syncHash.Controls.Window.Resources.MenuItemsHash.GetEnumerator() | `
+		Sort-Object -Property Name | `
+		ForEach-Object {
+			$SortOrder, $ObjectType, $TopName = $_.Name -split "_"
+			$StringBuilder.AppendLine( "<h2>$( $TopName )</h2>" ) | Out-Null
+
+			$_.Value | `
+				Where-Object { $_.State -eq "Prod" } | `
+				Sort-Object -Property MenuItem | `
+				ForEach-Object {
+					if ( $_.RequiredAdGroups -match $syncHash.Data.msgTable.CodeRegKbSummaryReqAdGrps )
+					{
+						$ForBo.Add( $_ ) | Out-Null
+					}
+					elseif ( $SortOrder -eq 8 )
+					{
+						$StringBuilder.AppendLine( "<p><span style=""text-decoration: underline;"">$( $_.MenuItem ) - $( $_.Description )</span></p>" ) | Out-Null
+					}
+					else
+					{
+						ConvertTo-KbSummaryLine -Mi $_
+					}
+				}
+
+				$syncHash.Controls.Window.Resources.SubMenus.GetEnumerator() | `
+					Where-Object { $_.Name -match $ObjectType } | `
+					Sort-Object -Property MenuItem | `
+					ForEach-Object {
+						$StringBuilder.AppendLine( "<p>&nbsp;</p><h3>$( $_.Name -replace ".*Sub" , "$( $syncHash.Data.msgTable.StrKbSummarySubCategoryTitlePrefix ) ")</h3>" ) | Out-Null
+						$_.Value.Source | `
+							ForEach-Object {
+								if ( $_.RequiredAdGroups -match $syncHash.Data.msgTable.CodeRegKbSummaryReqAdGrps )
+								{
+									$ForBo.Add( $_ ) | Out-Null
+								}
+								else
+								{
+									ConvertTo-KbSummaryLine -Mi $_
+								}
+							}
+						}
+
+				$StringBuilder.AppendLine( "<p>&nbsp;</p>" ) | Out-Null
+			}
+
+	$ForBo | `
+		Sort-Object -Property MenuItem | `
+		ForEach-Object `
+			-Begin {
+				$StringBuilder.AppendLine( "<h2>$( $syncHash.Data.msgTable.StrKbSummaryAvailableForBoTitle )</h2>" ) | Out-Null
+			} `
+			-Process {
+				ConvertTo-KbSummaryLine -Mi $_
+			}
+
+	$StringBuilder.ToString() | clip
+	Show-Splash -Text $syncHash.Data.msgTable.StrKbSummaryCopied -NoProgressBar -NoTitle
+} )
+
 # Close the window
 $syncHash.Controls.BtnDiffCancel.Add_Click( {
 	$syncHash.Controls.DiffWindow.Visibility = [System.Windows.Visibility]::Hidden
