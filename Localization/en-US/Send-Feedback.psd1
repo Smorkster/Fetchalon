@@ -1,11 +1,16 @@
 ﻿ConvertFrom-StringData @'
 ContentBtnAbortReport = Abort
 ContentBtnSendReport = Send
+ContentLblAuthorTitle = Author
+ContentLblDescTitle = Description
 ContentTblScriptTitle = Select a function or script from the list, write comment and then click "Send"
 StrBackOfficeMailAddress = backoffice@test.com
-StrCodeTitle = Function / tool
+StrCodeTypeFunctionTitle = Function
+StrCodeTypeToolTitle = Tool
+StrFilePathTitle = Filepath
 StrLogAuthorInformed = Developer is informed
 StrMessageTitle = Message
+StrNoItemSelected = Ingen funktion eller verktyg valt i trädvyn
 StrNotSentToAuthor = Mail not sent to author
 StrSentToAuthor = Mail sent to
 StrSMTP = smtprelay.test.com
