@@ -1,10 +1,12 @@
 ﻿ConvertFrom-StringData @'
+CodeRegKbSummaryReqAdGrps = (Rol_SD_Backoffice)|(Rol_SD_OpRes)
 ContentBtnCheckForUpdates = Sök efter uppdateringar
 ContentBtnClearErrorLogSearch = Avbryt sök
 ContentBtnClearLogSearch = Avbryt sök
 ContentBtnCopyErrorInfo = Kopiera information
 ContentBtnCopyLogInfo = Kopiera
 ContentBtnCopyRollbackInfo = Kopiera lista
+ContentBtnCreateKdSummary = Skapa sammanfattning till KB
 ContentBtnDiffCancel = Avbryt
 ContentBtnDoRollback = Rulla tillbaka filversion
 ContentBtnErrorLogSearch = Sök
@@ -107,6 +109,7 @@ ContentTblTestTitle = filer i testfas
 ContentTblUpdatedInProd = Dessa har uppdaterats i produktion, men inte i dev.
 ContentTiErrorLogs = Felloggar
 ContentTiFailedUpdates = Misslyckade uppdateringar
+ContentTiKbSummary = KB-sammanfattning
 ContentTiLogs = Loggar
 ContentTiRollback = Rollbackmachine
 ContentTiUpdated = Uppdaterade
@@ -124,6 +127,12 @@ StrDiffRowRemoved = < Rad borttagen >
 StrErrorlogsNotLoaded = Felloggar har inte lästs in
 StrFailedTestCount = Antal test som felade
 StrFunctionState = Tillhörande funktion i
+StrKbSummaryAcceptsSI = (Accepterar sökt objekt)
+StrKbSummaryAvailableForBoTitle = Tillgängliga för BO
+StrKbSummaryCopied = Sammanfattning har kopierats till clipboard
+StrKbSummaryNeedsSI = (Kräver sökt objekt)
+StrKbSummaryPreamble = <h3>Listförklaring</h3><p>I listan visas namnet (detta är den text som visas i menyerna), samt en förklaring för vad funktionen/verktyget gör.</p><p>&nbsp;</p><h3>Förklaring olika textstilar</h3><p><em>Kursiv - Detta är ett verktyg där all GUI visas i huvudfönstret</em></p><p><strong>Fet - Detta är ett verktyg som öppnas i ett eget, separat fönster</strong></p><p><span style="text-decoration: underline;">Understruken - Detta öpnnar en länk i Chrome, eller öppnar/startar annan applikation, de flesta ger ingen output</span></p><p>&nbsp;</p><h3>Input för funktioner</h3><p>Hur input ska anges för funktioner ska informeras när funktionen initieras, antingen som ett värde, eller som flera. Detta står ovanför textrutan för input-värdet.</p><p>Ifall värdet är nödvändigt för funktionen, kommer det visas en röd stjärna. Det görs ingen kontroll av värdet, så som stavning eller att t.ex. en dator har det namnet, innan funktionen körs. Detta tas om hand av funktionen.</p><p>&nbsp;</p><h4>Kräver sökt objekt</h4><ul style="list-style-position: inside;"><li>Funktionen är markerad med grönt framför texten på menyraden</li><li><strong>Kräver</strong> att objekt har sökts och laddats in, annars kommer menyraden inte visas</li><li>Funktionen kräver enbart objektet som input och kommer starta på en gång</li></ul><h4>Accepterar sökt objekt</h4><ul style="list-style-position: inside;"><li>Funktionen är markerad med gult framför texten på menyraden</li><li>Funktionen kan arbetat med sökt objekt och tar dess namn som input</li><li>Sökt objekts namn kommer läggas in i första textrutan</li></ul><p>&nbsp;</p>
+StrKbSummarySubCategoryTitlePrefix = Undermeny
 StrLogInfoCopyComputerName = Datornamn
 StrLogInfoCopyDate = Datum
 StrLogInfoCopyError = Fel

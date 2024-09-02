@@ -1,10 +1,12 @@
 ﻿ConvertFrom-StringData @'
+CodeRegKbSummaryReqAdGrps = (Rol_SD_Backoffice)|(Rol_SD_OpRes)
 ContentBtnCheckForUpdates = Search for updates
 ContentBtnClearErrorLogSearch = Abort search
 ContentBtnClearLogSearch = Abort search
 ContentBtnCopyErrorInfo = Copy info
 ContentBtnCopyLogInfo = Copy
 ContentBtnCopyRollbackInfo = Copy list
+ContentBtnCreateKdSummary = Skapa sammanfattning till KB
 ContentBtnDiffCancel = Abort
 ContentBtnDoRollback = Roleback fileversion
 ContentBtnErrorLogSearch = Search
@@ -107,6 +109,7 @@ ContentTblTestTitle = files in test
 ContentTblUpdatedInProd = These was updated in production, but not in dev.
 ContentTiErrorLogs = Errorlogs
 ContentTiFailedUpdates = Failed updates
+ContentTiKbSummary = KB-sammanfattning
 ContentTiLogs = Logs
 ContentTiRollback = Rollbackmachine
 ContentTiUpdated = Updated
@@ -124,6 +127,12 @@ StrDiffRowRemoved = < Row removed >
 StrErrorlogsNotLoaded = Errorlogs has not been parsed yet
 StrFailedTestCount = Number of failed tests
 StrFunctionState = Associated function in
+StrKbSummaryAcceptsSI = (Accepts searched item)
+StrKbSummaryAvailableForBoTitle = Available for BO
+StrKbSummaryCopied = Summary copied to clipboard
+StrKbSummaryNeedsSI = (Requires searched item)
+StrKbSummaryPreamble = <h3>List explanation</h3><p>The list shows the name (this is the text that appears in the menus), as well as an description of what the function/tool does.</p><p>&nbsp;</p><h3>Explanation different text styles</h3><p><em>Italics - This is a tool where all the GUI is displayed in the main window</em></p><p><strong>Bold - This is a tool that opens in its own, separate window</strong></p><p><span style="text-decoration: underline;">Underlined - This opens a link in Chrome, or opens/starts another application, most give no output</span></p><p>&nbsp;</p><h3>Input for functions</h3><p>How input should be specified for functions should be informed when the function is initialized, either as one value, or as several. This is explained above the textbox for the input value.</p><p>If the value is mandatory for the function, a red star will be displayed. There is no check of the value, such as spelling or that e.g. a computer has that name, before the function runs. This is taken care of by the function.</p><p>&nbsp;</p><h4>Requires searched item</h4><ul style="list-style-position: inside;"><li>The function is marked in green in front of the text in the menu</li><li><strong>Requires</strong> that searched ites have been searched and loaded, otherwise the menuitem will not be displayed</li><li>The function only requires the object as input and will start immediately</li></ul><h4>Accepts searched item</h4><ul style="list-style-position: inside;"><li>The function is marked in yellow in front of the text in the menu</li><li>The function can work with searched object and takes its name as input</li><li>Searched object's name will be entered in the first text box</li></ul><p>&nbsp;</p>
+StrKbSummarySubCategoryTitlePrefix = Submenu
 StrLogInfoCopyComputerName = Computername
 StrLogInfoCopyDate = Date
 StrLogInfoCopyError = Error
