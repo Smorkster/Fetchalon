@@ -1891,13 +1891,22 @@ $(
 							if ( $null -eq $syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source )
 							{
 								# Insert a reference to all functions and tools
-								$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+								$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsHierarchicalFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+
 								$syncHash.Window.Resources.GetEnumerator() | `
-									Where-Object { $_.Name -match "CvsMi.*((Functions)|(Tools)|(About))" } | `
-									ForEach-Object { $_.Value.Source } | `
-									Where-Object { $_.Name -notmatch "Temp" -and $_.IsSubMenuHeader -ne 1 } | `
-									Select-Object -Property @{ Name = "Name" ; Expression = { $_.Name.Trim() } }, @{ Name = "Author" ; Expression = { $_.Author.Trim() } }, @{ Name = "Description" ; Expression = { $_.Description.Trim() } } | `
-									ForEach-Object { $_; $syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source.Add( $_ ) }
+									Where-Object { $_.Name -match "^CvsMi(?!(O365)|(Output))" } | `
+									Sort-Object -Property Name | `
+									ForEach-Object {
+										try
+										{
+											$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsHierarchicalFunctions'].Source.Add( ( [pscustomobject]@{
+												MenuItem = $syncHash."$( $_.Name -replace "^Cvs" )".Header.Children[1].Text
+												MenuItems = $_.Value.Source
+												MenuType = $_.Name -replace "^CvsMi"
+											} ) )
+										}
+										catch {}
+									}
 							}
 						}
 						elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
@@ -1908,6 +1917,47 @@ $(
 								ForEach-Object {
 									$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsQuickAccessWordList'].Source.Add( $_ ) | Out-Null
 								}
+						}
+						elseif ( $SenderObject.DataContext.Name -eq "Open-Admin" )
+						{
+							$MenuItemsHash = $syncHash.Window.Resources.GetEnumerator() | `
+								Where-Object { $_.Name -match "^CvsMi((?!(O365)|(Sub)).)*$" } | `
+								ForEach-Object {
+									$ResourceName = $_.Name
+									$N = $_.Name -replace "CvsMi" -replace "Functions"
+									$_.Value.Source | `
+										Where-Object { -not $_.IsSubMenuHeader } | `
+										ForEach-Object {
+											$SO = 0
+											switch -Regex ( $N )
+											{
+												"User" { $SO = 0 }
+												"DirectoryInfo" { $SO = 1 }
+												"FileInfo" { $SO = 2 }
+												"Computer" { $SO = 3 }
+												"Group" { $SO = 4 }
+												"PrintQueue" { $SO = 5 }
+												"Other" { $SO = 6 }
+												"Tools" { $SO = 7 }
+												"SeparateTools" { $SO = 8 }
+												"About" { $SO = 9 }
+											}
+											[pscustomobject]@{
+												N = "$( $SO )_$( $N )_$( $syncHash."$( $ResourceName -replace "^Cvs" )".Header.Children[1].Text )"
+												MenuItem = $_.MenuItem
+												Description = $_.Description
+												SearchedItemRequest = $_.SearchedItemRequest
+												Separate = $_.Separate
+												State = $_.State
+												RequiredAdGroups = $_.RequiredAdGroups
+											}
+										}
+								} | Group-Object -AsHashTable -Property N
+
+							$SubMenus = $syncHash.Window.Resources.GetEnumerator() | `
+								Where-Object { $_.Name -match "^CvsMi.*FunctionsSub.*$" }
+							$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['MenuItemsHash'] = $MenuItemsHash
+							$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['SubMenus'] = $SubMenus
 						}
 					}
 					catch
