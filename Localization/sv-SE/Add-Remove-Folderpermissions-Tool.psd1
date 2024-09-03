@@ -67,6 +67,7 @@ StrNoPermTitle = Behörighetsproblem
 StrOpErrLogFile = \\Errorlogs\\
 StrOpGroup = Rol_Drift
 StrOpLogPath = \\\\domain.test.com\\FolderTool
+StrOrgExcludeLDAP = Org7
 StrPermRead = Läsbehörighet
 StrPermReadWrite = Skriv-/läsbehörighet
 StrPermRemove = Ta bort behörighet
