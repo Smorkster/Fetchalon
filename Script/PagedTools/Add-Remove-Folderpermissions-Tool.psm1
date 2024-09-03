@@ -49,14 +49,14 @@ function CheckUser
 	$Id = $Id.Trim()
 	if ( dsquery User -samid $Id ) { return "User" }
 	elseif ( dsquery Group -samid $Id ) { return "Group" }
-	elseif ( $EKG = Get-ADGroup -LDAPFilter "($( $syncHash.Data.msgTable.StrEGroupIdName )=$( $syncHash.Data.msgTable.StrEGroupOrg )-$Id)" )
+	elseif ( $EKG = Get-ADGroup -LDAPFilter "(&($( $syncHash.Data.msgTable.StrEGroupIdName )=$( $syncHash.Data.msgTable.StrEGroupOrg )-$Id)(!(Name=$( $syncHash.Data.msgTable.StrOrgExcludeLDAP )*)))" )
 	{
 		if ( $EKG.Count -gt 1 ) { return "EGroups" }
 		else { return "EGroup" }
 	}
 	else
 	{
-		$syncHash.Data.ErrorLogHashes += WriteErrorLogTest -LogText ( "{0} {1}" -f $syncHash.Data.msgTable.ErrNotFoundUser, $Id ) -UserInput $Id -Severity "UserInputFail"
+		$syncHash.Data.ErrorLogHashes += WriteErrorlog -LogText ( "{0} {1}" -f $syncHash.Data.msgTable.ErrNotFoundUser, $Id ) -UserInput $Id -Severity "UserInputFail"
 		return "NotFound"
 	}
 }
@@ -119,7 +119,7 @@ function CollectADGroupsG
 			}
 			catch
 			{
-				$syncHash.Data.ErrorLogHashes += WriteErrorLogTest -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForGWrite -UserInput $entry -Severity "UserInputFail"
+				$syncHash.Data.ErrorLogHashes += WriteErrorlog -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForGWrite -UserInput $entry -Severity "UserInputFail"
 				$WriteGroup = $null
 			}
 		}
@@ -136,7 +136,7 @@ function CollectADGroupsG
 			}
 			catch
 			{
-				$syncHash.Data.ErrorLogHashes += WriteErrorLogTest -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForGRead -UserInput $entry -Severity "UserInputFail"
+				$syncHash.Data.ErrorLogHashes += WriteErrorlog -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForGRead -UserInput $entry -Severity "UserInputFail"
 				$ReadGroup = $null
 			}
 		}
@@ -196,7 +196,7 @@ function CollectADGroupsR
 					}
 					catch
 					{
-						$syncHash.Data.ErrorLogHashes += WriteErrorLogTest -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForRWrite -UserInput $entry -Severity "UserInputFail"
+						$syncHash.Data.ErrorLogHashes += WriteErrorlog -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForRWrite -UserInput $entry -Severity "UserInputFail"
 						$WriteGroup = $null
 					}
 				}
@@ -227,7 +227,7 @@ function CollectADGroupsR
 					}
 					catch
 					{
-						$syncHash.Data.ErrorLogHashes += WriteErrorLogTest -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForRRead -UserInput $entry -Severity "UserInputFail"
+						$syncHash.Data.ErrorLogHashes += WriteErrorlog -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForRRead -UserInput $entry -Severity "UserInputFail"
 						$ReadGroup = $null
 					}
 				}
@@ -278,7 +278,7 @@ function CollectADGroupsS
 			}
 			catch
 			{
-				$syncHash.Data.ErrorLogHashes += WriteErrorLogTest -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForSWrite -UserInput $entry -Severity "UserInputFail"
+				$syncHash.Data.ErrorLogHashes += WriteErrorlog -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForSWrite -UserInput $entry -Severity "UserInputFail"
 				$WriteGroup = $null
 			}
 		}
@@ -295,7 +295,7 @@ function CollectADGroupsS
 			}
 			catch
 			{
-				$syncHash.Data.ErrorLogHashes += WriteErrorLogTest -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForSRead -UserInput $entry -Severity "UserInputFail"
+				$syncHash.Data.ErrorLogHashes += WriteErrorlog -LogText $syncHash.Data.msgTable.ErrNotFoundGrpForSRead -UserInput $entry -Severity "UserInputFail"
 				$ReadGroup = $null
 			}
 		}
@@ -315,15 +315,15 @@ function CollectEntries
 		Collect input from textboxes
 	#>
 
-	if ( ( $entries = $syncHash.Controls.TxtUsersForWritePermission.Text -split { " ",",",";","`n","." -contains $_ } -replace "`n" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
+	if ( ( $entries = $syncHash.Controls.TxtUsersForWritePermission.Text -split "\W" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
 	{
 		CollectUsers -Entries $entries -PermissionType "Write"
 	}
-	if ( ( $entries = $syncHash.Controls.TxtUsersForReadPermission.Text -split { " ",",",";","`n","." -contains $_ } -replace "`n" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
+	if ( ( $entries = $syncHash.Controls.TxtUsersForReadPermission.Text -split "\W" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
 	{
 		CollectUsers -Entries $entries -PermissionType "Read"
 	}
-	if ( ( $entries = $syncHash.Controls.TxtUsersForRemovePermission.Text -split { " ",",",";","`n","." -contains $_ } -replace "`n" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
+	if ( ( $entries = $syncHash.Controls.TxtUsersForRemovePermission.Text -split "\W" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
 	{
 		CollectUsers -Entries $entries -PermissionType "Remove"
 	}
@@ -357,9 +357,9 @@ function CollectUsers
 		{ $syncHash.Data.RemoveUsers = @() }
 	}
 
-	foreach ( $entry in $entries )
+	foreach ( $entry in $Entries )
 	{
-		SetWinTitle -Text "$( $syncHash.Data.msgTable.StrStartPrep ) '$PermissionType'" -Progress $loopCounter -Max $entries.Count
+		SetWinTitle -Text "$( $syncHash.Data.msgTable.StrStartPrep ) '$PermissionType'" -Progress $loopCounter -Max $Entries.Count
 		$UserType = CheckUser -Id $entry
 		if ( $UserType -eq "NotFound" )
 		{
@@ -373,7 +373,7 @@ function CollectUsers
 			{
 				"User" { $ADObj = Get-ADUser -Identity $entry }
 				"Group" { $ADObj = Get-ADGroup -Identity $entry -Properties $syncHash.Data.msgTable.StrEGroupIdName, $syncHash.Data.msgTable.StrEGroupDn }
-				{ $_ -match "^EGroup" } { $ADObj = Get-ADGroup -LDAPFilter "($( $syncHash.Data.msgTable.StrEGroupIdName )=$( $syncHash.Data.msgTable.StrEGroupOrg )-$entry)" -Properties $syncHash.Data.msgTable.StrEGroupIdName, $syncHash.Data.msgTable.StrEGroupDn }
+				{ $_ -match "^EGroup" } { $ADObj = Get-ADGroup -LDAPFilter "(&($( $syncHash.Data.msgTable.StrEGroupIdName )=$( $syncHash.Data.msgTable.StrEGroupOrg )-$entry)(!(Name=$( $syncHash.Data.msgTable.StrOrgExcludeLDAP )*)))" -Properties $syncHash.Data.msgTable.StrEGroupIdName, $syncHash.Data.msgTable.StrEGroupDn }
 			}
 			foreach ( $u in $ADObj )
 			{
@@ -439,7 +439,7 @@ function CreateMessage
 		$syncHash.Data.ErrorGroups | ForEach-Object { $Message += "`t$_" }
 	}
 
-	$Message += "`n$( $Script:Signatur )"
+	$Message += "`n$( $syncHash.Data.Signatur )"
 	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 	$Message | clip
 }
@@ -523,7 +523,7 @@ function PerformPermissions
 	CollectEntries
 	CollectADGroups
 
-	if ( $syncHash.Data.Duplicates )
+	if ( $syncHash.Data.Duplicates.Count -gt 0 )
 	{
 		Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrConfirmDups )`n$( $syncHash.Data.Duplicates | Select-Object -Unique )" -Title $syncHash.Data.msgTable.StrConfirmDupsTitle -Icon "Stop"
 	}
@@ -544,7 +544,7 @@ function PerformPermissions
 						{
 							Add-ADGroupMember -Identity $Group.Write -Members $syncHash.Data.WriteUsers.AD.DistinguishedName -Confirm:$false
 						}
-						catch { $syncHash.Data.ErrorLogHashes += WriteErrorLogTest -LogText $_ -UserInput ( "{0}; {1}" -f $Group.Write, $syncHash.Data.WriteUsers.AD.DistinguishedName ) -Severity "OtherFail" }
+						catch { $syncHash.Data.ErrorLogHashes += WriteErrorlog -LogText $_ -UserInput ( "{0}; {1}" -f $Group.Write, $syncHash.Data.WriteUsers.AD.DistinguishedName ) -Severity "OtherFail" }
 					}
 				}
 
@@ -554,7 +554,7 @@ function PerformPermissions
 					{
 						try { Add-ADGroupMember -Identity $Group.Read -Members $syncHash.Data.ReadUsers.AD.DistinguishedName -Confirm:$false 
 						}
-						catch { $syncHash.Data.ErrorLogHashes += WriteErrorLogTest -LogText $_ -UserInput ( "{0}; {1}" -f $Group.Read, $syncHash.Data.ReadUsers.AD.DistinguishedName ) -Severity "OtherFail" }
+						catch { $syncHash.Data.ErrorLogHashes += WriteErrorlog -LogText $_ -UserInput ( "{0}; {1}" -f $Group.Read, $syncHash.Data.ReadUsers.AD.DistinguishedName ) -Severity "OtherFail" }
 					}
 				}
 
@@ -567,7 +567,7 @@ function PerformPermissions
 							Remove-ADGroupMember -Identity $Group.Write -Members $syncHash.Data.RemoveUsers.AD.DistinguishedName -Confirm:$false
 							Remove-ADGroupMember -Identity $Group.Read -Members $syncHash.Data.RemoveUsers.AD.DistinguishedName -Confirm:$false
 						}
-						catch { $syncHash.Data.ErrorLogHashes += WriteErrorLogTest -LogText $_ -UserInput ( "'{0}', '{1}'; {2}" -f $Group.Write, $Group.Read, $syncHash.Data.ReadUsers.AD.DistinguishedName ) -Severity "OtherFail" }
+						catch { $syncHash.Data.ErrorLogHashes += WriteErrorlog -LogText $_ -UserInput ( "'{0}', '{1}'; {2}" -f $Group.Write, $Group.Read, $syncHash.Data.ReadUsers.AD.DistinguishedName ) -Severity "OtherFail" }
 					}
 				}
 				$loopCounter++
@@ -640,7 +640,7 @@ function SetUserSettings
 			$syncHash.ErrorLogFilePath = "$( $syncHash.Data.msgTable.StrOpLogPath )$( $syncHash.Data.msgTable.StrOpErrLogFile )$( ( [Environment]::UserName ) ).log"
 
 			$syncHash.HandledFolders = $syncHash.Data.KatalogHandledFolders
-			$syncHash.Signatur += "`n`n$( $syncHash.Data.msgTable.StrSignOp )"
+			$syncHash.Data.Signatur += "`n`n$( $syncHash.Data.msgTable.StrSignOp )"
 		}
 		elseif ( $a.SamAccountName -match $syncHash.Data.msgTable.StrSDGroup )
 		{
@@ -648,7 +648,7 @@ function SetUserSettings
 			$syncHash.LogFilePath = ( ( Get-Item $PSScriptRoot ).Parent.FullName) + "\Log\" + $( [datetime]::Now.Year ) + "\" + [datetime]::Now.Month + "\" + ( Get-Item $PSCommandPath ).BaseName + "\"
 
 			$syncHash.HandledFolders = $syncHash.Data.ServicedeskHandledFolders
-			$syncHash.Signatur += "`n`n$( $syncHash.Data.msgTable.StrSignSD )"
+			$syncHash.Data.Signatur += "`n`n$( $syncHash.Data.msgTable.StrSignSD )"
 		}
 		else
 		{ throw }
@@ -656,7 +656,7 @@ function SetUserSettings
 	catch
 	{
 		Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrNoPerm )`n$( $_.Exception.Message )" -Title $syncHash.Data.msgTable.StrNoPermTitle -Icon "Stop"
-		WriteErrorLogTest -LogText "SetUserSettings:`n$_" -UserInput ( [Environment]::UserName ) -Severity -1 | Out-Null
+		WriteErrorlog -LogText "SetUserSettings:`n$_" -UserInput ( [Environment]::UserName ) -Severity -1 | Out-Null
 	}
 }
 
@@ -707,7 +707,16 @@ function UpdateDiskList
 		Fill combobox list with disk-folders
 	#>
 
-	"G:\", "S:\", "R:\" | Get-ChildItem2 -Directory | Where-Object { $_.FullName -in $syncHash.HandledFolders } | Select-Object -ExpandProperty FullName | ForEach-Object { [void] $syncHash.DC.CbDisk[0].Add( $_ ) }
+	if ( $syncHash.DC.CbDisk[0].Count -eq 0 )
+	{
+		"G:\", "S:\", "R:\" | `
+			Get-ChildItem2 -Directory | `
+			Where-Object { $_.FullName -in $syncHash.HandledFolders } | `
+			Select-Object -ExpandProperty FullName | `
+			ForEach-Object {
+				$syncHash.DC.CbDisk[0].Add( $_ ) | Out-Null
+			}
+	}
 	SetWinTitle -Text $syncHash.Data.msgTable.StrTitle
 }
 
