@@ -23,14 +23,14 @@ $syncHash = $args[0]
 
 ################# Script start
 
-#
+# Get config data
 $syncHash.Controls.BtnGet.Add_Click( {
-$syncHash.Controls.Window.Resources['CvsIpAddresses'].Source = [System.Collections.ObjectModel.ObservableCollection[pscustomobject]]::new()
-$syncHash.Controls.Window.Resources['CvsIpConfigs'].Source = [System.Collections.ObjectModel.ObservableCollection[pscustomobject]]::new()
+	$syncHash.Controls.Window.Resources['CvsIpAddresses'].Source = [System.Collections.ObjectModel.ObservableCollection[pscustomobject]]::new()
+	$syncHash.Controls.Window.Resources['CvsIpConfigs'].Source = [System.Collections.ObjectModel.ObservableCollection[pscustomobject]]::new()
 	$syncHash.Controls.Window.Resources.CvsIpConfigs.View.Refresh()
 	$syncHash.Controls.Window.Resources.CvsIpAddresses.View.Refresh()
 
-	$syncHash.Data.Cs = New-CimSession -ComputerName $syncHash.Controls.TbComputer.Text
+	$syncHash.Data.CimSession = New-CimSession -ComputerName $syncHash.Controls.TbComputer.Text
 
 	Get-NetIPConfiguration -All -Detailed -CimSession $syncHash.Window.Resources.LoadedPageGetNetworkConfig.Data.Cs -WarningAction SilentlyContinue | `
 		Select-Object -ExcludeProperty *CimClass*, *CimInstanceProperties*, *CimSystemProperties*, *PSComputerName*, *PSShowComputerName* -Property * | `
@@ -53,7 +53,7 @@ $syncHash.Controls.Window.Resources['CvsIpConfigs'].Source = [System.Collections
 		}
 	$syncHash.Controls.Window.Resources.CvsIpConfigs.View.Refresh()
 
-	Get-NetIPAddress -CimSession $syncHash.Data.Cs | `
+	Get-NetIPAddress -CimSession $syncHash.Data.CimSession | `
 		Select-Object -ExcludeProperty *CimClass*, *CimInstanceProperties*, *CimSystemProperties*, *PSComputerName*, *PSShowComputerName* -Property * | `
 		ForEach-Object {
 			$a = @{}
@@ -73,7 +73,6 @@ $syncHash.Controls.Window.Resources['CvsIpConfigs'].Source = [System.Collections
 			$syncHash.Controls.Window.Resources['CvsIpAddresses'].Source.Add( ( [pscustomobject] $a ) )
 		}
 	$syncHash.Controls.Window.Resources.CvsIpAddresses.View.Refresh()
-	#>
 } )
 
 # UI is made visible
