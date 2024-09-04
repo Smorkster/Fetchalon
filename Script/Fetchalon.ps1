@@ -13,7 +13,7 @@
 $OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 $InitArgs = $args
 $culture = "sv-SE"
-if ( $args[0] -ne $null )
+if ( $null -eq $args[0] )
 {
 	try
 	{
@@ -177,7 +177,7 @@ function Add-MenuItem
 			}
 		}
 
-		if ( $MiObject.EnableQuickAccess -ne $null )
+		if ( $null -eq $MiObject.EnableQuickAccess )
 		{
 			$syncHash.Data.QuickAccessWordList."$( $MiObject.EnableQuickAccess )" = ( $MiObject | Select-Object * )
 		}
@@ -194,7 +194,6 @@ function Check-O365Connection
 	[CmdletBinding()]
 	param()
 
-	$temp = $ErrorActionPreference
 	$ErrorActionPreference = "Stop"
 	try
 	{
@@ -787,6 +786,10 @@ function Start-Search
 		{
 			$syncHash.DC.TbSearch[0] = $syncHash.Data.TestSearches."$( $syncHash.DC.TbSearch[0] )"
 		}
+
+		$syncHash.PopupMenu.IsOpen = $true
+		$syncHash.DC.PbSearchProgress[0] = [System.Windows.Visibility]::Visible
+
 		Display-View -ViewName "None"
 
 		$syncHash.Jobs.SearchJob = [powershell]::Create()
@@ -808,11 +811,6 @@ function Start-Search
 					return $false
 				}
 			}
-
-			$syncHash.Window.Dispatcher.Invoke( [action] {
-				$syncHash.PopupMenu.IsOpen = $true
-				$syncHash.DC.PbSearchProgress[0] = [System.Windows.Visibility]::Visible
-			}, [System.Windows.Threading.DispatcherPriority]::DataBind )
 
 			# Check if text is a path for file/directory
 			if ( Test-Path $syncHash.DC.TbSearch[0].Trim() )
@@ -1002,8 +1000,8 @@ function Start-Search
 
 				$LDAPSearches | `
 					ForEach-Object {
-						$P = $_
-						Get-ADObject -LDAPFilter $_ -Properties * } |`
+						Get-ADObject -LDAPFilter $_ -Properties *
+					} |`
 					Sort-Object -Property ObjectClass, Name | `
 					ForEach-Object {
 						$syncHash.DC.DgSearchResults[0].Add( $_ )
@@ -1045,11 +1043,6 @@ function Start-Search
 		$syncHash.Jobs.SearchJob.Runspace = $syncHash.Jobs.SearchRunspace
 		$syncHash.Jobs.SearchJobHandle = $syncHash.Jobs.SearchJob.BeginInvoke()
 	}
-}
-
-function Update-PHPropvalue
-{
-	
 }
 
 ############################################ Script start
@@ -1656,7 +1649,8 @@ $syncHash.Code.ListProperties =
 
 				# Should the prop be added to the list of selected visible properties?
 				if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -eq $Prop.Source -and $_.Name -eq $Prop.Name } ) -or `
-					$OtherObjectClass )
+					$OtherObjectClass
+				)
 				{
 					$syncHash.Window.Resources['CvsPropsList'].Source.Add( $Prop )
 				}
@@ -1826,7 +1820,7 @@ $(
 {
 	param ( $SenderObject, $e )
 
-	if ( $syncHash.IcFunctionInput.DataContext.InputData[0].Name -eq $SenderObject.DataContext.Name )
+	if ( ( $syncHash.IcFunctionInput.DataContext.InputData | Where-Object { $_.InputType -eq "String" } | Select-Object -First 1 -ExpandProperty Name ) -eq $SenderObject.GetBindingExpression( [System.Windows.Controls.TextBox]::TextProperty ).ResolvedSource.Name )
 	{
 		$SenderObject.Focus()
 	}
@@ -2422,7 +2416,7 @@ $syncHash.DgSearchResults.Add_LoadingRow( {
 
 # A doubleclick was made, load the item
 $syncHash.DgSearchResults.Add_MouseDoubleClick( {
-	param ( [System.Object] $sender, [System.Windows.Input.MouseButtonEventArgs] $e )
+	param ( [System.Object] $ObjectSender, [System.Windows.Input.MouseButtonEventArgs] $e )
 
 	$e.Handled = $true
 	Invoke-Command -ScriptBlock $syncHash.Code.ListItem -ArgumentList $syncHash.DgSearchResults.SelectedItem -NoNewScope
@@ -2647,7 +2641,6 @@ $syncHash.Window.Add_ContentRendered( {
 	$syncHash.Data.MainWindowHandle = ( [System.Windows.Interop.WindowInteropHelper]::new( $this ) ).Handle
 	$syncHash.FrameTool.Navigate( $this.Resources['MainOutput'] )
 
-	$syncHash.Window.Resources['UseConverters'] = $true
 	$this.Activate()
 	$this.Resources.GetEnumerator() | `
 		Where-Object { $_.Name -match "^Cvs" } | `
