@@ -4,75 +4,29 @@
       Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Page.Resources>
         <Brush x:Key="DefaultFontColor">#FF444444</Brush>
-        <GridLength x:Key="RowDefHeight">30</GridLength>
+        <GridLength x:Key="RowDefHeight">40</GridLength>
         <Thickness x:Key="StdMargin">5</Thickness>
+
         <Style TargetType="Button"
                x:Key="BtnBaseStyle">
-            <Setter Property="Foreground"
-                    Value="{StaticResource DefaultFontColor}" />
-            <Setter Property="OverridesDefaultStyle"
-                    Value="True" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Name="BtnBrd"
-                                Background="#FFDDDDDD"
-                                BorderBrush="#FF555555"
-                                BorderThickness="1"
-                                Margin="4,0"
-                                Padding="5">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsEnabled}"
-                                         Value="False">
-                                <Setter Property="Foreground"
-                                        Value="LightGray" />
-                                <Setter Property="BorderBrush"
-                                        TargetName="BtnBrd"
-                                        Value="LightGray" />
-                            </DataTrigger>
-                            <Trigger Property="IsMouseOver"
-                                     Value="True">
-                                <Trigger.EnterActions>
-                                    <BeginStoryboard Name="StoryBtnEnterHover">
-                                        <Storyboard>
-                                            <ColorAnimation AutoReverse="True"
-                                                            Duration="0:0:0.5"
-                                                            Storyboard.TargetName="BtnBrd"
-                                                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                            To="White" />
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.EnterActions>
-                            </Trigger>
-                            <!--#region Button got focus -->
-                            <EventTrigger RoutedEvent="Keyboard.PreviewGotKeyboardFocus">
-                                <BeginStoryboard Name="BtnFocusStory">
-                                    <Storyboard>
-                                        <ColorAnimation AutoReverse="True"
-                                                        Duration="0:0:1"
-                                                        RepeatBehavior="Forever"
-                                                        Storyboard.TargetName="BtnBrd"
-                                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                        To="PowderBlue" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </EventTrigger>
-                            <EventTrigger RoutedEvent="Keyboard.PreviewLostKeyboardFocus">
-                                <StopStoryboard BeginStoryboardName="BtnFocusStory" />
-                            </EventTrigger>
-                            <!--#endregion Button got focus -->
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="{StaticResource StdMargin}" />
         </Style>
         <Style TargetType="Grid"
                x:Key="GridBaseStyle">
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="ListBox"
+               x:Key="LbBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="ScrollViewer.HorizontalScrollBarVisibility"
+                    Value="Auto" />
+            <Setter Property="ScrollViewer.VerticalScrollBarVisibility"
+                    Value="Auto" />
         </Style>
         <Style TargetType="ListBoxItem">
             <Setter Property="Margin"
@@ -86,17 +40,25 @@
                     Value="Bold" />
             <Setter Property="Height"
                     Value="25" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="{StaticResource StdMargin}" />
             <Setter Property="VerticalAlignment"
                     Value="Center" />
         </Style>
+        <Style TargetType="TextBox"
+               x:Key="TbBaseStyle">
+            <Setter Property="AcceptsReturn"
+                    Value="True" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Top" />
+        </Style>
     </Page.Resources>
-    <Grid Name="MainGrid">
-        <Grid.Style>
-            <Style TargetType="Grid">
-                <Setter Property="IsEnabled"
-                        Value="False" />
-            </Style>
-        </Grid.Style>
+    <Grid Name="MainGrid"
+          IsEnabled="False">
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
             <ColumnDefinition />
@@ -105,13 +67,9 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="1*" />
         </Grid.RowDefinitions>
-        <Grid>
-            <Grid.Style>
-                <Style TargetType="Grid"
-                       BasedOn="{StaticResource GridBaseStyle}" />
-            </Grid.Style>
+        <Grid Style="{StaticResource GridBaseStyle}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="{StaticResource RowDefHeight}"/>
+                <RowDefinition Height="{StaticResource RowDefHeight}" />
                 <RowDefinition Height="{StaticResource RowDefHeight}" />
                 <RowDefinition Height="{StaticResource RowDefHeight}" />
                 <RowDefinition Height="{StaticResource RowDefHeight}" />
@@ -120,97 +78,39 @@
                 <RowDefinition Height="{StaticResource RowDefHeight}" />
                 <RowDefinition Height="120" />
             </Grid.RowDefinitions>
-            <TextBlock Name="TblDisk">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblBaseStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblDisk}" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <ComboBox Name="CbDisk">
-                <ComboBox.Style>
-                    <Style TargetType="ComboBox">
-                        <Setter Property="Grid.Row"
-                                Value="1" />
-                        <Setter Property="VerticalContentAlignment"
-                                Value="Center" />
-                    </Style>
-                </ComboBox.Style>
-            </ComboBox>
-            <TextBlock Name="TblFolderSearch">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblBaseStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFolderSearch}" />
-                        <Setter Property="Grid.Row"
-                                Value="2" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <TextBox Name="TxtFolderSearch">
-                <TextBox.Style>
-                    <Style TargetType="TextBox">
-                        <Setter Property="Grid.Row"
-                                Value="3" />
-                        <Setter Property="VerticalContentAlignment"
-                                Value="Center" />
-                    </Style>
-                </TextBox.Style>
-            </TextBox>
-            <TextBlock Name="TblFolderList">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblBaseStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFolderList}" />
-                        <Setter Property="Grid.Row"
-                                Value="4" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <ListBox Name="LbFolderList">
-                <ListBox.Style>
-                    <Style TargetType="ListBox">
-                        <Setter Property="Grid.Row"
-                                Value="5" />
-                        <Setter Property="Margin"
-                                Value="0,5" />
-                        <Setter Property="ScrollViewer.VerticalScrollBarVisibility"
-                                Value="Auto" />
-                    </Style>
-                </ListBox.Style>
-            </ListBox>
-            <TextBlock Name="TblFoldersChosen">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblBaseStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFoldersChosen}" />
-                        <Setter Property="Grid.Row"
-                                Value="6" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <ListBox Name="LbFoldersChosen">
-                <ListBox.Style>
-                    <Style TargetType="ListBox">
-                        <Setter Property="Grid.Row"
-                                Value="7" />
-                    </Style>
-                </ListBox.Style>
-            </ListBox>
+            <TextBlock Name="TblDisk"
+                       Style="{StaticResource TblBaseStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblDisk}" />
+            <ComboBox Name="CbDisk"
+                      Grid.Row="1"
+                      Margin="{StaticResource StdMargin}"
+                      VerticalContentAlignment="Center" />
+            <TextBlock Name="TblFolderSearch"
+                       Grid.Row="2"
+                       Style="{StaticResource TblBaseStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFolderSearch}" />
+            <TextBox Name="TxtFolderSearch"
+                     AcceptsReturn="False"
+                     Grid.Row="3"
+                     Style="{StaticResource TbBaseStyle}"
+                     VerticalContentAlignment="Center" />
+            <TextBlock Name="TblFolderList"
+                       Grid.Row="4"
+                       Style="{StaticResource TblBaseStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFolderList}" />
+            <ListBox Name="LbFolderList"
+                     Grid.Row="5"
+                     Style="{StaticResource LbBaseStyle}" />
+            <TextBlock Name="TblFoldersChosen"
+                       Grid.Row="6"
+                       Style="{StaticResource TblBaseStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFoldersChosen}" />
+            <ListBox Name="LbFoldersChosen"
+                     Grid.Row="7"
+                     Style="{StaticResource LbBaseStyle}" />
         </Grid>
-        <Grid>
-            <Grid.Style>
-                <Style TargetType="Grid"
-                       BasedOn="{StaticResource GridBaseStyle}">
-                    <Setter Property="Grid.Column"
-                            Value="1" />
-                </Style>
-            </Grid.Style>
+        <Grid Grid.Column="1"
+              Style="{StaticResource GridBaseStyle}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="{StaticResource RowDefHeight}" />
                 <RowDefinition Height="1*" />
@@ -218,131 +118,60 @@
                 <RowDefinition Height="1*" />
                 <RowDefinition Height="{StaticResource RowDefHeight}" />
                 <RowDefinition Height="1*" />
-                <RowDefinition Height="65" />
+                <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <TextBlock Name="TblUsersForWritePermission">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblBaseStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForWritePermission}" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <TextBox Name="TxtUsersForWritePermission">
-                <TextBox.Style>
-                    <Style TargetType="TextBox">
-                        <Setter Property="AcceptsReturn"
-                                Value="True" />
-                        <Setter Property="Grid.Row"
-                                Value="1" />
-                    </Style>
-                </TextBox.Style>
-            </TextBox>
-            <TextBlock Name="TblUsersForReadPermission">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblBaseStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForReadPermission}" />
-                        <Setter Property="Grid.Row"
-                                Value="2" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <TextBox Name="TxtUsersForReadPermission">
-                <TextBox.Style>
-                    <Style TargetType="TextBox">
-                        <Setter Property="AcceptsReturn"
-                                Value="True" />
-                        <Setter Property="Grid.Row"
-                                Value="3" />
-                    </Style>
-                </TextBox.Style>
-            </TextBox>
-            <TextBlock Name="TblUsersForRemovePermission">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblBaseStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForRemovePermission}" />
-                        <Setter Property="Grid.Row"
-                                Value="4" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <TextBox Name="TxtUsersForRemovePermission">
-                <TextBox.Style>
-                    <Style TargetType="TextBox">
-                        <Setter Property="AcceptsReturn"
-                                Value="True" />
-                        <Setter Property="Grid.Row"
-                                Value="5" />
-                    </Style>
-                </TextBox.Style>
-            </TextBox>
-            <Grid>
-                <Grid.Style>
-                    <Style TargetType="Grid">
-                        <Setter Property="Grid.Row"
-                                Value="6" />
-                    </Style>
-                </Grid.Style>
+            <TextBlock Name="TblUsersForWritePermission"
+                       Style="{StaticResource TblBaseStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForWritePermission}" />
+            <TextBox Name="TxtUsersForWritePermission"
+                     Grid.Row="1"
+                     Style="{StaticResource TbBaseStyle}" />
+            <TextBlock Name="TblUsersForReadPermission"
+                       Grid.Row="2"
+                       Style="{StaticResource TblBaseStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForReadPermission}" />
+            <TextBox Name="TxtUsersForReadPermission"
+                     Grid.Row="3"
+                     Style="{StaticResource TbBaseStyle}" />
+            <TextBlock Name="TblUsersForRemovePermission"
+                       Grid.Row="4"
+                       Style="{StaticResource TblBaseStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForRemovePermission}" />
+            <TextBox Name="TxtUsersForRemovePermission"
+                     Grid.Row="5"
+                     Style="{StaticResource TbBaseStyle}" />
+            <Grid Grid.Row="6">
                 <Grid.RowDefinitions>
-                    <RowDefinition />
-                    <RowDefinition />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
-                <Button Name="BtnPerform">
-                    <Button.Style>
-                        <Style TargetType="Button"
-                               BasedOn="{StaticResource BtnBaseStyle}">
-                            <Setter Property="Content"
-                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPerform}" />
-                        </Style>
-                    </Button.Style>
-                </Button>
-                <Button Name="BtnUndo">
-                    <Button.Style>
-                        <Style TargetType="Button"
-                               BasedOn="{StaticResource BtnBaseStyle}">
-                            <Setter Property="Content"
-                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUndo}" />
-                            <Setter Property="Grid.Row"
-                                    Value="1" />
-                        </Style>
-                    </Button.Style>
-                </Button>
+                <Button Name="BtnPerform"
+                        Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPerform}"
+                        Style="{StaticResource BtnBaseStyle}" />
+                <Button Name="BtnUndo"
+                        Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUndo}"
+                        Grid.Row="1"
+                        Style="{StaticResource BtnBaseStyle}" />
             </Grid>
         </Grid>
-        <Grid>
-            <Grid.Style>
-                <Style TargetType="Grid"
-                       BasedOn="{StaticResource GridBaseStyle}">
-                    <Setter Property="Grid.Column"
-                            Value="2" />
-                </Style>
-            </Grid.Style>
+        <Grid Grid.Column="2"
+              Style="{StaticResource GridBaseStyle}">
             <Grid.RowDefinitions>
+                <RowDefinition Height="{StaticResource RowDefHeight}" />
                 <RowDefinition Height="{StaticResource RowDefHeight}" />
                 <RowDefinition Height="1*" />
             </Grid.RowDefinitions>
-            <TextBlock Name="TblLog">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblBaseStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblLog}" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <ListBox Name="LbLog">
-                <ListBox.Style>
-                    <Style TargetType="ListBox">
-                        <Setter Property="Grid.Row"
-                                Value="1" />
-                    </Style>
-                </ListBox.Style>
-            </ListBox>
+            <TextBlock Name="TblLog"
+                       Style="{StaticResource TblBaseStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblLog}" />
+            <CheckBox Name="ChbUseSignature"
+                      Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentChbUseSignature}"
+                      Grid.Row="1"
+                      Margin="{StaticResource StdMargin}"
+                      VerticalContentAlignment="Center" />
+            <ListBox Name="LbLog"
+                     Grid.Row="2"
+                     Style="{StaticResource LbBaseStyle}" />
         </Grid>
     </Grid>
 </Page>
