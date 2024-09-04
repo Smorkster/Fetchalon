@@ -17,7 +17,6 @@ ContentMiShowHideOutputViewHide = Dölj utdatavyn
 ContentMiShowHideOutputViewNoOutput = Ingen utdata
 ContentMiShowHideOutputViewShow = Visa utdatavyn
 ContentNoMembersOfList = < Inga värden >
-ContentSavePropValueButton = Spara
 ContentTblAsterixWarning = När sökningstermen har en stjärna i början, tar sökningen längre tid. Försök vara så specifik som möjligt.
 ContentTblCopyOutput = Kopiera:
 ContentTblFailedSearchText = Inga objekt matchade sökningen

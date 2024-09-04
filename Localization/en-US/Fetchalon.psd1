@@ -17,7 +17,6 @@ ContentMiShowHideOutputViewHide = Hide output view
 ContentMiShowHideOutputViewNoOutput = No output
 ContentMiShowHideOutputViewShow = Show output view
 ContentNoMembersOfList = < No values >
-ContentSavePropValueButton = Save
 ContentTblAsterixWarning = When the search term has an asterix at the beginning, the search takes longer. Try to be as specific as possible.
 ContentTblCopyOutput = Copy:
 ContentTblFailedSearchText = No items matched your search
