@@ -17,6 +17,7 @@ CodeGetSGroupWrite1 = "$( $Customer )_$( $entry )_file_UserC"
 CodeGetSGroupWrite2 = "$( $FolderName )$( $Customer )_$( $entry )_file_01_UserC"
 ContentBtnPerform = Make changes
 ContentBtnUndo = Abort
+ContentChbUseSignature = Use signature in solution message
 ContentTblDisk = Select disk
 ContentTblFolderList = Select folder by double clicking
 ContentTblFoldersChosen = Selected folders
