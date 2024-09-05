@@ -13,6 +13,49 @@
 
 param ( $culture = "sv-SE" )
 
+function Get-DirectoryADGroups
+{
+	<#
+	.Synopsis
+		Get the folder's AD groups
+	.Description
+		Search AD to find the groups that control access to this folder
+	.MenuItem
+		Get AD groups
+	.SearchedItemRequest
+		Required
+	.OutputType
+		ObjectList
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	$List = [System.Collections.ArrayList]::new()
+
+	Get-ADGroup -LDAPFilter "(Name=$( $Item.Parent.Name )_*Grp_$( $Item.Name )*)" -Properties * | `
+		Select-Object -Property `
+			@{ Name = $IntMsgTable.GetDirectoryADGroupsStrPropNameTitle ; Expression = { $_.Name } }, `
+			@{ Name = $IntMsgTable.GetDirectoryADGroupsStrPropDescTitle ; Expression = { $_.Description } }, `
+			@{ Name = $IntMsgTable.GetDirectoryADGroupsStrPropOwnerTitle ; Expression = { ( Get-ADUser $_.ManagedBy ).Name } } | `
+		Sort-Object Name | `
+		ForEach-Object {
+			$List.Add( $_ ) | Out-Null
+		}
+
+	if ( $List.Count -eq 0 )
+	{
+		return $IntMsgTable.GetDirectoryADGroupsStrNoGrpsFound
+	}
+	else
+	{
+		return $List
+	}
+}
+
 function Get-DirectoryContent
 {
 	<#
