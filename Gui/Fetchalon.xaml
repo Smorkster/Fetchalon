@@ -1200,10 +1200,12 @@
               Name="MainOutput">
             <Page.Resources>
                 <sys:Double x:Key="IconSize">25</sys:Double>
+                <sys:String x:Key="StrBtnNoteWarningUnderstood">x</sys:String>
                 <sys:String x:Key="StrCompressedDateTimeFormat">x</sys:String>
                 <sys:String x:Key="StrDateFormat">x</sys:String>
                 <sys:String x:Key="StrFullDateTimeFormat">x</sys:String>
                 <sys:String x:Key="StrGbFunctionInputTitle">x</sys:String>
+                <sys:String x:Key="StrNoteWarningInfo">x</sys:String>
                 <sys:String x:Key="StrScriptRunningWithoutRunspace">x</sys:String>
                 <sys:String x:Key="StrTimeFormat">x</sys:String>
             </Page.Resources>
@@ -1225,6 +1227,16 @@
                                     <Setter Property="Visibility"
                                             Value="Collapsed" />
                                 </DataTrigger>
+                                <DataTrigger Binding="{Binding Path=Note.NoteType}"
+                                             Value="Warning">
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Path=Note.NoteType}"
+                                             Value="Info">
+                                    <Setter Property="Visibility"
+                                            Value="Visible" />
+                                </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </Grid.Style>
@@ -1235,10 +1247,11 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                         <RowDefinition />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <Grid>
+                    <Grid Name="GridFunctionMenuItem">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -1285,7 +1298,8 @@
                                        TextWrapping="Wrap" />
                         </Grid>
                     </Grid>
-                    <Grid Grid.Column="1">
+                    <Grid Name="GridFuntionDescription"
+                          Grid.Column="1">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -1296,10 +1310,126 @@
                                    Margin="{StaticResource StdMargin}"
                                    Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Description}" />
                     </Grid>
-                    <GroupBox Grid.ColumnSpan="2"
-                              Grid.Row="2"
+                    <Border Name="BrdFunctionNote"
+                            BorderThickness="1"
+                            Grid.ColumnSpan="2"
+                            Grid.Row="2"
+                            Margin="{StaticResource StdMargin}">
+                        <Border.Style>
+                            <Style TargetType="Border">
+                                <Setter Property="Visibility"
+                                        Value="Visible" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Note}"
+                                                 Value="{x:Null}">
+                                        <Setter Property="Visibility"
+                                                Value="Collapsed" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Note.NoteType}"
+                                                 Value="Info">
+                                        <Setter Property="BorderBrush"
+                                                Value="Blue" />
+                                        <Setter Property="Background"
+                                                Value="LightBlue" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Note.NoteType}"
+                                                 Value="Warning">
+                                        <Setter Property="BorderBrush"
+                                                Value="Red" />
+                                        <Setter Property="Background"
+                                                Value="PeachPuff" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <Grid Name="GridFunctionNote">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+                            <Path Grid.RowSpan="2" Margin="{StaticResource StdMargin}">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Note.NoteType}"
+                                                         Value="Info">
+                                                <Setter Property="Data"
+                                                        Value="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
+                                                <Setter Property="Fill"
+                                                        Value="LightBlue" />
+                                                <Setter Property="Stroke"
+                                                        Value="Blue" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Note.NoteType}"
+                                                         Value="Warning">
+                                                <Setter Property="Data"
+                                                        Value="M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z" />
+                                                <Setter Property="Fill"
+                                                        Value="Yellow" />
+                                                <Setter Property="Stroke"
+                                                        Value="Red" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                            <Label Content="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Note.NoteText}"
+                                   Grid.Column="1"
+                                   Margin="{StaticResource StdMargin}"
+                                   VerticalContentAlignment="Center" />
+                            <Label Content="{DynamicResource StrNoteWarningInfo}"
+                                   FontStyle="Italic"
+                                   Grid.Column="1"
+                                   Grid.Row="1" />
+                            <Button Name="BtnNoteWarningUnderstood"
+                                    Content="{DynamicResource StrBtnNoteWarningUnderstood}"
+                                    Grid.Column="2"
+                                    Margin="{StaticResource StdMargin}"
+                                    Padding="{StaticResource StdPadding}" VerticalAlignment="Center">
+                                <Button.Style>
+                                    <Style TargetType="Button">
+                                        <Setter Property="Visibility"
+                                                Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Note.NoteType}"
+                                                         Value="Warning">
+                                                <Setter Property="Visibility"
+                                                        Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                            </Button>
+                        </Grid>
+                    </Border>
+                    <GroupBox Name="GbFunctionInput"
+                              Grid.ColumnSpan="2"
+                              Grid.Row="3"
                               Margin="5,10,5,5"
                               MaxHeight="700">
+                        <GroupBox.Style>
+                            <Style TargetType="GroupBox">
+                                <Setter Property="IsEnabled"
+                                        Value="True" />
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Note.NoteType}"
+                                                       Value="Warning" />
+                                            <Condition Binding="{Binding ElementName=BrdFunctionNote, Path=Visibility}"
+                                                       Value="Visible" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="IsEnabled"
+                                                Value="False" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </GroupBox.Style>
                         <GroupBox.Header>
                             <TextBlock FontSize="16"
                                        FontWeight="Bold"
@@ -1486,11 +1616,30 @@
                     <Button Name="BtnEnterFunctionInput"
                             Content="{Binding RelativeSource={RelativeSource AncestorType=Window}, Path=DataContext.MsgTable.ContentBtnEnterFunctionInput}"
                             Grid.Column="1"
-                            Grid.Row="3"
+                            Grid.Row="4"
                             HorizontalAlignment="Right"
                             Margin="10"
                             Padding="7"
-                            Visibility="{Binding ElementName=IcFunctionInput, Path=Visibility}" />
+                            Visibility="{Binding ElementName=IcFunctionInput, Path=Visibility}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="IsEnabled"
+                                        Value="True" />
+                                <Style.Triggers>
+                                    <MultiDataTrigger>
+                                        <MultiDataTrigger.Conditions>
+                                            <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Note.NoteType}"
+                                                       Value="Warning" />
+                                            <Condition Binding="{Binding ElementName=BrdFunctionNote, Path=Visibility}"
+                                                       Value="Visible" />
+                                        </MultiDataTrigger.Conditions>
+                                        <Setter Property="IsEnabled"
+                                                Value="False" />
+                                    </MultiDataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
                 </Grid>
                 <ItemsControl Name="IcOutputObjects"
                               Grid.Row="1"
@@ -1806,10 +1955,24 @@
                     </Style>
                 </TextBox.Style>
             </TextBox>
-            <ProgressBar Name="PbSearchProgress"
-                         Grid.Row="2"
-                         Height="8"
-                         IsIndeterminate="True" />
+            <Grid Name="GridSearchProgress"
+                  Grid.Row="2">
+                <ProgressBar Name="PbSearchProgress"
+                             Height="8"
+                             IsIndeterminate="True" />
+                <Grid HorizontalAlignment="Center">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Name="TbIdentifiedSearchPatternTitle"
+                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrTextIdentifiedAs}" />
+                    <TextBlock Name="TbIdentifiedSearchPattern"
+                               FontWeight="Bold"
+                               Grid.Column="1"
+                               Margin="5,0" />
+                </Grid>
+            </Grid>
             <Button Name="BtnSearch"
                     Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSearch}"
                     Grid.Column="1"

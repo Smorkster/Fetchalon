@@ -1,4 +1,5 @@
-﻿<#
+﻿#Require -Version 7.0
+<#
 .Synopsis
 	Main script for Fetchalon
 .Description
@@ -507,7 +508,9 @@ function Prepare-ToRunScript
 	}
 
 	# The function does not want input
-	if ( $ScriptObject.InputData.Count -eq 0 )
+	if ( $ScriptObject.InputData.Count -eq 0 -and
+		$null -eq $ScriptObject.Note
+	)
 	{
 		# Function is to be run without a runspace
 		if ( $ScriptObject.NoRunspace )
@@ -522,6 +525,11 @@ function Prepare-ToRunScript
 	# Input is wanted for the function
 	else
 	{
+		if ( $null -ne $ScriptObject.Note )
+		{
+			$syncHash.BrdFunctionNote.Visibility = [System.Windows.Visibility]::Visible
+		}
+
 		# If SearchedItem is allowed/requested by function, enter it in the first inputbox
 		if (
 			"None" -ne $ScriptObject.SearchedItemRequest -and `
@@ -709,16 +717,18 @@ function Set-Localizations
 
 	# Set localized strings
 	$syncHash.IcObjectDetailed.Resources['ContentTblPropNameTT'] = $msgTable.ContentTblPropNameTT
+	$syncHash.Window.Resources['ContentNoMembersOfList'] = @( $msgTable.ContentNoMembersOfList )
 	$syncHash.Window.Resources['StrOpensSeparateWindow'] = $msgTable.StrOpensSeparateWindow
+	$syncHash.Window.Resources['MainOutput'].Resources['StrBtnNoteWarningUnderstood'] = $msgTable.ContentBtnNoteWarningUnderstood
+	$syncHash.Window.Resources['MainOutput'].Resources['StrGbFunctionInputTitle'] = $syncHash.Data.msgTable.ContentGbFunctionInputTitle
+	$syncHash.Window.Resources['MainOutput'].Resources['StrNoteWarningInfo'] = $msgTable.StrNoteWarningInfo
+	$syncHash.Window.Resources['MainOutput'].Resources['StrScriptRunningWithoutRunspace'] = $syncHash.Data.msgTable.StrScriptRunningWithoutRunspace
 
 	# Set timeformats
 	$DateTimeFormats = [System.Globalization.CultureInfo]::CurrentCulture.DateTimeFormat
-	$syncHash.Window.Resources['ContentNoMembersOfList'] = @( $msgTable.ContentNoMembersOfList )
 	$syncHash.Window.Resources['MainOutput'].Resources['StrCompressedDateTimeFormat'] = "yyMMdd HH:mm"
 	$syncHash.Window.Resources['MainOutput'].Resources['StrDateFormat'] = $DateTimeFormats.ShortDatePattern
 	$syncHash.Window.Resources['MainOutput'].Resources['StrFullDateTimeFormat'] = "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )"
-	$syncHash.Window.Resources['MainOutput'].Resources['StrGbFunctionInputTitle'] = $syncHash.Data.msgTable.ContentGbFunctionInputTitle
-	$syncHash.Window.Resources['MainOutput'].Resources['StrScriptRunningWithoutRunspace'] = $syncHash.Data.msgTable.StrScriptRunningWithoutRunspace
 	$syncHash.Window.Resources['MainOutput'].Resources['StrTimeFormat'] = $DateTimeFormats.LongTimePattern
 	$syncHash.Window.Resources['StrCompressedDateTimeFormat'] = "yyMMdd HH:mm"
 	$syncHash.Window.Resources['StrDateFormat'] = $DateTimeFormats.ShortDatePattern
@@ -788,7 +798,7 @@ function Start-Search
 		}
 
 		$syncHash.PopupMenu.IsOpen = $true
-		$syncHash.DC.PbSearchProgress[0] = [System.Windows.Visibility]::Visible
+		$syncHash.DC.GridSearchProgress[0] = [System.Windows.Visibility]::Visible
 
 		Display-View -ViewName "None"
 
@@ -815,6 +825,7 @@ function Start-Search
 			# Check if text is a path for file/directory
 			if ( Test-Path $syncHash.DC.TbSearch[0].Trim() )
 			{
+				$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsFileDir
 				$FoundObject = Get-Item $syncHash.DC.TbSearch[0]
 				Add-Member -InputObject $FoundObject -MemberType NoteProperty -Name "ObjectClass" -Value ( $FoundObject.GetType().Name )
 
@@ -823,6 +834,7 @@ function Start-Search
 			# Searchstring match an mailaddress
 			elseif ( ( Test-Mail -Address $syncHash.DC.TbSearch[0].Trim() ) )
 			{
+				$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsEmail
 				$Objects = [System.Collections.ArrayList]::new()
 
 				Get-ADUser -LDAPFilter "(Mail=$( $syncHash.DC.TbSearch[0].Trim() ))" | `
@@ -855,6 +867,7 @@ function Start-Search
 			# Searchstring match name of Azure-group
 			elseif ( $syncHash.DC.TbSearch[0].Trim() -match $syncHash.Data.msgTable.CodeAzureGrpName )
 			{
+				$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsAzureGroup
 				if ( $O365Connected )
 				{
 					switch -Regex ( $syncHash.DC.TbSearch[0].Trim() )
@@ -912,6 +925,7 @@ function Start-Search
 			# Check if text matches an IP-address
 			elseif ( $syncHash.DC.TbSearch[0].Trim() -match "^([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])(\.([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])){3}$" )
 			{
+				$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsIpAddress
 				$FoundObject = [System.Net.Dns]::GetHostByAddress( $syncHash.DC.TbSearch[0].Trim() )
 				$ComputerItems = Get-ADObject -LDAPFilter "(&(ObjectClass=computer)(Name=$( ( $FoundObject.hostname -split "\." )[0] ) ))" -Properties *
 				$PrinterItems = Get-ADObject -LDAPFilter "(&(ObjectClass=printQueue)(PortName=$( $syncHash.DC.TbSearch[0].Trim() )))" -Properties *
@@ -924,6 +938,7 @@ function Start-Search
 			# Check if text matches an PowerShell-cmdlet
 			elseif ( $syncHash.DC.TbSearch[0].Trim() -match "^(?<Command>Get-\w*)\s*" )
 			{
+				$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsPsCmdlet
 				$syncHash.DC.TbSearch[0].Trim() -split " " | `
 					Where-Object { $_ -notmatch "(Compare)|(Find)|(Get)|(Measure)|(Out)|(Read)|(Search)|(Select)|(Test)-" } | `
 					ForEach-Object `
@@ -958,6 +973,7 @@ function Start-Search
 			# None of the above, searchstring may be an id or name for an AD-object
 			else
 			{
+				$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsNoPatternAdSearch
 				$Id = $syncHash.DC.TbSearch[0].Trim()
 				$LDAPSearches = [System.Collections.ArrayList]::new()
 
@@ -1010,7 +1026,7 @@ function Start-Search
 
 			$syncHash.Window.Dispatcher.Invoke( [action] {
 				$syncHash.DgSearchResults.SelectedIndex = 0
-				$syncHash.DC.PbSearchProgress[0] = [System.Windows.Visibility]::Collapsed
+				$syncHash.DC.GridSearchProgress[0] = [System.Windows.Visibility]::Collapsed
 				$syncHash.DgSearchResultsColRunCount.Text = $syncHash.DC.DgSearchResults[0].Count
 			}, [System.Windows.Threading.DispatcherPriority]::Send )
 
@@ -1048,26 +1064,31 @@ function Start-Search
 ############################################ Script start
 
 Show-Splash -Text "" -SelfAdmin
-WriteLog -Text "Start" -Success $true | Out-Null
 
 $controls = [System.Collections.ArrayList]::new()
-[void] $controls.Add( @{ CName = "BrdAsterixWarning" ; Props = @( @{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
+[void] $controls.Add( @{ CName = "BrdAsterixWarning" ; Props = @( @{ PropName = "Visibility" ; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
 [void] $controls.Add( @{ CName = "BtnEnterFunctionInput" ; Props = @( @{ PropName = "Content" ; PropVal = $msgTable.ContentBtnEnterFunctionInput } ; @{ PropName = "IsEnabled" ; PropVal = $true } ) } )
 [void] $controls.Add( @{ CName = "BtnSearch" ; Props = @( @{ PropName = "IsEnabled" ; PropVal = $false } ) } )
 [void] $controls.Add( @{ CName = "DgSearchResults" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[object]]::new() } ) } )
-[void] $controls.Add( @{ CName = "GridProgress" ; Props = @( @{ PropName = "Visibility"; PropVal = ( [System.Windows.Visibility]::Collapsed ) } ) } )
-[void] $controls.Add( @{ CName = "IcOutputObjects" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[object]]::new() } ) } )
-[void] $controls.Add( @{ CName = "PbSearchProgress" ; Props = @( @{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
+[void] $controls.Add( @{ CName = "GridProgress" ; Props = @( @{ PropName = "Visibility" ; PropVal = ( [System.Windows.Visibility]::Collapsed ) } ) } )
+[void] $controls.Add( @{ CName = "GridSearchProgress" ; Props = @( @{ PropName = "Visibility" ; PropVal = ( [System.Windows.Visibility]::Collapsed ) } ) } )
+[void] $controls.Add( @{ CName = "IcOutputObjects" ; Props = @( @{ PropName = "ItemsSource" ; PropVal = [System.Collections.ObjectModel.ObservableCollection[object]]::new() } ) } )
+[void] $controls.Add( @{ CName = "PbSearchProgress" ; Props = @( @{ PropName = "Visibility" ; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
+[void] $controls.Add( @{ CName = "TbIdentifiedSearchPattern" ; Props = @( @{ PropName = "Text" ; PropVal = "" } ) } )
 [void] $controls.Add( @{ CName = "TblAsterixWarning" ; Props = @( @{ PropName = "Text" ; PropVal = $msgTable.ContentTblAsterixWarning } ) } )
 [void] $controls.Add( @{ CName = "TblFailedSearchMessage" ; Props = @( @{ PropName = "Text" ; PropVal = "" } ) } )
 [void] $controls.Add( @{ CName = "TblUnfinishedInputCount" ; Props = @( @{ PropName = "Text" ; PropVal = 0 } ) } )
 [void] $controls.Add( @{ CName = "TblUnfinishedInputCountTitle" ; Props = @( @{ PropName = "Text" ; PropVal = $msgTable.ContentTblUnfinishedInputCountTitle } ) } )
-[void] $controls.Add( @{ CName = "TbSearch" ; Props = @( @{ PropName = "Text"; PropVal = "" } ) } )
+[void] $controls.Add( @{ CName = "TbSearch" ; Props = @( @{ PropName = "Text" ; PropVal = "" } ) } )
 
 Update-SplashText -Text $msgTable.StrSplashCreatingWindow
 
 $syncHash = CreateWindowExt -ControlsToBind $controls -IncludeConverters
-$Global:syncHash = $syncHash
+# Only save syncHash if in development
+if ( $PSCommandPath -match "Development" )
+{
+	$Global:syncHash = $syncHash
+}
 $syncHash.Data.BaseDir = $BaseDir
 $syncHash.Data.Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $culture )
 $syncHash.Data.InitArgs = $InitArgs
@@ -1075,6 +1096,8 @@ $syncHash.Data.msgTable = $msgTable
 $syncHash.Data.SettingsPath = "$( $env:UserProfile )\FetchalonSettings.json"
 $syncHash.Data.UserGroups = ( Get-ADUser -Identity ( [Environment]::UserName ) -Properties memberof ).memberof | Get-ADGroup | Select-Object -ExpandProperty Name
 $syncHash.Data.QuickAccessWordList = @{}
+
+# Check validity of culture, otherwise, default to 'sv-se'
 try
 {
 	$syncHash.Window.Language = [System.Windows.Markup.XmlLanguage]::GetLanguage( $culture )
@@ -1127,6 +1150,9 @@ $syncHash.BindData = [pscustomobject]@{
 	SearchedItem = $null
 }
 $syncHash.Window.DataContext = $syncHash.BindData
+$syncHash.Window.Resources['MainOutput'].DataContext = [pscustomobject]@{
+		MsgTable = $syncHash.Data.msgTable
+	}
 
 Update-SplashText -Text $msgTable.StrSplash2
 
@@ -1293,9 +1319,20 @@ $syncHash.Code.ListItem =
 								elseif ( $_.Length -gt 1kB -and $_.Length -lt 1MB ) { "$( [math]::Round( ( $_.Length / 1kB ), 2 ) ) kB" }
 								elseif ( $_.Length -gt 1MB -and $_.Length -lt 1GB ) { "$( [math]::Round( ( $_.Length / 1MB ), 2 ) ) MB" }
 								elseif ( $_.Length -gt 1GB -and $_.Length -lt 1TB ) { "$( [math]::Round( ( $_.Length / 1GB ), 2 ) ) GB" } }
-					} | ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.DataStreams.Add( $_ ) }
+					} | `
+					ForEach-Object {
+						$syncHash.Data.SearchedItem.ExtraInfo.Other.DataStreams.Add( $_ ) | Out-Null
+					}
 
-				$syncHash.Data.SearchedItem.VersionInfo | Get-Member -MemberType Property | ForEach-Object { [void] $syncHash.Data.SearchedItem.ExtraInfo.Other.FileVersionInfo.Add( ( [pscustomobject]@{ "Name" = $_.Name ; "Value" = $syncHash.Data.SearchedItem.VersionInfo."$( $_.Name )" } ) ) }
+				$syncHash.Data.SearchedItem.VersionInfo | `
+					Get-Member -MemberType Property | `
+					ForEach-Object {
+						$FviAttribute = [pscustomobject]@{
+							"Name" = $_.Name
+							"Value" = $syncHash.Data.SearchedItem.VersionInfo."$( $_.Name )"
+						}
+						$syncHash.Data.SearchedItem.ExtraInfo.Other.FileVersionInfo.Add( $FviAttribute ) | Out-Null
+					}
 
 				break
 			}
@@ -1425,9 +1462,13 @@ $syncHash.Code.ListExtraInfo =
 	param ( $Exclude )
 
 	if ( $Exclude.Count -gt 0 )
-	{ $ExtraInfo = $syncHash.Data.SearchedItem.ExtraInfo.GetEnumerator() | Where-Object { $_.Name -notin $Exclude } }
+	{
+		$ExtraInfo = $syncHash.Data.SearchedItem.ExtraInfo.GetEnumerator() | Where-Object { $_.Name -notin $Exclude }
+	}
 	else
-	{ $ExtraInfo = $syncHash.Data.SearchedItem.ExtraInfo.GetEnumerator() }
+	{
+		$ExtraInfo = $syncHash.Data.SearchedItem.ExtraInfo.GetEnumerator()
+	}
 
 	foreach ( $info in $ExtraInfo )
 	{
@@ -1565,7 +1606,7 @@ $syncHash.Code.ListProperties =
 							NameLocalization = ""
 							CheckedForVisible = $null
 						}
-					}
+								}
 		}
 
 		$Props | `
@@ -1863,7 +1904,7 @@ $(
 			if ( $SenderObject.DataContext.Separate -eq $false )
 			{
 				$name = $SenderObject.DataContext.Name -replace "\W"
-				if ( -not ( $syncHash.Window.Resources.Keys.Contains( $name ) ) )
+				if ( -not ( $syncHash.Window.Resources.Keys.Contains( "LoadedPage$( $name )" ) ) )
 				{
 					try
 					{
@@ -2372,6 +2413,11 @@ $syncHash.BtnHideMenuTexts.Add_Click( {
 		$syncHash.GridObjMenu.RowDefinitions[0].Height = 24
 		$syncHash.GridObjMenu.RowDefinitions[1].Height = 18
 	}
+} )
+
+# Hide the warning note
+$syncHash.BtnNoteWarningUnderstood.Add_Click( {
+	$syncHash.BrdFunctionNote.Visibility = [System.Windows.Visibility]::Collapsed
 } )
 
 # Start a search
