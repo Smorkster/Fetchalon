@@ -4,10 +4,12 @@ CodeMsExchIgnoreOrg = OU=Org1
 CodeOrgGrpCaptureRegex = CN=Org1_Wrk_(?<org>.{3})_PR_(?<role>.*_PC).*
 CodeOrgGrpNamePrefix = CN=Org1_Wrk
 CodeRegExAclIdentity = ^Domain.*_(C|R)$
+CodeRegExSharedAccName = ^Sa\w{2}\d{2}
 ContentBtnCopyOutputData = Data
 ContentBtnCopyOutputObject = Dataobjekt
 ContentBtnCopyValue = Kopiera
 ContentBtnEnterFunctionInput = Kör skript
+ContentBtnNoteWarningUnderstood = Jag förstår
 ContentBtnSearch = Sök
 ContentDgSearchResultsColNameTitle = Namn (
 ContentDgSearchResultsColObjClass = Objekttyp
@@ -90,6 +92,7 @@ StrIdPropName = IdName
 StrNoOwner = < Ingen ägare angiven >
 StrNoRunspaceSplashInfo = Funktionen använder inte en individuell processtråd, och kan därför frysa hela fönstret tills den är klar
 StrNoScriptOutput = < Ingen utdata >
+StrNoteWarningInfo = Klicka på "Jag förstår" för att aktivera input och knapp för att starta
 StrO365NotImplemented = Detta är inte implementerat
 StrOpenMainWindowFound = Fetchalon är redan startat
 StrOpensSeparateWindow = Öppnas i separat fönster
@@ -128,4 +131,11 @@ StrSplashSkippingO365 = Skippar inloggningen till Office 365
 StrSubMenuGroupTitleSuffix = -funktioner
 StrSysAdmSANPrefix = sys
 StrSysManApi = http://sysman.domain.com/SysMan/api/
+StrTextIdentifiedAs = Söktext identifierad som
+StrTextIdentifiedAsAzureGroup = Fil eller mapp
+StrTextIdentifiedAsFileDir = Fil eller mapp
+StrTextIdentifiedAsEmail = Mail-adress
+StrTextIdentifiedAsIpAddress = IP-adress
+StrTextIdentifiedAsNoPatternAdSearch = inget specifikt, söker i AD
+StrTextIdentifiedAsPsCmdlet = PowerShell-cmdlet
 '@

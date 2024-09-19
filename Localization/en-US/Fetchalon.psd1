@@ -4,10 +4,12 @@ CodeMsExchIgnoreOrg = OU=Org1
 CodeOrgGrpCaptureRegex = CN=Org1_Wrk_(?<org>.{3})_PR_(?<role>.*_PC).*
 CodeOrgGrpNamePrefix = CN=Org1_Wrk
 CodeRegExAclIdentity = ^Domain.*_(C|R)$
+CodeRegExSharedAccName = ^Sa\w{2}\d{2}
 ContentBtnCopyOutputData = Data
 ContentBtnCopyOutputObject = Dataobject
 ContentBtnCopyValue = Copy
 ContentBtnEnterFunctionInput = Run script
+ContentBtnNoteWarningUnderstood = I understand
 ContentBtnSearch = Search
 ContentDgSearchResultsColNameTitle = Name (
 ContentDgSearchResultsColObjClass = Objecttype
@@ -90,6 +92,7 @@ StrIdPropName = IdName
 StrNoOwner = < No owner listed >
 StrNoRunspaceSplashInfo = The function does not use an individual process thread, and therefore can freeze the entire window until it completes
 StrNoScriptOutput = < No output >
+StrNoteWarningInfo = Click "I understand" to enable input and button to start
 StrOpenMainWindowFound = Fetchalon is already started
 StrOpensSeparateWindow = Opens in separate window
 StrOrgDnPropName = OrgDn
