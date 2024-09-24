@@ -1,5 +1,6 @@
 <Page Name="Window"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Page.Resources>
@@ -99,6 +100,7 @@
                        Style="{StaticResource TblBaseStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFolderList}" />
             <ListBox Name="LbFolderList"
+                     DisplayMemberPath="Name"
                      Grid.Row="5"
                      Style="{StaticResource LbBaseStyle}" />
             <TextBlock Name="TblFoldersChosen"
@@ -106,6 +108,7 @@
                        Style="{StaticResource TblBaseStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFoldersChosen}" />
             <ListBox Name="LbFoldersChosen"
+                     DisplayMemberPath="Name"
                      Grid.Row="7"
                      Style="{StaticResource LbBaseStyle}" />
         </Grid>
@@ -171,7 +174,76 @@
                       VerticalContentAlignment="Center" />
             <ListBox Name="LbLog"
                      Grid.Row="2"
-                     Style="{StaticResource LbBaseStyle}" />
+                     Style="{StaticResource LbBaseStyle}">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <TextBlock FontWeight="Bold"
+                                       Text="{Binding Path=Date}" />
+                            <ItemsControl Grid.Row="1"
+                                          Margin="10,5"
+                                          ItemsSource="{Binding Folders}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <ItemsControl Grid.Row="2"
+                                          ItemsSource="{Binding Path=Perms}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Grid.Row="2">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition />
+                                                <RowDefinition />
+                                            </Grid.RowDefinitions>
+                                            <TextBlock FontWeight="Bold"
+                                                       Text="{Binding Path=PermType}" />
+                                            <ItemsControl Grid.Row="1"
+                                                          Margin="10,5"
+                                                          ItemsSource="{Binding Path=Users}">
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <StackPanel />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" />
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </Grid>
     </Grid>
 </Page>
