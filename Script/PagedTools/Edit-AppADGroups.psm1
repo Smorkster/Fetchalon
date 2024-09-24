@@ -51,8 +51,8 @@ function Check-User
 
 	try
 	{
-		$O = Get-ADUser -Identity $Id  -Properties otherMailbox -ErrorAction Stop
-		return $O
+		return Get-ADObject -LDAPFilter "(|(Name=$( $Id ))(SamAccountName=$( $Id )))" -Properties otherMailbox -ErrorAction Stop
+		
 	}
 	catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]
 	{
@@ -151,24 +151,22 @@ function Collect-Users
 	foreach ( $entry in $entries )
 	{
 		$syncHash.Controls.Window.Title = "$( $msgTable.StrGettingUser ) $( [Math]::Floor( $loopCounter / $entries.Count * 100 ) )"
-		$User = Check-User -Id $entry
-		if ( $User -is [Microsoft.ActiveDirectory.Management.ADUser] )
+		$CheckedObject = Check-User -Id $entry
+		if ( $CheckedObject -is [Microsoft.ActiveDirectory.Management.ADUser] )
 		{
-			$object = $null
-			$object = @{ "Id" = $entry.ToString().ToUpper(); "AD" = $User ; "PW" = Generate-Password }
-			if ( ( ( $syncHash.AddUsers | Where-Object { $_.Id -eq $object.Id } ).Count + ( $syncHash.RemoveUsers | Where-Object { $_.Id -eq $object.Id } ).Count ) -gt 1 )
-			{
-				$syncHash.Duplicates += $object.Id
+			$Object = $null
+			$Object = @{
+				"Id" = $entry.ToString().ToUpper()
+				"AD" = $CheckedObject
+				"PW" = Generate-Password
 			}
-			else
+
+			switch ( $PermissionType )
 			{
-				switch ( $PermissionType )
-				{
-					"Add"
-						{ $syncHash.AddUsers += $object }
-					"Remove"
-						{ $syncHash.RemoveUsers += $object }
-				}
+				"Add"
+					{ $syncHash.AddUsers += $Object }
+				"Remove"
+					{ $syncHash.RemoveUsers += $Object }
 			}
 		}
 		$loopCounter++
@@ -200,17 +198,26 @@ function Create-LogText
 
 	if ( $syncHash.AddUsers )
 	{
-		$syncHash.AddUsers.AD | ForEach-Object { $LogText.AddedUsers.Add( $_.Name ) }
+		$syncHash.AddUsers.AD | `
+			ForEach-Object {
+				$LogText.AddedUsers.Add( $_.Name )
+			}
 	}
 
 	if ( $syncHash.RemoveUsers )
 	{
-		$syncHash.RemoveUsers.AD | ForEach-Object { $LogText.RemovedUsers.Add( $_.Name ) }
+		$syncHash.RemoveUsers.AD | `
+			ForEach-Object {
+				$LogText.RemovedUsers.Add( $_.Name )
+			}
 	}
 
 	if ( $syncHash.ErrorUsers )
 	{
-		$syncHash.ErrorUsers | ForEach-Object { $LogText.ErrorUsers.Add( "$( $_.Id ) ($( $_.Reason ))" ) }
+		$syncHash.ErrorUsers | `
+			ForEach-Object {
+				$LogText.ErrorUsers.Add( "$( $_.Id ) ($( $_.Reason ))" )
+			}
 	}
 
 	$syncHash.Data.Test = $LogText
@@ -310,7 +317,10 @@ function Get-RandomCharacters
 
 	param ( $Length, $Characters )
 
-	$random = 1..$Length | ForEach-Object { Get-Random -Maximum $Characters.Length }
+	$random = 1..$Length | `
+		ForEach-Object {
+			Get-Random -Maximum $Characters.Length
+		}
 	$private:OFS = ""
 	return [string]$Characters[$random]
 }
@@ -360,47 +370,68 @@ function Perform-Permissions
 
 	Collect-Entries
 
-	if ( $syncHash.Duplicates )
+	$Continue = Show-MessageBox -Text "$( $syncHash.Data.msgTable.QCont1 ) $( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType ) $( $syncHash.Data.msgTable.QCont2 ) $( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) $( $syncHash.Data.msgTable.QCont3 ) ?$( if ( $syncHash.ErrorUsers ) { "`n$( $syncHash.Data.msgTable.QContErr )." } )" -Title "$( $syncHash.Data.msgTable.QContTitle )?" -Button "OKCancel"
+	if ( $Continue -eq "OK" )
 	{
-		Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrDuplicates ):`n$( $syncHash.Duplicates | Select-Object -Unique )" -Title $syncHash.Data.msgTable.StrDuplicatesTitle -Icon "Stop"
-	}
-	else
-	{
-		$Continue = Show-MessageBox -Text "$( $syncHash.Data.msgTable.QCont1 ) $( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType ) $( $syncHash.Data.msgTable.QCont2 ) $( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) $( $syncHash.Data.msgTable.QCont3 ) ?$( if ( $syncHash.ErrorUsers ) { "`n$( $syncHash.Data.msgTable.QContErr )." } )" -Title "$( $syncHash.Data.msgTable.QContTitle )?" -Button "OKCancel"
-		if ( $Continue -eq "OK" )
+		$loopCounter = 0
+		foreach ( $Group in $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source )
 		{
-			$loopCounter = 0
-			foreach ( $Group in $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source )
-			{
-				$syncHash.Controls.Window.Title = "$( $syncHash.Data.msgTable.StrProgressTitle ) $( [Math]::Floor( $loopCounter / $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count * 100 ) )%"
-				if ( $syncHash.AddUsers )
-				{
-					try { Add-ADGroupMember -Identity $Group -Members $syncHash.AddUsers.Id -Confirm:$false }
-					catch { $syncHash.Data.ErrorHashes += WriteErrorLog -LogText $_ -UserInput "$( $Group.Name )`n$( $OFS = ", "; $syncHash.AddUsers.Id )" -Severity "UserInputFail" }
-				}
-
-				if ( $syncHash.RemoveUsers )
-				{
-					try { Remove-ADGroupMember -Identity $Group -Members $syncHash.RemoveUsers.Id -Confirm:$false }
-					catch { $syncHash.Data.ErrorHashes += WriteErrorLog -LogText $_ -UserInput "$( $Group.Name )`n$( $OFS = ", "; $syncHash.AddUsers.Id )" -Severity "UserInputFail" }
-				}
-				$loopCounter++
-			}
-			foreach ( $u in ( $syncHash.AddUsers | Where-Object { $_.AD.otherMailbox -match $syncHash.Data.msgTable.StrSpecOrg } ) )
+			$syncHash.Controls.Window.Title = "$( $syncHash.Data.msgTable.StrProgressTitle ) $( [Math]::Floor( $loopCounter / $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count * 100 ) )%"
+			if ( $syncHash.AddUsers )
 			{
 				try
 				{
-					Set-ADAccountPassword -Identity $u.AD -Reset -NewPassword ( ConvertTo-SecureString -AsPlainText $u.PW -Force )
-					Set-ADUser -Identity $u.AD -ChangePasswordAtLogon $false -Confirm:$false
+					Add-ADGroupMember -Identity $Group -Members $syncHash.AddUsers.Id -Confirm:$false
 				}
 				catch
 				{
-					$syncHash.Data.ErrorHashes += WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrMessageSetPassword )`n$_" -UserInput $u.AD.SamAccountName -Severity "UserInputFail"
+					try
+					{
+						Add-ADGroupMember -Identity $Group.Name -Members $syncHash.AddUsers.Id -Confirm:$false
+					}
+					catch
+					{
+						$syncHash.Data.ErrorHashes += WriteErrorLog -LogText $_ -UserInput "$( $Group.Name )`n$( $OFS = ", "; $syncHash.AddUsers.Id )" -Severity "UserInputFail"
+					}
 				}
 			}
-			foreach ( $c in $syncHash.AddComputer )
+
+			if ( $syncHash.RemoveUsers )
 			{
-				$syncHash.Controls.CbApp.SelectedItem.Tag.ComputerAdGroups | ForEach-Object {
+				try
+				{
+					Remove-ADGroupMember -Identity $Group -Members $syncHash.RemoveUsers.Id -Confirm:$false
+				}
+				catch
+				{
+					try
+					{
+						Remove-ADGroupMember -Identity $Group.Name -Members $syncHash.RemoveUsers.Id -Confirm:$false
+					}
+					catch
+					{
+						$syncHash.Data.ErrorHashes += WriteErrorLog -LogText $_ -UserInput "$( $Group.Name )`n$( $OFS = ", "; $syncHash.AddUsers.Id )" -Severity "UserInputFail"
+					}
+				}
+			}
+			$loopCounter++
+		}
+		foreach ( $u in ( $syncHash.AddUsers | Where-Object { $_.AD.otherMailbox -match $syncHash.Data.msgTable.StrSpecOrg } ) )
+		{
+			try
+			{
+				Set-ADAccountPassword -Identity $u.AD -Reset -NewPassword ( ConvertTo-SecureString -AsPlainText $u.PW -Force )
+				Set-ADUser -Identity $u.AD -ChangePasswordAtLogon $false -Confirm:$false
+			}
+			catch
+			{
+				$syncHash.Data.ErrorHashes += WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrMessageSetPassword )`n$_" -UserInput $u.AD.SamAccountName -Severity "UserInputFail"
+			}
+		}
+		foreach ( $c in $syncHash.AddComputer )
+		{
+			$syncHash.Controls.CbApp.SelectedItem.Tag.ComputerAdGroups | `
+				ForEach-Object {
 					$g = $_
 					try
 					{
@@ -428,15 +459,14 @@ function Perform-Permissions
 						WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrSysManGenError )`n$_" -UserInput $c -Severity "OtherFail"
 					}
 				}
-			}
-			Create-LogText ( Create-Message )
-			Write-ToLogFile
-			Show-MessageBox -Text "$( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count * ( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) ) $( $syncHash.Data.msgTable.StrFinishMessage )" -Title "$( $syncHash.Data.msgTable.StrFinishMessageTitle )"
-
-			Undo-Input
-			Reset-Variables
-			$syncHash.Controls.Window.Title = $syncHash.Data.msgTable.ContentWindowTitle
 		}
+		Create-LogText ( Create-Message )
+		Write-ToLogFile
+		Show-MessageBox -Text "$( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count * ( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) ) $( $syncHash.Data.msgTable.StrFinishMessage )" -Title "$( $syncHash.Data.msgTable.StrFinishMessageTitle )"
+
+		Undo-Input
+		Reset-Variables
+		$syncHash.Controls.Window.Title = $syncHash.Data.msgTable.ContentWindowTitle
 	}
 }
 
@@ -450,7 +480,6 @@ function Reset-Variables
 	$syncHash.AddComputer = @()
 	$syncHash.AddUsers = @()
 	$syncHash.ADGroups = @()
-	$syncHash.Duplicates = @()
 	$syncHash.ErrorUsers = @()
 	$syncHash.Data.ErrorHashes = @()
 	$syncHash.RemoveUsers = @()
@@ -502,7 +531,8 @@ function Set-UserSettings
 		}
 		elseif ( ( Get-ADGroupMember $syncHash.Data.msgTable.StrBORoleGrp ).Name -contains ( Get-ADUser -Identity ( [Environment]::UserName ) ).Name )
 		{
-			$syncHash.Data.Signature += "`n$( $syncHash.Data.msgTable.StrSigSD )"
+			$syncHash.Data.Signature += "`n`n$( $syncHash.Data.msgTable.StrSigSD )"
+			$syncHash.Data.Signature += "`n$( $syncHash.Data.msgTable.StrSigSD2 )"
 		}
 		else
 		{ throw }
@@ -561,11 +591,13 @@ function Update-AppGroupList
 	{
 		try
 		{
-			$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" -Properties Description | Sort-Object Name
+			$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" -Properties Description | `
+				Sort-Object Name | `
+				Select-Object *
 			if ( $null -ne $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude )
 			{
 				$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = $syncHash.Controls.CbApp.SelectedItem.Tag.GroupList | `
-					Where-Object { $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude -notcontains $_.Name.Split( $syncHash.Controls.CbApp.SelectedItem.Tag.split )[$syncHash.Controls.CbApp.SelectedItem.Tag.index] } | `
+					Where-Object { $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude -notcontains $_.Name.Split( $syncHash.Controls.CbApp.SelectedItem.Tag.ExcludeSplitCharacter )[$syncHash.Controls.CbApp.SelectedItem.Tag.ExcludedWordIndex] } | `
 					Sort-Object Name
 			}
 		}
@@ -646,12 +678,31 @@ Set-Localizations
 
 $syncHash.Controls.BtnRefetchGroups.Add_Click( {
 	if ( $null -eq $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude )
-	{ $syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" | Sort-Object Name }
+	{
+		$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" | Sort-Object Name
+	}
 	else
-	{ $syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" | Where-Object { $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude -notcontains $_.Name.Split( $syncHash.Controls.CbApp.SelectedItem.Tag.split )[$syncHash.Controls.CbApp.SelectedItem.Tag.index] } | Sort-Object Name }
+	{
+		$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" | `
+			Where-Object { $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude -notcontains $_.Name.Split( $syncHash.Controls.CbApp.SelectedItem.Tag.ExcludeSplitCharacter )[$syncHash.Controls.CbApp.SelectedItem.Tag.ExcludedWordIndex] } | `
+			Sort-Object Name
+	}
 } )
 
-$syncHash.Controls.BtnPerform.Add_Click( { Perform-Permissions } )
+$syncHash.Controls.BtnPerform.Add_Click( {
+	$DupList = ( ( ( $syncHash.Controls.TxtUsersAddPermission.Text -split "\W" ) + ( $syncHash.Controls.TxtUsersRemovePermission.Text -split "\W" ) ) | `
+		Group-Object | `
+		Where-Object { $_.Count -gt 1 } | `
+		Select-Object -ExpandProperty Name ) -join ", "
+	if ( $DupList.Length -gt 0 )
+	{
+		Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrDuplicates ):`n$( $DupList )" -Title $syncHash.Data.msgTable.StrDuplicatesTitle -Icon "Stop"
+	}
+	else
+	{
+		Perform-Permissions
+	}
+} )
 
 $syncHash.Controls.BtnUndo.Add_Click( { Undo-Input } )
 
