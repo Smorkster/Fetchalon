@@ -118,6 +118,8 @@ function Get-PollenRapport
 	.InputDataList
 		Stad | True | Välj stad att visa prognos för | Stockholm | Stockholm,Borlänge,Forshaga,Gävle,Jönköping,Visby,Bräkne-Hoby,Göteborg,Hässleholm,Kristianstad,Malmö,Nässjö,Eskilstuna,Norrköping,Skövde,Sundsvall,Umeå,Västervik,Östersund,Piteå,Kiruna,Ljusdal
 	.NoRunspace
+	.EnableQuickAccess
+		pollen
 	.OutputType
 		ObjectList
 	.State
@@ -130,9 +132,11 @@ function Get-PollenRapport
 
 	$CityId = ( ( Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/regions" -Method Get ).items | `
 		Where-Object { ( $_.name -replace "Ã¥", "å" -replace "Ã¤", "ä" -replace "Ã¶", "ö" ) -match $InputData.Stad } ).id
+
 	$PList = [System.Collections.ArrayList]::new()
 	$PollenTypes = ( Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/pollen-types" -Method get ).items
-	$PollenForecast = Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/forecasts?region_id=$CityId&current=true" -Method Get -ContentType "application/json"
+
+	$PollenForecast = Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/forecasts?region_id=$( $CityId )&current=true" -Method Get -ContentType "application/json"
 	$PollenForecast.items[0].levelSeries | `
 		Where-Object { $_.level -gt 0 -and $_.time -match ( Get-Date -Format "yyyy-MM-dd" ) } | `
 		Select-Object @{ Name = $IntMsgTable.GetPollenRapportTitle1 ; Expression = { $current = $_ ; ( $PollenTypes | Where-Object { $_.id -eq $current.pollenId } ).Name -replace "Ã¥", "å" -replace "Ã¤", "ä" -replace "Ã¶", "ö" } } , `
@@ -200,6 +204,8 @@ function Get-String
 		Get string
 	.MenuItem
 		Get string
+	.Note
+		Warning | Test warning
 	.SearchedItemRequest
 		None
 	.OutputType
@@ -352,7 +358,7 @@ function Write-String
 
 	Start-Sleep -Seconds 1
 
-	return $InputData.String
+	return "$( $InputData.String ) $( $InputData.String2 ) $( $InputData.Strings )"
 }
 
 $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
