@@ -90,7 +90,7 @@
                        Grid.Row="2"
                        Style="{StaticResource TblBaseStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFolderSearch}" />
-            <TextBox Name="TxtFolderSearch"
+            <TextBox Name="TbFolderSearch"
                      AcceptsReturn="False"
                      Grid.Row="3"
                      Style="{StaticResource TbBaseStyle}"
@@ -100,17 +100,55 @@
                        Style="{StaticResource TblBaseStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFolderList}" />
             <ListBox Name="LbFolderList"
-                     DisplayMemberPath="Name"
                      Grid.Row="5"
-                     Style="{StaticResource LbBaseStyle}" />
+                     Style="{StaticResource LbBaseStyle}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text"
+                                            Value="{Binding Path=NameToDisplay}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Path=NameToDisplay}"
+                                                     Value="{x:Null}">
+                                            <Setter Property="Text"
+                                                    Value="{Binding Path=Name}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
             <TextBlock Name="TblFoldersChosen"
                        Grid.Row="6"
                        Style="{StaticResource TblBaseStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFoldersChosen}" />
             <ListBox Name="LbFoldersChosen"
-                     DisplayMemberPath="Name"
                      Grid.Row="7"
-                     Style="{StaticResource LbBaseStyle}" />
+                     Style="{StaticResource LbBaseStyle}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock>
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Text"
+                                            Value="{Binding Path=NameToDisplay}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Path=NameToDisplay}"
+                                                     Value="{x:Null}">
+                                            <Setter Property="Text"
+                                                    Value="{Binding Path=Name}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
         </Grid>
         <Grid Grid.Column="1"
               Style="{StaticResource GridBaseStyle}">
@@ -126,21 +164,21 @@
             <TextBlock Name="TblUsersForWritePermission"
                        Style="{StaticResource TblBaseStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForWritePermission}" />
-            <TextBox Name="TxtUsersForWritePermission"
+            <TextBox Name="TbUsersForWritePermission"
                      Grid.Row="1"
                      Style="{StaticResource TbBaseStyle}" />
             <TextBlock Name="TblUsersForReadPermission"
                        Grid.Row="2"
                        Style="{StaticResource TblBaseStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForReadPermission}" />
-            <TextBox Name="TxtUsersForReadPermission"
+            <TextBox Name="TbUsersForReadPermission"
                      Grid.Row="3"
                      Style="{StaticResource TbBaseStyle}" />
             <TextBlock Name="TblUsersForRemovePermission"
                        Grid.Row="4"
                        Style="{StaticResource TblBaseStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForRemovePermission}" />
-            <TextBox Name="TxtUsersForRemovePermission"
+            <TextBox Name="TbUsersForRemovePermission"
                      Grid.Row="5"
                      Style="{StaticResource TbBaseStyle}" />
             <Grid Grid.Row="6">
