@@ -51,8 +51,14 @@ function Check-User
 
 	try
 	{
-		return Get-ADObject -LDAPFilter "(|(Name=$( $Id ))(SamAccountName=$( $Id )))" -Properties otherMailbox -ErrorAction Stop
-		
+		if ( $null -eq ( $ret = Get-ADObject -LDAPFilter "(|(Name=$( $Id ))(SamAccountName=$( $Id )))" -Properties otherMailbox -ErrorAction Stop ) )
+		{
+			throw [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]::new()
+		}
+		else
+		{
+			return $ret
+		}
 	}
 	catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]
 	{
@@ -152,7 +158,9 @@ function Collect-Users
 	{
 		$syncHash.Controls.Window.Title = "$( $msgTable.StrGettingUser ) $( [Math]::Floor( $loopCounter / $entries.Count * 100 ) )"
 		$CheckedObject = Check-User -Id $entry
-		if ( $CheckedObject -is [Microsoft.ActiveDirectory.Management.ADUser] )
+		if ( $CheckedObject -is [Microsoft.ActiveDirectory.Management.ADObject] -and
+			$CheckedObject.ObjectClass -match "(user)|(group)"
+		)
 		{
 			$Object = $null
 			$Object = @{
