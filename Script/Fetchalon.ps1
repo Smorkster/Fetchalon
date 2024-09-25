@@ -1606,7 +1606,22 @@ $syncHash.Code.ListProperties =
 							NameLocalization = ""
 							CheckedForVisible = $null
 						}
-								}
+					}
+		}
+
+		if ( $Props.Name -notmatch "LogonWorkstations" `
+			-and $syncHash.Data.SearchedItem.Name -match $syncHash.Data.msgTable.CodeRegExSharedAccName
+		)
+		{
+			$Props += [pscustomobject]@{
+				Name = "LogonWorkstations"
+				Value = $syncHash.Data.SearchedItem.LogonWorkstations
+				Source = "AD"
+				Type = $null
+				Handler = $Null
+				NameLocalization = ""
+				CheckedForVisible = $null
+			}
 		}
 
 		$Props | `
@@ -1690,7 +1705,8 @@ $syncHash.Code.ListProperties =
 
 				# Should the prop be added to the list of selected visible properties?
 				if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -eq $Prop.Source -and $_.Name -eq $Prop.Name } ) -or `
-					$OtherObjectClass
+					$OtherObjectClass -or `
+					( $Props.Name -notmatch "LogonWorkstations" -and $syncHash.Data.SearchedItem.Name -match "^F\w{3}\d{4}" )
 				)
 				{
 					$syncHash.Window.Resources['CvsPropsList'].Source.Add( $Prop )
