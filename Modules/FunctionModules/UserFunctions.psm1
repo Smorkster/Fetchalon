@@ -130,6 +130,8 @@ function Get-FolderMembership
 		Required
 	.OutputType
 		ObjectList
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -163,6 +165,8 @@ function Get-FolderOwnership
 		Required
 	.OutputType
 		List
+	.State
+		Prod
 	.Author
 		Smorkster (smorkster)
 	#>
@@ -175,6 +179,47 @@ function Get-FolderOwnership
 	if ( $null -eq $List )
 	{
 		return $null
+	}
+	else
+	{
+		return $List
+	}
+}
+
+function Get-LastWorkstationLogins
+{
+	<#
+	.Synopsis
+		List last logins
+	.Description
+		List the last registered computer logins
+	.MenuItem
+		List logins
+	.SearchedItemRequest
+		Required
+	.SubMenu
+		SysMan
+	.OutputType
+		ObjectList
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	$List = [System.Collections.ArrayList]::new()
+	( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/reporting/User?userName=$( $Item.SamAccountName )" -Method Get -UseDefaultCredentials ).clientLogins | `
+		Select-Object -Property @{ Name = "$( $IntMsgTable.GetLastWorkstationLoginsParamTitleName )" ; Expression = { $_.Name } } , `
+			@{ Name = "$( $IntMsgTable.GetLastWorkstationLoginsParamTitleDate )" ; Expression = { $_.lastHardwareScan } } | `
+		ForEach-Object {
+			$List.Add( $_ ) | Out-Null
+		}
+
+	if ( $List.Count -eq 0 )
+	{
+		return $IntMsgTable.GetLastWorkstationLoginsNoLogins
 	}
 	else
 	{
@@ -610,6 +655,6 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 Export-ModuleMember -Function Compare-UserGroups
-Export-ModuleMember -Function Get-FolderMembership, Get-FolderOwnership, Get-O365AccountStatus
+Export-ModuleMember -Function Get-FolderMembership, Get-FolderOwnership, Get-O365AccountStatus, Get-SharedAccountsByDepId, Get-LastWorkstationLogins
 Export-ModuleMember -Function Open-SysManGroups, Open-SysManMobileDevices
 Export-ModuleMember -Function Remove-ProfileAria, Remove-ProfileVK, Remove-ProfileVKTC

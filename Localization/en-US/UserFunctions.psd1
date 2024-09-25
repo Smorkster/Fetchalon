@@ -1,4 +1,7 @@
 ﻿ConvertFrom-StringData @'
+GetLastWorkstationLoginsNoLogins = No registered logins was found
+GetLastWorkstationLoginsParamTitleDate = Date
+GetLastWorkstationLoginsParamTitleName = Name
 GetO365AccountStatusCodeMsExchIgnoreOrg = OU=Org2
 GetO365AccountStatusNotConnected = Not connected to O365 services
 GetO365AccountStatusParamADActiveCheck = AD Active
