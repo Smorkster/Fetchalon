@@ -23,7 +23,7 @@ function Check-Ready
 		Some input is entered, check if necessary input is given, enable button to perform
 	#>
 
-	if ( ( $syncHash.DC.LbFoldersChosen[0].Count -gt 0 ) -and ( ( $syncHash.Controls.TxtUsersForWritePermission.Text.Length -ge 4 ) -or ( $syncHash.Controls.TxtUsersForReadPermission.Text.Length -ge 4 ) -or ( $syncHash.Controls.TxtUsersForRemovePermission.Text.Length -ge 4 ) ) )
+	if ( ( $syncHash.DC.LbFoldersChosen[0].Count -gt 0 ) -and ( ( $syncHash.Controls.TbUsersForWritePermission.Text.Length -ge 4 ) -or ( $syncHash.Controls.TbUsersForReadPermission.Text.Length -ge 4 ) -or ( $syncHash.Controls.TbUsersForRemovePermission.Text.Length -ge 4 ) ) )
 	{
 		$syncHash.DC.BtnPerform[0] = $true
 	}
@@ -341,15 +341,15 @@ function Collect-Entries
 		Collect input from textboxes
 	#>
 
-	if ( ( $entries = $syncHash.Controls.TxtUsersForWritePermission.Text -split "\W" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
+	if ( ( $entries = $syncHash.Controls.TbUsersForWritePermission.Text -split "\W" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
 	{
 		Collect-Users -Entries $entries -PermissionType "Write"
 	}
-	if ( ( $entries = $syncHash.Controls.TxtUsersForReadPermission.Text -split "\W" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
+	if ( ( $entries = $syncHash.Controls.TbUsersForReadPermission.Text -split "\W" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
 	{
 		Collect-Users -Entries $entries -PermissionType "Read"
 	}
-	if ( ( $entries = $syncHash.Controls.TxtUsersForRemovePermission.Text -split "\W" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
+	if ( ( $entries = $syncHash.Controls.TbUsersForRemovePermission.Text -split "\W" | Where-Object { $_ } | ForEach-Object { $_.Trim() } ).Count -gt 0 )
 	{
 		Collect-Users -Entries $entries -PermissionType "Remove"
 	}
@@ -514,8 +514,8 @@ function Folder-Deselected
 		$syncHash.DC.LbFoldersChosen[0].Remove( $syncHash.DC.LbFoldersChosen[2] )
 		Check-Ready
 		Update-FolderListItems
-		$syncHash.Controls.TxtFolderSearch.Text = ""
-		$syncHash.Controls.TxtFolderSearch.Focus()
+		$syncHash.Controls.TbFolderSearch.Text = ""
+		$syncHash.Controls.TbFolderSearch.Focus()
 	}
 }
 
@@ -532,8 +532,8 @@ function Folder-Selected
 		$syncHash.DC.LbFolderList[0].Remove( $syncHash.DC.LbFolderList[2] )
 		Check-Ready
 		Update-FolderListItems
-		$syncHash.Controls.TxtFolderSearch.Text = ""
-		$syncHash.Controls.TxtFolderSearch.Focus()
+		$syncHash.Controls.TbFolderSearch.Text = ""
+		$syncHash.Controls.TbFolderSearch.Focus()
 	}
 }
 
@@ -685,13 +685,13 @@ function Search-ListboxItem
 	$list = $syncHash.Folders | `
 		Where-Object { $syncHash.DC.LbFoldersChosen[0] -notcontains $_ }
 
-	if ( $syncHash.Controls.TxtFolderSearch.Text.Length -eq 0 )
+	if ( $syncHash.Controls.TbFolderSearch.Text.Length -eq 0 )
 	{
 		$syncHash.DC.LbFolderList[1] = -1
 	}
 	else
 	{
-		$list = $list | Where-Object { $_ -like "*$( $syncHash.Controls.TxtFolderSearch.Text.Replace( "\\", "\\\\" ) )*" }
+		$list = $list | Where-Object { $_.Name,$_.NameToDisplay -like "*$( $syncHash.Controls.TbFolderSearch.Text.Replace( "\\", "\\\\" ) )*" }
 	}
 
 	$syncHash.DC.LbFolderList[0].Clear()
@@ -773,9 +773,9 @@ function Undo-Input
 		Clear all input
 	#>
 
-	$syncHash.Controls.TxtUsersForWritePermission.Text = ""
-	$syncHash.Controls.TxtUsersForReadPermission.Text = ""
-	$syncHash.Controls.TxtUsersForRemovePermission.Text = ""
+	$syncHash.Controls.TbUsersForWritePermission.Text = ""
+	$syncHash.Controls.TbUsersForReadPermission.Text = ""
+	$syncHash.Controls.TbUsersForRemovePermission.Text = ""
 	$syncHash.DC.LbFoldersChosen[0].Clear()
 	Update-FolderList
 }
@@ -805,12 +805,30 @@ function Update-FolderList
 
 	Set-WinTitle -Text $syncHash.Data.msgTable.StrGetFolders
 	$syncHash.DC.LbFoldersChosen[0].Clear()
-	$syncHash.Folder = @()
+	$syncHash.Folders = [System.Collections.ArrayList]::new()
 
 	if ( $syncHash.DC.CbDisk[1].Length -gt 0 )
 	{
-		$syncHash.Folders = Get-ChildItem $syncHash.DC.CbDisk[1] -Directory | Where-Object { $_.FullName -notin $syncHash.Data.ExceptionFolders }
-		$syncHash.Controls.TxtFolderSearch.Focus()
+		if ( $syncHash.DC.CbDisk[1] -match "^S" )
+		{
+			$Folders = Get-ChildItem $syncHash.DC.CbDisk[1] -Directory | `
+				Get-ChildItem -Directory | `
+				ForEach-Object {
+					$Temp = ( $_ | Select-Object * )
+					$NTD = $Temp.FullName -replace "$( $syncHash.DC.CbDisk[1] -replace "\\","\\" )\\", ""
+					Add-Member -InputObject $Temp -MemberType NoteProperty -Name "NameToDisplay" -Value $NTD
+					$syncHash.Folders.Add( $Temp ) | Out-Null
+				}
+		}
+		else
+		{
+			$Folders = Get-ChildItem $syncHash.DC.CbDisk[1] -Directory | `
+				ForEach-Object {
+					$syncHash.Folders.Add( $_ ) | Out-Null
+				}
+		}
+
+		$syncHash.Controls.TbFolderSearch.Focus()
 		Update-FolderListItems
 	}
 	Set-WinTitle -Text $syncHash.Data.msgTable.StrTitle
@@ -824,7 +842,7 @@ function Update-FolderListItems
 	#>
 
 	$syncHash.DC.LbFolderList[0].Clear()
-	foreach ( $Folder in ( $syncHash.Folders | Where-Object { $syncHash.DC.LbFoldersChosen[0] -notcontains $_ } | Sort-Object Name ) )
+	foreach ( $Folder in ( $syncHash.Folders | Where-Object { $syncHash.DC.LbFoldersChosen[0] -notcontains $_ } | Sort-Object NameToDisplay, Name ) )
 	{
 		[void] $syncHash.DC.LbFolderList[0].Add( $Folder )
 	}
@@ -958,19 +976,19 @@ function Write-ToLogFile
 	}
 
 	$UserInput = ""
-	if ( $syncHash.Controls.TxtUsersForReadPermission.Text.Length -gt 0 )
+	if ( $syncHash.Controls.TbUsersForReadPermission.Text.Length -gt 0 )
 	{
-		$UserInput += "$( $syncHash.Data.msgTable.LogInputRead ): $( $syncHash.Controls.TxtUsersForReadPermission.Text -split "\W" )`n"
+		$UserInput += "$( $syncHash.Data.msgTable.LogInputRead ): $( $syncHash.Controls.TbUsersForReadPermission.Text -split "\W" )`n"
 	}
 
-	if ( $syncHash.Controls.TxtUsersForWritePermission.Text.Length -gt 0 )
+	if ( $syncHash.Controls.TbUsersForWritePermission.Text.Length -gt 0 )
 	{
-		$UserInput += "$( $syncHash.Data.msgTable.LogInputWrite ): $( $syncHash.Controls.TxtUsersForWritePermission.Text -split "\W" )`n"
+		$UserInput += "$( $syncHash.Data.msgTable.LogInputWrite ): $( $syncHash.Controls.TbUsersForWritePermission.Text -split "\W" )`n"
 	}
 
-	if ( $syncHash.Controls.TxtUsersForRemovePermission.Text.Length -gt 0 )
+	if ( $syncHash.Controls.TbUsersForRemovePermission.Text.Length -gt 0 )
 	{
-		$UserInput += "$( $syncHash.Data.msgTable.LogInputRemove ): $( $syncHash.Controls.TxtUsersForRemovePermission.Text -split "\W" )`n"
+		$UserInput += "$( $syncHash.Data.msgTable.LogInputRemove ): $( $syncHash.Controls.TbUsersForRemovePermission.Text -split "\W" )`n"
 	}
 	$UserInput += "$( $syncHash.Data.msgTable.LogInputGroups ): $( [string]$syncHash.DC.LbFoldersChosen[0] )"
 
@@ -985,6 +1003,7 @@ $controls = New-Object Collections.ArrayList
 [void]$controls.Add( @{ CName = "LbFolderList" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[Object]]::new( ) } ; @{ PropName = "SelectedIndex"; PropVal = -1 } ; @{ PropName = "SelectedItem"; PropVal = "" } ) } )
 [void]$controls.Add( @{ CName = "LbFoldersChosen" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[Object]]::new( ) } ; @{ PropName = "SelectedIndex"; PropVal = -1 } ; @{ PropName = "SelectedItem"; PropVal = "" } ) } )
 [void]$controls.Add( @{ CName = "LbLog" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[Object]]::new( ) } ) } )
+[void]$controls.Add( @{ CName = "MainGrid" ; Props = @( @{ PropName = "IsEnabled"; PropVal = $false } ) } )
 [void]$controls.Add( @{ CName = "MainGrid" ; Props = @( @{ PropName = "IsEnabled"; PropVal = $false } ) } )
 
 BindControls $syncHash $controls
@@ -1027,7 +1046,7 @@ $syncHash.Data.ExceptionFolders = ""
 Reset-Variables
 
 $syncHash.Controls.BtnPerform.Add_Click( {
-	$DupList = ( ( $syncHash.Controls.TxtUsersForWritePermission.Text -split "\W" ) + ( $syncHash.Controls.TxtUsersForReadPermission.Text -split "\W" ) + ( $syncHash.Controls.TxtUsersForRemovePermission -split "\W" ) | `
+	$DupList = ( ( $syncHash.Controls.TbUsersForWritePermission.Text -split "\W" ) + ( $syncHash.Controls.TbUsersForReadPermission.Text -split "\W" ) + ( $syncHash.Controls.TbUsersForRemovePermission -split "\W" ) | `
 		Group-Object | `
 		Where-Object { $_.Count -gt 1 } | `
 		Select-Object -ExpandProperty Name ) -join ", "
@@ -1053,14 +1072,14 @@ $syncHash.Controls.CbDisk.Add_DropDownClosed( {
 	}
 } )
 
-$syncHash.Controls.TxtFolderSearch.Add_KeyUp( {
+$syncHash.Controls.TbFolderSearch.Add_KeyUp( {
 	if ( $args[1].Key -eq "Down" ) {
 		$syncHash.Controls.LbFolderList.SelectedIndex = 0
 		$syncHash.Controls.LbFolderList.Focus()
 	}
 } )
 
-$syncHash.Controls.TxtFolderSearch.Add_TextChanged( {
+$syncHash.Controls.TbFolderSearch.Add_TextChanged( {
 	Search-ListboxItem
 } )
 
@@ -1079,15 +1098,15 @@ $syncHash.Controls.LbFoldersChosen.Add_MouseDoubleClick( {
 	Folder-Deselected
 } )
 
-$syncHash.Controls.TxtUsersForWritePermission.Add_TextChanged( {
+$syncHash.Controls.TbUsersForWritePermission.Add_TextChanged( {
 	Check-Ready
 } )
 
-$syncHash.Controls.TxtUsersForReadPermission.Add_TextChanged( {
+$syncHash.Controls.TbUsersForReadPermission.Add_TextChanged( {
 	Check-Ready
 } )
 
-$syncHash.Controls.TxtUsersForRemovePermission.Add_TextChanged( {
+$syncHash.Controls.TbUsersForRemovePermission.Add_TextChanged( {
 	Check-Ready
 } )
 
