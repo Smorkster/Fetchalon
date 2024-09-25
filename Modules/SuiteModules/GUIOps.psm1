@@ -40,24 +40,25 @@ function BindControls
 		if ( ( $n = $control.CName ) -in $syncHash.DC.Keys )
 		{
 			# Insert all predefines property values
-			$control.Props | Foreach-Object { $syncHash.DC.$n.Add( $_.PropVal ) }
+			$control.Props | ForEach-Object { $syncHash.DC.$n.Add( $_.PropVal ) }
 
 			# Create the bindingobjects
-			0..( $control.Props.Count - 1 ) | Foreach-Object { [void] $syncHash.Bindings.$n.Add( ( New-Object System.Windows.Data.Binding -ArgumentList "[$_]" ) ) }
-			$syncHash.Bindings.$n | Foreach-Object {
-				try
-				{
-					$_.Mode = [System.Windows.Data.BindingMode]::TwoWay
+			0..( $control.Props.Count - 1 ) | `
+				ForEach-Object {
+					$Binding = [System.Windows.Data.Binding]::new()
+					$Binding.Path = "[$_]"
+					$Binding.Mode = [System.Windows.Data.BindingMode]::TwoWay
+					$syncHash.Bindings.$n.Add( $Binding ) | Out-Null
 				}
-				catch
-				{
-					if ( $_.Exception.Message -eq "Exception setting ""Mode"": ""Binding cannot be changed after it has been used.""" )
-					{ [void] [System.Windows.MessageBox]::Show( "$( $control.CName ) $( $IntMsgTable.BindControlsErrControlDuplicate ) " ) }
-				}
-			}
 			# Insert bindings to controls DataContext
-			if ( $Page ) { $syncHash.Controls.$n.DataContext = $syncHash.DC.$n }
-			else { $syncHash.$n.DataContext = $syncHash.DC.$n }
+			if ( $Page )
+			{
+				$syncHash.Controls.$n.DataContext = $syncHash.DC.$n
+			}
+			else
+			{
+				$syncHash.$n.DataContext = $syncHash.DC.$n
+			}
 
 			# Connect the bindings
 			for ( $i = 0; $i -lt $control.Props.Count; $i++ )
@@ -264,7 +265,7 @@ function CreateWindowExt
 	if ( $IncludeConverters ) { $syncHash.Window, $syncHash.Vars = CreateWindow -IncludeConverters }
 	else { $syncHash.Window, $syncHash.Vars = CreateWindow }
 
-	$syncHash.Vars | Foreach-Object {
+	$syncHash.Vars | ForEach-Object {
 		$syncHash.$_ = $syncHash.Window.FindName( $_ )
 		$syncHash.Bindings.$_ = New-Object System.Collections.ObjectModel.ObservableCollection[object]
 		$syncHash.DC.$_ = New-Object System.Collections.ObjectModel.ObservableCollection[object]
@@ -818,6 +819,50 @@ namespace FetchalonConverters
 
 				try { return null != ( adsSearcher.FindOne() ).GetDirectoryEntry(); }
 				catch { return false ; }
+			}
+		}
+
+		public object ConvertBack ( object value, Type targetTypes, object parameter, CultureInfo culture )
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	public class IgnoreDiscPrefixRule : IValueConverter
+	{
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			if ( value == null )
+			{
+				return false;
+			}
+			else
+			{
+				List<String> CustomerList = new List<String>(); 
+				CustomerList.Add( "G:\\Org1" ); 
+				CustomerList.Add( "G:\\Org2" ); 
+				CustomerList.Add( "G:\\Org3" ); 
+				return CustomerList.Contains( ( (string) value ) );
+			}
+		}
+
+		public object ConvertBack ( object value, Type targetTypes, object parameter, CultureInfo culture )
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	public class FileFolderVerifyer : IValueConverter
+	{
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			if ( value == null )
+			{
+				return false;
+			}
+			else
+			{
+				return ( (System.IO.FileAttributes) value ).ToString().Contains( "Directory" );
 			}
 		}
 
