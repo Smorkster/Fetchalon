@@ -396,6 +396,18 @@ function GetScriptInfo
 					{
 						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "NoRunspace" -Value $true -Force
 					}
+					elseif ( "Note" -eq $Matches.InfoType )
+					{
+						$Matches.Rest.Trim() -match "^\s*(?<NoteType>\w+).*?\|\s*(?<NoteText>.*)" | Out-Null
+						if ( $Matches.NoteType.Trim() -eq "Info" -or $Matches.NoteType.Trim() -eq "Warning" )
+						{
+							$Note = [pscustomobject]@{
+								NoteType = $Matches.NoteType.Trim()
+								NoteText = $Matches.NoteText.Trim()
+							}
+						}
+						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Note" -Value $Note -Force
+					}
 					else
 					{
 						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $Matches.InfoType -Value $Matches.Rest.Trim() -Force
