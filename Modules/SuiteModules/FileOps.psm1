@@ -345,9 +345,11 @@ function GetScriptInfo
 				} `
 				-Process {
 					$_ -match "\s*(?<InfoType>(?!(Parameter)|(Outputs))\w+)\s+(?<Rest>.*)" | Out-Null
-					if ( "InputData" -eq $Matches.InfoType )
+					$InfoType = $Matches.InfoType.Trim()
+					$Rest = $Matches.Rest.Trim()
+					if ( "InputData" -eq $InfoType )
 					{
-						$Name, $Mandatory, $Desc = $Matches.Rest.Trim() -split ",", 3
+						$Name, $Mandatory, $Desc = $Rest -split ",", 3
 						try
 						{
 							$ListInputData.Add( (
@@ -362,7 +364,7 @@ function GetScriptInfo
 						}
 						catch
 						{
-							Write-Error $Matches.Rest
+							Write-Warning "$( $IntmsgTable.ErrGetScriptInfoAddInputData )`n$( $Rest )`n$( $_ )"
 						}
 					}
 					elseif ( "InputDataList" -eq $Matches.InfoType )
@@ -407,6 +409,18 @@ function GetScriptInfo
 							}
 						}
 						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Note" -Value $Note -Force
+					}
+					elseif ( $InfoType -match "(?:In)*valid(?:ate)*(?:(?:Start)|(?:End))*DateTime" )
+					{
+						try
+						{
+							$Date = [datetime]::Parse( $Rest )
+							Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $InfoType -Value $Date -Force
+						}
+						catch
+						{
+							Write-Host "$( $IntmsgTable.ErrGetScriptInfoAddValidDate ) $( $InfoType ): $( $Rest )`n$( $_ )"
+						}
 					}
 					else
 					{
