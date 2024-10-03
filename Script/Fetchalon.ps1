@@ -108,12 +108,64 @@ function Add-MenuItem
 		$StateApproved = $true
 	}
 
-	# Check permissions for using the script MiObject refers to
+	$ValidDateApproved = $true
+	$ValidDateNote = ""
+
+	if ( ( $MiObject | Get-Member ).Name -match "(?:In)*valid(?:ate)*(?:(?:Start)|(?:End))*DateTime" )
+	{
+		$Date = Get-Date
+		if ( ( $MiObject.ValidStartDateTime -and $MiObject.InvalidateDateTime ) -and `
+			( $MiObject.ValidStartDateTime -le $MiObject.InvalidateDateTime )
+		)
+		{
+			if ( ( $Date -ge $MiObject.ValidStartDateTime -or $Date.Date -ge $MiObject.ValidStartDateTime ) -and `
+				( $Date -le $MiObject.InvalidateDateTime -or $Date.Date -le $MiObject.InvalidateDateTime )
+			)
+			{
+				$ValidDateNote = "$( $syncHash.Data.msgTable.StrValidDateNotePrefixBetween ) $( Get-Date $MiObject.ValidStartDateTime -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] ) - $( Get-Date $MiObject.InvalidateDateTime -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] )"
+			}
+			else
+			{
+				$ValidDateApproved = $false
+			}
+		}
+		elseif ( $MiObject.ValidStartDateTime )
+		{
+			if ( $Date -lt $MiObject.ValidStartDateTime )
+			{
+				$ValidDateApproved = $false
+			}
+			else
+			{
+				$ValidDateNote = "$( $syncHash.Data.msgTable.StrValidDateNotePrefixFrom ) $( Get-Date $MiObject.ValidStartDateTime -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] )"
+			}
+		}
+		elseif ( $MiObject.InvalidateDateTime )
+		{
+			if ( $Date -gt $MiObject.InvalidateDateTime )
+			{
+				$ValidDateApproved = $false
+			}
+			else
+			{
+				$ValidDateNote = "$( $syncHash.Data.msgTable.StrValidDateNotePrefixUntil ) $( Get-Date $MiObject.InvalidateDateTime -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] )"
+			}
+		}
+
+		if ( $ValidDateApproved )
+		{
+			Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "ValidDateNote" -Value $ValidDateNote
+		}
+	}
+
+	# Check permissions for using the function or tool that MiObject refers to
 	if (
-		( -not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or `
-		$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or `
-		$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0 ) -and `
-		$StateApproved
+		( -not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and `
+			-not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or `
+			$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or `
+			$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0 ) -and `
+		$StateApproved -and `
+		$ValidDateApproved
 	)
 	{
 		if ( $null -ne $MiObject.SubMenu )
@@ -178,11 +230,12 @@ function Add-MenuItem
 			}
 		}
 
-		if ( $null -eq $MiObject.EnableQuickAccess )
+		if ( $null -ne $MiObject.EnableQuickAccess )
 		{
 			$syncHash.Data.QuickAccessWordList."$( $MiObject.EnableQuickAccess )" = ( $MiObject | Select-Object * )
 		}
 	}
+	Remove-Variable -Name ValidDateNote -ErrorAction SilentlyContinue
 }
 
 function Check-O365Connection
@@ -509,7 +562,7 @@ function Prepare-ToRunScript
 
 	# The function does not want input
 	if ( $ScriptObject.InputData.Count -eq 0 -and
-		$null -eq $ScriptObject.Note
+		( $null -eq $ScriptObject.Note )
 	)
 	{
 		# Function is to be run without a runspace
@@ -723,6 +776,7 @@ function Set-Localizations
 	$syncHash.Window.Resources['MainOutput'].Resources['StrGbFunctionInputTitle'] = $syncHash.Data.msgTable.ContentGbFunctionInputTitle
 	$syncHash.Window.Resources['MainOutput'].Resources['StrNoteWarningInfo'] = $msgTable.StrNoteWarningInfo
 	$syncHash.Window.Resources['MainOutput'].Resources['StrScriptRunningWithoutRunspace'] = $syncHash.Data.msgTable.StrScriptRunningWithoutRunspace
+	$syncHash.Window.Resources['MainOutput'].Resources['StrBtnEnterFunctionInput'] = $syncHash.Data.msgTable.ContentBtnEnterFunctionInput
 
 	# Set timeformats
 	$DateTimeFormats = [System.Globalization.CultureInfo]::CurrentCulture.DateTimeFormat
@@ -1067,7 +1121,6 @@ Show-Splash -Text "" -SelfAdmin
 
 $controls = [System.Collections.ArrayList]::new()
 [void] $controls.Add( @{ CName = "BrdAsterixWarning" ; Props = @( @{ PropName = "Visibility" ; PropVal = [System.Windows.Visibility]::Collapsed } ) } )
-[void] $controls.Add( @{ CName = "BtnEnterFunctionInput" ; Props = @( @{ PropName = "Content" ; PropVal = $msgTable.ContentBtnEnterFunctionInput } ; @{ PropName = "IsEnabled" ; PropVal = $true } ) } )
 [void] $controls.Add( @{ CName = "BtnSearch" ; Props = @( @{ PropName = "IsEnabled" ; PropVal = $false } ) } )
 [void] $controls.Add( @{ CName = "DgSearchResults" ; Props = @( @{ PropName = "ItemsSource"; PropVal = [System.Collections.ObjectModel.ObservableCollection[object]]::new() } ) } )
 [void] $controls.Add( @{ CName = "GridProgress" ; Props = @( @{ PropName = "Visibility" ; PropVal = ( [System.Windows.Visibility]::Collapsed ) } ) } )
@@ -2122,7 +2175,9 @@ $(
 					}
 			}
 			$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
-			if ( $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count -gt 0 )
+			if ( $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count -gt 0 -or `
+				$syncHash.GridFunctionOp.DataContext.Note.NoteType -eq "Warning"
+			)
 			{
 				$syncHash.BtnEnterFunctionInput.IsEnabled = $false
 				$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count
@@ -2143,7 +2198,7 @@ $(
 	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
 }
 
-# Verify tht all mandatory input values are entered
+# Verify that all mandatory input values are entered
 [System.Windows.Controls.SelectionChangedEventHandler] $syncHash.Code.MandatoryFuncComboboxInputVerification =
 {
 	param ( $SenderObject, $e )
@@ -2160,11 +2215,11 @@ $(
 
 	if ( ( $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count ) -eq 0 )
 	{
-		$syncHash.DC.BtnEnterFunctionInput[1] = $true
+		$syncHash.BtnEnterFunctionInput.IsEnabled = $true
 	}
 	else
 	{
-		$syncHash.DC.BtnEnterFunctionInput[1] = $false
+		$syncHash.BtnEnterFunctionInput.IsEnabled = $false
 	}
 	$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count
 }
@@ -2186,11 +2241,11 @@ $(
 
 	if ( ( $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count ) -eq 0 )
 	{
-		$syncHash.DC.BtnEnterFunctionInput[1] = $true
+		$syncHash.BtnEnterFunctionInput.IsEnabled = $true
 	}
 	else
 	{
-		$syncHash.DC.BtnEnterFunctionInput[1] = $false
+		$syncHash.BtnEnterFunctionInput.IsEnabled = $false
 	}
 	$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count
 }
@@ -2332,15 +2387,15 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\*.psm1" | `
 		Get-Command -Module $ModuleName | `
 			ForEach-Object {
 				$CodeDefinition = $_.Definition
+
 				$MiObject = [pscustomobject]@{
 					Name = $_.Name
 				}
+				$MiObject = GetScriptInfo -Text $CodeDefinition -InfoObject $MiObject -NoErrorRecord
 				if ( $ModuleName -notmatch "O365.*Functions" )
 				{
 					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "ObjectClass" -Value ( $ModuleName -replace "Functions$" )
 				}
-
-				$MiObject = GetScriptInfo -Text $CodeDefinition -InfoObject $MiObject -NoErrorRecord
 
 				if ( $null -ne $MiObject )
 				{
@@ -2395,6 +2450,16 @@ Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
 	}
 
 Update-SplashText -Text $msgTable.StrSplashAddControlHandlers
+
+# Function note was acknowledged, check is function run button should be enabled
+$syncHash.BrdFunctionNote.Add_IsVisibleChanged( {
+	if ( $null -eq $syncHash.GridFunctionOp.DataContext.InputData -and `
+		$this.Visibility -eq [System.Windows.Visibility]::Collapsed
+	)
+	{
+		$syncHash.BtnEnterFunctionInput.IsEnabled = $true
+	}
+} )
 
 # Input has been entered by operator, start function
 $syncHash.BtnEnterFunctionInput.Add_Click( {
