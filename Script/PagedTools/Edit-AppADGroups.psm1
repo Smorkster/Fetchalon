@@ -9,7 +9,7 @@
 	Add or remove permissions to applications through their respective AD-groups.
 	Once the changes have been made, a solution message is copied to the clipboard.
 .ObjectOperations
-	None
+	Group
 .State
 	Prod
 .Author
@@ -577,8 +577,6 @@ function Update-AppList
 			index = 2 }
 
 	$apps | `
-		Where-Object { $_ } | `
-		Sort-Object Text | `
 		ForEach-Object {
 			$syncHash.Controls.Window.Resources['CvsAppList'].Source.Add( $_ )
 		}
