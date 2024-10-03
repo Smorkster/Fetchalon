@@ -1,5 +1,7 @@
 ﻿ConvertFrom-StringData @'
 ErrGetFunctionInfoNotScriptInfo = Angiven funktion innehåller ingen skriptinfo
+ErrGetScriptInfoAddInputData = Kunde inte lägga till InputData
+ErrGetScriptInfoAddValidDate = Kunde inte lägga till
 ErrGetScriptInfoNotScriptInfo = Angiven fil innehåller ingen skriptinfo
 ErrGetTextInfoNotScriptInfo = Angiven text innehåller ingen skriptinfo
 FileOpsEndScript = Tryck på Enter för att avsluta
