@@ -130,4 +130,7 @@ StrSplashSkippingO365 = Skips the login to Microsoft 365 services
 StrSubMenuGroupTitleSuffix = -functions
 StrSysManApi = http://sysman.domain.com/SysMan/api/
 StrSysAdmSANPrefix = sys
+StrValidDateNotePrefixBetween = Valid between
+StrValidDateNotePrefixFrom = Valid from
+StrValidDateNotePrefixUntil = Valid until (not including)
 '@

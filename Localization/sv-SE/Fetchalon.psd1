@@ -138,4 +138,7 @@ StrTextIdentifiedAsEmail = Mail-adress
 StrTextIdentifiedAsIpAddress = IP-adress
 StrTextIdentifiedAsNoPatternAdSearch = inget specifikt, söker i AD
 StrTextIdentifiedAsPsCmdlet = PowerShell-cmdlet
+StrValidDateNotePrefixBetween = Giltig mellan
+StrValidDateNotePrefixFrom = Giltig från
+StrValidDateNotePrefixUntil = Giltig fram till
 '@
