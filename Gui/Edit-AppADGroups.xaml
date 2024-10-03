@@ -1,11 +1,10 @@
 <Page x:Name="Window"
-        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-        xmlns:sys="clr-namespace:System;assembly=mscorlib"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:sys="clr-namespace:System;assembly=mscorlib"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
       Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Page.Resources>
-        <Brush x:Key="DefaultFontColor">#FF444444</Brush>
         <CollectionViewSource x:Key="CvsAppGrps">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription PropertyName="Name" />
@@ -22,73 +21,19 @@
                 <componentmodel:SortDescription PropertyName="Name" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
-        <GridLength x:Key="LabelHeight">40</GridLength>
+
         <sys:String x:Key="StrErrorUsersTitle">x</sys:String>
         <sys:String x:Key="StrGroupsTitle">x</sys:String>
         <sys:String x:Key="StrRemovedUsersTitle">x</sys:String>
+
+        <Brush x:Key="DefaultFontColor">#FF444444</Brush>
+        <GridLength x:Key="LabelHeight">40</GridLength>
         <Thickness x:Key="StdMargin">5</Thickness>
+
         <Style TargetType="Button"
                x:Key="BtnBaseStyle">
             <Setter Property="Foreground"
                     Value="{StaticResource DefaultFontColor}" />
-            <Setter Property="OverridesDefaultStyle"
-                    Value="True" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="Button">
-                        <Border Name="BtnBrd"
-                                Background="#FFDDDDDD"
-                                BorderBrush="#FF555555"
-                                BorderThickness="1"
-                                Margin="4,0"
-                                Padding="5">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center" />
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsEnabled}"
-                                         Value="False">
-                                <Setter Property="Foreground"
-                                        Value="LightGray" />
-                                <Setter Property="BorderBrush"
-                                        TargetName="BtnBrd"
-                                        Value="LightGray" />
-                            </DataTrigger>
-                            <Trigger Property="IsMouseOver"
-                                     Value="True">
-                                <Trigger.EnterActions>
-                                    <BeginStoryboard Name="StoryBtnEnterHover">
-                                        <Storyboard>
-                                            <ColorAnimation AutoReverse="True"
-                                                            Duration="0:0:0.5"
-                                                            Storyboard.TargetName="BtnBrd"
-                                                            Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                            To="White" />
-                                        </Storyboard>
-                                    </BeginStoryboard>
-                                </Trigger.EnterActions>
-                            </Trigger>
-                            <!--#region Button got focus -->
-                            <EventTrigger RoutedEvent="Keyboard.PreviewGotKeyboardFocus">
-                                <BeginStoryboard Name="BtnFocusStory">
-                                    <Storyboard>
-                                        <ColorAnimation AutoReverse="True"
-                                                        Duration="0:0:1"
-                                                        RepeatBehavior="Forever"
-                                                        Storyboard.TargetName="BtnBrd"
-                                                        Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
-                                                        To="PowderBlue" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </EventTrigger>
-                            <EventTrigger RoutedEvent="Keyboard.PreviewLostKeyboardFocus">
-                                <StopStoryboard BeginStoryboardName="BtnFocusStory" />
-                            </EventTrigger>
-                            <!--#endregion Button got focus -->
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
         </Style>
         <Style TargetType="Grid"
                x:Key="GridBaseStyle">
@@ -147,17 +92,13 @@
                     Value="Wrap" />
         </Style>
     </Page.Resources>
-    <Grid>
+    <Grid Style="{StaticResource GridBaseStyle}">
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
             <ColumnDefinition />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
-        <Grid.Style>
-            <Style TargetType="Grid"
-                   BasedOn="{StaticResource GridBaseStyle}"></Style>
-        </Grid.Style>
-        <Grid>
+        <Grid Style="{StaticResource GridBaseStyle}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="{StaticResource LabelHeight}" />
                 <RowDefinition Height="{StaticResource LabelHeight}" />
@@ -166,19 +107,9 @@
                 <RowDefinition Height="{StaticResource LabelHeight}" />
                 <RowDefinition Height="120" />
             </Grid.RowDefinitions>
-            <Grid.Style>
-                <Style TargetType="Grid"
-                       BasedOn="{StaticResource GridBaseStyle}"></Style>
-            </Grid.Style>
-            <TextBlock x:Name="TblApp">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblTitleStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblApp}" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
+            <TextBlock Name="TblApp"
+                       Style="{StaticResource TblTitleStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblApp}" />
             <Grid Grid.Row="1">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition />
@@ -234,7 +165,9 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{Binding Path=Name}"
-                                   ToolTipService.ToolTip="{Binding Path=Description}" />
+                                   ToolTip="{Binding Path=Description}"
+                                   ToolTipService.InitialShowDelay="0"
+                                   ToolTipService.ShowDuration="2000" />
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
@@ -248,13 +181,16 @@
                      ItemsSource="{Binding Source={StaticResource CvsSelectedGrps}}"
                      Style="{StaticResource LbBaseStyle}" />
         </Grid>
-        <Grid>
+        <Grid Grid.Column="1"
+              Style="{StaticResource GridBaseStyle}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="{StaticResource LabelHeight}" />
                 <RowDefinition />
-                <RowDefinition Height="{StaticResource LabelHeight}">
+                <RowDefinition>
                     <RowDefinition.Style>
                         <Style TargetType="RowDefinition">
+                            <Setter Property="Height"
+                                    Value="{StaticResource LabelHeight}" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ElementName=TbComputer, Path=Visibility}"
                                              Value="Collapsed">
@@ -285,54 +221,24 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <Grid.Style>
-                <Style TargetType="Grid"
-                       BasedOn="{StaticResource GridBaseStyle}">
-                    <Setter Property="Grid.Column"
-                            Value="1" />
-                </Style>
-            </Grid.Style>
-            <TextBlock x:Name="TblUsersAddPermission">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblTitleStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersAddPermission}" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <TextBox x:Name="TxtUsersAddPermission">
+            <TextBlock x:Name="TblUsersAddPermission"
+                       Style="{StaticResource TblTitleStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersAddPermission}" />
+            <TextBox x:Name="TxtUsersAddPermission"
+                     Grid.Row="1"
+                     Style="{StaticResource TbBaseStyle}" />
+            <TextBlock Name="TblComputerTitle"
+                       Grid.Row="2"
+                       Style="{StaticResource TblTitleStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblComputerTitle}"
+                       Visibility="{Binding ElementName=TbComputer, Path=Visibility}" />
+            <TextBox Name="TbComputer"
+                     FontSize="14"
+                     Grid.Row="3"
+                     VerticalContentAlignment="Center">
                 <TextBox.Style>
                     <Style TargetType="TextBox"
                            BasedOn="{StaticResource TbBaseStyle}">
-                        <Setter Property="Grid.Row"
-                                Value="1" />
-                    </Style>
-                </TextBox.Style>
-            </TextBox>
-            <TextBlock Name="TblComputerTitle">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblTitleStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblComputerTitle}" />
-                        <Setter Property="Grid.Row"
-                                Value="2" />
-                        <Setter Property="Visibility"
-                                Value="{Binding ElementName=TbComputer, Path=Visibility}" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <TextBox Name="TbComputer">
-                <TextBox.Style>
-                    <Style TargetType="TextBox"
-                           BasedOn="{StaticResource TbBaseStyle}">
-                        <Setter Property="FontSize"
-                                Value="14" />
-                        <Setter Property="Grid.Row"
-                                Value="3" />
-                        <Setter Property="VerticalContentAlignment"
-                                Value="Center" />
                         <Setter Property="Visibility"
                                 Value="Collapsed" />
                         <Style.Triggers>
@@ -345,80 +251,40 @@
                     </Style>
                 </TextBox.Style>
             </TextBox>
-            <TextBlock x:Name="TblUsersRemovePermission">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblTitleStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersRemovePermission}" />
-                        <Setter Property="Grid.Row"
-                                Value="4" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <TextBox x:Name="TxtUsersRemovePermission">
-                <TextBox.Style>
-                    <Style TargetType="TextBox"
-                           BasedOn="{StaticResource TbBaseStyle}">
-                        <Setter Property="Grid.Row"
-                                Value="5" />
-                    </Style>
-                </TextBox.Style>
-            </TextBox>
-            <Button x:Name="BtnPerform">
-                <Button.Style>
-                    <Style TargetType="Button"
-                           BasedOn="{StaticResource BtnBaseStyle}">
-                        <Setter Property="Content"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPerform}" />
-                        <Setter Property="Grid.Row"
-                                Value="6" />
-                        <Setter Property="IsEnabled"
-                                Value="False" />
-                        <Setter Property="Margin"
-                                Value="{StaticResource StdMargin}" />
-                    </Style>
-                </Button.Style>
-            </Button>
-            <Button x:Name="BtnUndo">
-                <Button.Style>
-                    <Style TargetType="Button"
-                           BasedOn="{StaticResource BtnBaseStyle}">
-                        <Setter Property="Content"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUndo}" />
-                        <Setter Property="Grid.Row"
-                                Value="7" />
-                        <Setter Property="Margin"
-                                Value="{StaticResource StdMargin}" />
-                    </Style>
-                </Button.Style>
-            </Button>
+            <TextBlock x:Name="TblUsersRemovePermission"
+                       Style="{StaticResource TblTitleStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersRemovePermission}" />
+            <TextBox x:Name="TxtUsersRemovePermission"
+                     Grid.Row="5"
+                     Style="{StaticResource TbBaseStyle}" />
+            <Button x:Name="BtnPerform"
+                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPerform}"
+                    Grid.Row="6"
+                    IsEnabled="False"
+                    Margin="{StaticResource StdMargin}"
+                    Style="{StaticResource BtnBaseStyle}" />
+            <Button x:Name="BtnUndo"
+                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUndo}"
+                    Grid.Row="7"
+                    Margin="{StaticResource StdMargin}"
+                    Style="{StaticResource BtnBaseStyle}" />
         </Grid>
-        <Grid>
+        <Grid Grid.Column="2"
+              Style="{StaticResource GridBaseStyle}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="{StaticResource LabelHeight}" />
                 <RowDefinition />
             </Grid.RowDefinitions>
-            <Grid.Style>
-                <Style TargetType="Grid"
-                       BasedOn="{StaticResource GridBaseStyle}">
-                    <Setter Property="Grid.Column"
-                            Value="2" />
-                </Style>
-            </Grid.Style>
-            <TextBlock x:Name="TblLog">
-                <TextBlock.Style>
-                    <Style TargetType="TextBlock"
-                           BasedOn="{StaticResource TblTitleStyle}">
-                        <Setter Property="Text"
-                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblLog}" />
-                    </Style>
-                </TextBlock.Style>
-            </TextBlock>
-            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <TextBlock x:Name="TblLog"
+                       Style="{StaticResource TblTitleStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblLog}" />
+            <ScrollViewer Grid.Row="2"
+                          VerticalScrollBarVisibility="Auto">
                 <ItemsControl Name="IcLog"
                               Background="White"
-                              BorderBrush="#FFABADB3" BorderThickness="1" ItemsSource="{Binding Source={StaticResource CvsLog}}">
+                              BorderBrush="#FFABADB3"
+                              BorderThickness="1"
+                              ItemsSource="{Binding Source={StaticResource CvsLog}}">
                     <ItemsControl.Resources>
                         <Style TargetType="Border"
                                x:Key="BrdClick">
@@ -436,12 +302,10 @@
                     </ItemsControl.Resources>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border>
+                            <Border Background="White">
                                 <Border.Style>
                                     <Style TargetType="Border"
                                            BasedOn="{StaticResource BrdClick}">
-                                        <Setter Property="Background"
-                                                Value="White" />
                                         <Setter Property="BorderBrush"
                                                 Value="Red" />
                                         <Setter Property="BorderThickness"
@@ -457,7 +321,7 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <Grid>
+                                <Grid Style="{StaticResource GridBaseStyle}">
                                     <Grid.RowDefinitions>
                                         <RowDefinition />
                                         <RowDefinition />
@@ -469,24 +333,12 @@
                                         <RowDefinition />
                                         <RowDefinition />
                                     </Grid.RowDefinitions>
-                                    <Grid.Style>
-                                        <Style TargetType="Grid"
-                                               BasedOn="{StaticResource GridBaseStyle}"></Style>
-                                    </Grid.Style>
-                                    <TextBlock>
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock"
-                                                   BasedOn="{StaticResource TblLogStyle}">
-                                                <Setter Property="FontSize"
-                                                        Value="13" />
-                                                <Setter Property="FontWeight"
-                                                        Value="Bold" />
-                                                <Setter Property="Text"
-                                                        Value="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.DateTime}" />
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                    <Border>
+                                    <TextBlock FontSize="13"
+                                               FontWeight="Bold"
+                                               Style="{StaticResource TblLogStyle}"
+                                               Text="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.DateTime}" />
+                                    <Border BorderThickness="2,2,0,0"
+                                            Grid.Row="1">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="BorderBrush">
@@ -504,39 +356,22 @@
                                                         </LinearGradientBrush>
                                                     </Setter.Value>
                                                 </Setter>
-                                                <Setter Property="BorderThickness"
-                                                        Value="2,2,0,0" />
-                                                <Setter Property="Grid.Row"
-                                                        Value="1" />
                                             </Style>
                                         </Border.Style>
-                                        <TextBlock>
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock"
-                                                       BasedOn="{StaticResource TblLogStyle}">
-                                                    <Setter Property="Text"
-                                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrGroupsTitle}" />
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource TblLogStyle}"
+                                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrGroupsTitle}" />
                                     </Border>
-                                    <ItemsControl>
+                                    <ItemsControl Grid.Row="2"
+                                                  ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.Groups}"
+                                                  Style="{StaticResource IcBaseStyle}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding}" />
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
-                                        <ItemsControl.Style>
-                                            <Style TargetType="ItemsControl"
-                                                   BasedOn="{StaticResource IcBaseStyle}">
-                                                <Setter Property="Grid.Row"
-                                                        Value="2" />
-                                                <Setter Property="ItemsSource"
-                                                        Value="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.Groups}" />
-                                            </Style>
-                                        </ItemsControl.Style>
                                     </ItemsControl>
-                                    <Border>
+                                    <Border BorderThickness="2,2,0,0"
+                                            Grid.Row="3">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="BorderBrush">
@@ -554,10 +389,6 @@
                                                         </LinearGradientBrush>
                                                     </Setter.Value>
                                                 </Setter>
-                                                <Setter Property="BorderThickness"
-                                                        Value="2,2,0,0" />
-                                                <Setter Property="Grid.Row"
-                                                        Value="3" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.AddedUsers.Count}"
                                                                  Value="0">
@@ -567,12 +398,11 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <TextBlock Name="TblAddedUsersTitle">
+                                        <TextBlock Name="TblAddedUsersTitle"
+                                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblAddedUsersTitle}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock"
                                                        BasedOn="{StaticResource TblLogStyle}">
-                                                    <Setter Property="Text"
-                                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblAddedUsersTitle}" />
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.AddedUsers.Count}"
                                                                      Value="0">
@@ -584,23 +414,17 @@
                                             </TextBlock.Style>
                                         </TextBlock>
                                     </Border>
-                                    <ItemsControl>
+                                    <ItemsControl Grid.Row="4"
+                                                  ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.AddedUsers}"
+                                                  Style="{StaticResource IcBaseStyle}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding}" />
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
-                                        <ItemsControl.Style>
-                                            <Style TargetType="ItemsControl"
-                                                   BasedOn="{StaticResource IcBaseStyle}">
-                                                <Setter Property="Grid.Row"
-                                                        Value="4" />
-                                                <Setter Property="ItemsSource"
-                                                        Value="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.AddedUsers}" />
-                                            </Style>
-                                        </ItemsControl.Style>
                                     </ItemsControl>
-                                    <Border>
+                                    <Border BorderThickness="2,2,0,0"
+                                            Grid.Row="5">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="BorderBrush">
@@ -618,10 +442,6 @@
                                                         </LinearGradientBrush>
                                                     </Setter.Value>
                                                 </Setter>
-                                                <Setter Property="BorderThickness"
-                                                        Value="2,2,0,0" />
-                                                <Setter Property="Grid.Row"
-                                                        Value="5" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.RemovedUsers.Count}"
                                                                  Value="0">
@@ -631,40 +451,21 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <TextBlock>
-                                            <TextBlock.Style>
-                                                <Style TargetType="TextBlock"
-                                                       BasedOn="{StaticResource TblLogStyle}">
-                                                    <Setter Property="Text"
-                                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrRemovedUsersTitle}" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.RemovedUsers.Count}"
-                                                                     Value="0">
-                                                            <Setter Property="Visibility"
-                                                                    Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </TextBlock.Style>
-                                        </TextBlock>
+                                        <TextBlock Style="{StaticResource TblLogStyle}"
+                                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrRemovedUsersTitle}" />
                                     </Border>
-                                    <ItemsControl>
+                                    <ItemsControl Grid.Row="6"
+                                                  ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.RemovedUsers}"
+                                                  Style="{StaticResource IcBaseStyle}">
                                         <ItemsControl.ItemTemplate>
                                             <DataTemplate>
                                                 <TextBlock Text="{Binding}" />
                                             </DataTemplate>
                                         </ItemsControl.ItemTemplate>
-                                        <ItemsControl.Style>
-                                            <Style TargetType="ItemsControl"
-                                                   BasedOn="{StaticResource IcBaseStyle}">
-                                                <Setter Property="Grid.Row"
-                                                        Value="6" />
-                                                <Setter Property="ItemsSource"
-                                                        Value="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.RemovedUsers}" />
-                                            </Style>
-                                        </ItemsControl.Style>
                                     </ItemsControl>
-                                    <Border>
+                                    <Border BorderThickness="2,2,0,0"
+                                            Grid.Row="7"
+                                            Margin="{StaticResource StdMargin}">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="BorderBrush">
@@ -682,12 +483,6 @@
                                                         </LinearGradientBrush>
                                                     </Setter.Value>
                                                 </Setter>
-                                                <Setter Property="BorderThickness"
-                                                        Value="2,2,0,0" />
-                                                <Setter Property="Grid.Row"
-                                                        Value="7" />
-                                                <Setter Property="Margin"
-                                                        Value="5" />
                                                 <Style.Triggers>
                                                     <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.ErrorUsers.Count}"
                                                                  Value="0">
@@ -698,28 +493,15 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel>
-                                            <TextBlock>
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock"
-                                                           BasedOn="{StaticResource TblLogStyle}">
-                                                        <Setter Property="Text"
-                                                                Value="{Binding ElementName=Window, Path=DataContext.MsgTable.StrErrorUsersTitle}" />
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
-                                            <ItemsControl>
+                                            <TextBlock Style="{StaticResource TblLogStyle}"
+                                                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrErrorUsersTitle}" />
+                                            <ItemsControl ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.ErrorUsers}"
+                                                          Style="{StaticResource IcBaseStyle}">
                                                 <ItemsControl.ItemTemplate>
                                                     <DataTemplate>
                                                         <TextBlock Text="{Binding}" />
                                                     </DataTemplate>
                                                 </ItemsControl.ItemTemplate>
-                                                <ItemsControl.Style>
-                                                    <Style TargetType="ItemsControl"
-                                                           BasedOn="{StaticResource IcBaseStyle}">
-                                                        <Setter Property="ItemsSource"
-                                                                Value="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.ErrorUsers}" />
-                                                    </Style>
-                                                </ItemsControl.Style>
                                             </ItemsControl>
                                         </StackPanel>
                                     </Border>
