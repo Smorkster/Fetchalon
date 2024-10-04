@@ -168,24 +168,28 @@ function Get-SomeFiles
 		Smorkster (smorkster)
 	#>
 
-	param ( $Item )
-
 	$List = [System.Collections.ArrayList]::new()
 	try
 	{
-		$files =  Get-ChildItem C:\
-		$files | `
-			Select-Object Name, Extension, LastWriteTime, `
-				@{ Name = "IsDir"; Expression = { $_ -is [System.IO.DirectoryInfo] } }, `
+		Get-ChildItem C:\ | `
+			Select-Object -Property `
+				Name, `
+				Extension, `
+				LastWriteTime, `
+				@{ Name = "IsDir"; Expression = { $_ -is [System.IO.DirectoryInfo] }
+					}, `
 				@{ Name = "Size"; Expression = {
-					if ( $_ -is [System.IO.DirectoryInfo] )
-					{ $IntMsgTable.GetSomeFilesFolder }
+					if ( $_ -is [System.IO.DirectoryInfo] ) { $IntMsgTable.GetSomeFilesFolder }
 					elseif ( $_.Length -lt 1kB ) { "$( $_.Length ) B" }
 					elseif ( $_.Length -gt 1kB -and $_.Length -lt 1MB ) { "$( [math]::Round( ( $_.Length / 1kB ), 2 ) ) kB" }
 					elseif ( $_.Length -gt 1MB -and $_.Length -lt 1GB ) { "$( [math]::Round( ( $_.Length / 1MB ), 2 ) ) MB" }
-					elseif ( $_.Length -gt 1GB -and $_.Length -lt 1TB ) { "$( [math]::Round( ( $_.Length / 1GB ), 2 ) ) GB" } } } | `
+					elseif ( $_.Length -gt 1GB -and $_.Length -lt 1TB ) { "$( [math]::Round( ( $_.Length / 1GB ), 2 ) ) GB" } }
+					} | `
 			Sort-Object @{ Expression = { $_.IsDir }; Descending = $true }, Extension, Name | `
-			Select-Object Name, LastWriteTime, Size, Extension | ForEach-Object { [void] $List.Add( $_ ) }
+			Select-Object Name, LastWriteTime, Size, Extension | `
+			ForEach-Object {
+				$List.Add( $_ ) | Out-Null
+			}
 	} catch {}
 	if ( $null -eq $List )
 	{
