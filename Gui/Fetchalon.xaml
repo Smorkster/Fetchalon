@@ -539,73 +539,73 @@
                     Value="Normal" />
             <Setter Property="ToolTip">
                 <Setter.Value>
-                    <Border Background="{StaticResource HoverBorderBrush}"
-                            BorderBrush="Black"
-                            Margin="2">
-                        <StackPanel Margin="{StaticResource StdMargin}">
-                            <StackPanel.Resources>
-                                <Style TargetType="TextBlock"
-                                       x:Key="TblTtStyle">
-                                    <Setter Property="FontStyle"
-                                            Value="Italic" />
-                                    <Setter Property="FontWeight"
-                                            Value="Bold" />
-                                    <Setter Property="Margin"
-                                            Value="{StaticResource StdMargin}" />
-                                </Style>
-                            </StackPanel.Resources>
-                            <TextBlock FontStyle="Normal"
-                                       FontWeight="Normal"
-                                       Text="{Binding Path=Description}">
-                                <TextBlock.Style>
+                        <Border Background="{StaticResource HoverBorderBrush}"
+                                BorderBrush="Black"
+                                Margin="2">
+                            <StackPanel Margin="{StaticResource StdMargin}">
+                                <StackPanel.Resources>
                                     <Style TargetType="TextBlock"
-                                           BasedOn="{StaticResource TblTtStyle}">
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Path=Description}"
-                                                         Value="{x:Null}">
-                                                <Setter Property="Visibility"
-                                                        Value="Collapsed" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
+                                           x:Key="TblTtStyle">
+                                        <Setter Property="FontStyle"
+                                                Value="Italic" />
+                                        <Setter Property="FontWeight"
+                                                Value="Bold" />
+                                        <Setter Property="Margin"
+                                                Value="{StaticResource StdMargin}" />
                                     </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock Grid.Row="1"
-                                       Text="{DynamicResource StrOpensSeparateWindow}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock"
-                                           BasedOn="{StaticResource TblTtStyle}">
-                                        <Setter Property="Visibility"
-                                                Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Path=Separate}"
-                                                         Value="True">
-                                                <Setter Property="Visibility"
-                                                        Value="Visible" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                            <TextBlock Grid.Row="2"
-                                       Text="{Binding Path=ValidDateNote}">
-                                <TextBlock.Style>
-                                    <Style TargetType="TextBlock"
-                                           BasedOn="{StaticResource TblTtStyle}">
-                                        <Setter Property="Visibility"
-                                                Value="Visible" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding Path=ValidDateNote}"
-                                                         Value="{x:Null}">
-                                                <Setter Property="Visibility"
-                                                        Value="Collapsed" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </TextBlock.Style>
-                            </TextBlock>
-                        </StackPanel>
-                    </Border>
+                                </StackPanel.Resources>
+                                <TextBlock FontStyle="Normal"
+                                           FontWeight="Normal"
+                                           Text="{Binding Path=Description}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock"
+                                               BasedOn="{StaticResource TblTtStyle}">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Path=Description}"
+                                                             Value="{x:Null}">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Grid.Row="1"
+                                           Text="{DynamicResource StrOpensSeparateWindow}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock"
+                                               BasedOn="{StaticResource TblTtStyle}">
+                                            <Setter Property="Visibility"
+                                                    Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Path=Separate}"
+                                                             Value="True">
+                                                    <Setter Property="Visibility"
+                                                            Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Grid.Row="2"
+                                           Text="{Binding Path=ValidDateNote}">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock"
+                                               BasedOn="{StaticResource TblTtStyle}">
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding Path=ValidDateNote}"
+                                                             Value="{x:Null}">
+                                                    <Setter Property="Visibility"
+                                                            Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Border>
                 </Setter.Value>
             </Setter>
             <Setter Property="ToolTipService.ShowOnDisabled"
@@ -711,62 +711,74 @@
             <Setter Property="ItemTemplate">
                 <Setter.Value>
                     <HierarchicalDataTemplate ItemsSource="{Binding Path=MenuItems}">
-                        <HierarchicalDataTemplate.Resources>
-                            <Style TargetType="MenuItem"
-                                   BasedOn="{StaticResource MiSubLevelBaseStyle}" />
-                        </HierarchicalDataTemplate.Resources>
-                        <Border BorderThickness="5,0,0,0">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="BorderBrush"
-                                            Value="Transparent" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.SearchedItemRequest}"
-                                                     Value="Allowed">
-                                            <Setter Property="BorderBrush"
-                                                    Value="Yellow" />
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.SearchedItemRequest}"
-                                                     Value="Required">
-                                            <Setter Property="BorderBrush"
-                                                    Value="Green" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Border BorderThickness="5,0,0,0"
+                                    HorizontalAlignment="Stretch">
+                                <Border.Style>
+                                    <Style TargetType="Border">
+                                        <Setter Property="BorderBrush"
+                                                Value="Transparent" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=SearchedItemRequest}"
+                                                         Value="Allowed">
+                                                <Setter Property="BorderBrush"
+                                                        Value="Yellow" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Path=SearchedItemRequest}"
+                                                         Value="Required">
+                                                <Setter Property="BorderBrush"
+                                                        Value="Green" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Border.Style>
                                 <TextBlock Margin="{StaticResource StdMargin}"
-                                           Text="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.MenuItem}" />
-                                <Path Data="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"
-                                      Fill="LightBlue"
-                                      Grid.Column="1"
-                                      HorizontalAlignment="Right"
-                                      Margin="{StaticResource StdMargin}"
-                                      Stroke="Blue">
-                                    <Path.LayoutTransform>
-                                        <ScaleTransform ScaleX="0.75"
-                                                        ScaleY="0.75" />
-                                    </Path.LayoutTransform>
-                                    <Path.Style>
-                                        <Style TargetType="Path">
-                                            <Setter Property="Visibility"
-                                                    Value="Visible" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=DataContext.ValidDateNote}"
-                                                             Value="{x:Null}">
-                                                    <Setter Property="Visibility"
-                                                            Value="Collapsed" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Path.Style>
-                                </Path>
-                            </Grid>
-                        </Border>
+                                           Text="{Binding Path=MenuItem}" />
+                            </Border>
+                            <Path Grid.Column="1"
+                                  Margin="0,5,0,0">
+                                <Path.Style>
+                                    <Style TargetType="Path">
+                                        <Setter Property="RenderTransform">
+                                            <Setter.Value>
+                                                <ScaleTransform ScaleX="0.75"
+                                                                ScaleY="0.75" />
+                                            </Setter.Value>
+                                        </Setter>
+                                        <Setter Property="Visibility"
+                                                Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=Note.NoteType}"
+                                                         Value="Info">
+                                                <Setter Property="Visibility"
+                                                        Value="Visible" />
+                                                <Setter Property="Data"
+                                                        Value="M13,9H11V7H13M13,17H11V11H13M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
+                                                <Setter Property="Fill"
+                                                        Value="LightBlue" />
+                                                <Setter Property="Stroke"
+                                                        Value="Blue" />
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding Path=Note.NoteType}"
+                                                         Value="Warning">
+                                                <Setter Property="Visibility"
+                                                        Value="Visible" />
+                                                <Setter Property="Data"
+                                                        Value="M13 14H11V9H13M13 18H11V16H13M1 21H23L12 2L1 21Z" />
+                                                <Setter Property="Fill"
+                                                        Value="Yellow" />
+                                                <Setter Property="Stroke"
+                                                        Value="Red" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Path.Style>
+                            </Path>
+                        </Grid>
                     </HierarchicalDataTemplate>
                 </Setter.Value>
             </Setter>
@@ -1362,10 +1374,12 @@
                             <RowDefinition Height="Auto" />
                         </Grid.RowDefinitions>
                         <TextBlock Margin="{StaticResource StdMargin}"
-                                   Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Synopsis}" />
+                                   Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Synopsis}"
+                                   TextWrapping="Wrap" />
                         <TextBlock Grid.Row="1"
                                    Margin="{StaticResource StdMargin}"
-                                   Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Description}" />
+                                   Text="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Description}"
+                                   TextWrapping="Wrap" />
                     </Grid>
                     <Border Name="BrdFunctionValidDateNote"
                             BorderBrush="Blue"
