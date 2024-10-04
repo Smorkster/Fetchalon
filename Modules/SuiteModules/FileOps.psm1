@@ -367,9 +367,9 @@ function GetScriptInfo
 							Write-Warning "$( $IntmsgTable.ErrGetScriptInfoAddInputData )`n$( $Rest )`n$( $_ )"
 						}
 					}
-					elseif ( "InputDataList" -eq $Matches.InfoType )
+					elseif ( "InputDataList" -eq $InfoType )
 					{
-						$Matches.Rest.Trim() -match "^\s*(?<InputVar>\w+).*?\|\s*(?<Mandatory>\w*)\s*?\|(?<Desc>.*?)\|\s*(?<DefaultValue>\w*)\s*\|(?<InputList>.*)" | Out-Null
+						$Rest -match "^\s*(?<InputVar>\w+).*?\|\s*(?<Mandatory>\w*)\s*?\|(?<Desc>.*?)\|\s*(?<DefaultValue>\w*)\s*\|(?<InputList>.*)" | Out-Null
 						$ListInputData.Add( (
 							[pscustomobject]@{
 								Name = $Matches.InputVar.Trim()
@@ -382,9 +382,9 @@ function GetScriptInfo
 							}
 						) ) | Out-Null
 					}
-					elseif ( "InputDataBool" -eq $Matches.InfoType )
+					elseif ( "InputDataBool" -eq $InfoType )
 					{
-						$Name, $Desc = $Matches.Rest.Trim() -split ",", 2
+						$Name, $Desc = $Rest -split ",", 2
 						$ListInputData.Add( (
 							[pscustomobject]@{
 								Name = $Name.Trim()
@@ -394,13 +394,13 @@ function GetScriptInfo
 							}
 						) ) | Out-Null
 					}
-					elseif ( "NoRunspace" -eq $Matches.InfoType )
+					elseif ( "NoRunspace" -eq $InfoType )
 					{
 						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "NoRunspace" -Value $true -Force
 					}
-					elseif ( "Note" -eq $Matches.InfoType )
+					elseif ( "Note" -eq $InfoType )
 					{
-						$Matches.Rest.Trim() -match "^\s*(?<NoteType>\w+).*?\|\s*(?<NoteText>.*)" | Out-Null
+						$Rest -match "^\s*(?<NoteType>\w+).*?\|\s*(?<NoteText>.*)" | Out-Null
 						if ( $Matches.NoteType.Trim() -eq "Info" -or $Matches.NoteType.Trim() -eq "Warning" )
 						{
 							$Note = [pscustomobject]@{
@@ -424,7 +424,7 @@ function GetScriptInfo
 					}
 					else
 					{
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $Matches.InfoType -Value $Matches.Rest.Trim() -Force
+						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $InfoType -Value $Rest -Force
 					}
 				} `
 				-End {
