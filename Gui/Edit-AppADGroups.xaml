@@ -1,4 +1,4 @@
-<Page x:Name="Window"
+<Page Name="Window"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:sys="clr-namespace:System;assembly=mscorlib"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -133,7 +133,7 @@
                         </Style>
                     </ComboBox.Style>
                 </ComboBox>
-                <Button x:Name="BtnRefetchGroups"
+                <Button Name="BtnRefetchGroups"
                         Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnRefetchGroups}"
                         Grid.Column="1"
                         IsEnabled="True"
@@ -152,11 +152,11 @@
                     </Button.Style>
                 </Button>
             </Grid>
-            <TextBlock x:Name="TblAppGroupList"
+            <TextBlock Name="TblAppGroupList"
                        Grid.Row="2"
                        Style="{StaticResource TblTitleStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblAppGroupList}" />
-            <ListBox x:Name="LbAppGroupList"
+            <ListBox Name="LbAppGroupList"
                      Grid.Row="3"
                      ItemsSource="{Binding Source={StaticResource CvsAppGrps}}"
                      ScrollViewer.PanningDeceleration="2"
@@ -171,11 +171,11 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <TextBlock x:Name="TblGroupsChosen"
+            <TextBlock Name="TblGroupsChosen"
                        Grid.Row="4"
                        Style="{StaticResource TblTitleStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblGroupsChosen}" />
-            <ListBox x:Name="LbGroupsChosen"
+            <ListBox Name="LbGroupsChosen"
                      DisplayMemberPath="Name"
                      Grid.Row="5"
                      ItemsSource="{Binding Source={StaticResource CvsSelectedGrps}}"
@@ -221,10 +221,10 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <TextBlock x:Name="TblUsersAddPermission"
+            <TextBlock Name="TblUsersAddPermission"
                        Style="{StaticResource TblTitleStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersAddPermission}" />
-            <TextBox x:Name="TxtUsersAddPermission"
+            <TextBox Name="TxtUsersAddPermission"
                      Grid.Row="1"
                      Style="{StaticResource TbBaseStyle}" />
             <TextBlock Name="TblComputerTitle"
@@ -251,19 +251,20 @@
                     </Style>
                 </TextBox.Style>
             </TextBox>
-            <TextBlock x:Name="TblUsersRemovePermission"
+            <TextBlock Name="TblUsersRemovePermission"
+                       Grid.Row="4"
                        Style="{StaticResource TblTitleStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersRemovePermission}" />
-            <TextBox x:Name="TxtUsersRemovePermission"
+            <TextBox Name="TxtUsersRemovePermission"
                      Grid.Row="5"
                      Style="{StaticResource TbBaseStyle}" />
-            <Button x:Name="BtnPerform"
+            <Button Name="BtnPerform"
                     Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPerform}"
                     Grid.Row="6"
                     IsEnabled="False"
                     Margin="{StaticResource StdMargin}"
                     Style="{StaticResource BtnBaseStyle}" />
-            <Button x:Name="BtnUndo"
+            <Button Name="BtnUndo"
                     Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUndo}"
                     Grid.Row="7"
                     Margin="{StaticResource StdMargin}"
@@ -275,7 +276,7 @@
                 <RowDefinition Height="{StaticResource LabelHeight}" />
                 <RowDefinition />
             </Grid.RowDefinitions>
-            <TextBlock x:Name="TblLog"
+            <TextBlock Name="TblLog"
                        Style="{StaticResource TblTitleStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblLog}" />
             <ScrollViewer Grid.Row="2"
