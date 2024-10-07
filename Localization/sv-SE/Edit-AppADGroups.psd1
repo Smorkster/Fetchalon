@@ -57,5 +57,9 @@ StrProgressTitle = Tillämpar gruppbehörigheter
 StrRemovedUsersTitle = Behörighet borttagen
 StrSigGen = Med vänliga hälsningar
 StrSigSD = Servicedesk
+StrSigSD2 = Org2
+StrSpecAddIntroSB = Tack för din beställning, du har nu fått tillgång till:
+StrSpecAddOutroSB = Inloggning krävs för att komma åt sidan
 StrSpecOrg = org6
+StrSpecRemIntroSB = Behörighet har nu tagits bort för
 '@

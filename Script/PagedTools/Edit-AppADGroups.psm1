@@ -288,7 +288,39 @@ function Create-Message
 	$Message.AppendLine() | Out-Null
 	$Message.AppendLine( "$( $syncHash.Data.msgTable.StrLogOut )" ) | Out-Null
 	$Message.AppendLine( "$( $syncHash.Data.Signature )" ) | Out-Null
-	$OutputEncoding = [System.Text.UnicodeEncoding]::new( $False, $False ).psobject.BaseObject
+
+	$OutputEncoding = [System.Text.UnicodeEncoding]::new( $false, $false ).psobject.BaseObject
+	$Message.ToString().Trim() | clip
+	return $Message.ToString().Trim()
+}
+
+function Create-SpecMessage
+{
+	<#
+	.Synopsis
+		Generate message for performed operation
+	#>
+
+	$Message = [System.Text.StringBuilder]::new()
+
+	if ( $syncHash.AddUsers )
+	{
+		$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )".SpecMsgAddIntro ) `n" ) | Out-Null
+		$CN = ( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Name -split "$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgNameSplitChar )" )["$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgNameSplitIndex )"]
+		$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )"."$( $CN )" )" ) | Out-Null
+		$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )".SpecMsgAddOutro ) `n" ) | Out-Null
+	}
+
+	if ( $syncHash.RemoveUsers )
+	{
+		$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )".SpecMsgRemoveIntro ) `n" ) | Out-Null
+		$syncHash.RemoveUsers.AD | `
+			ForEach-Object {
+				$Message.AppendLine( "`t$( $_.Name )" ) | Out-Null
+			}
+	}
+
+	$OutputEncoding = [System.Text.UnicodeEncoding]::new( $false, $false ).psobject.BaseObject
 	$Message.ToString().Trim() | clip
 	return $Message.ToString().Trim()
 }
@@ -379,9 +411,11 @@ function Perform-Permissions
 	Collect-Entries
 
 	$Continue = Show-MessageBox -Text "$( $syncHash.Data.msgTable.QCont1 ) $( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count ) $( $syncHash.Controls.CbApp.SelectedItem.Tag.GroupType ) $( $syncHash.Data.msgTable.QCont2 ) $( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) $( $syncHash.Data.msgTable.QCont3 ) ?$( if ( $syncHash.ErrorUsers ) { "`n$( $syncHash.Data.msgTable.QContErr )." } )" -Title "$( $syncHash.Data.msgTable.QContTitle )?" -Button "OKCancel"
+
 	if ( $Continue -eq "OK" )
 	{
 		$loopCounter = 0
+
 		foreach ( $Group in $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source )
 		{
 			$syncHash.Controls.Window.Title = "$( $syncHash.Data.msgTable.StrProgressTitle ) $( [Math]::Floor( $loopCounter / $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count * 100 ) )%"
@@ -424,6 +458,7 @@ function Perform-Permissions
 			}
 			$loopCounter++
 		}
+
 		foreach ( $u in ( $syncHash.AddUsers | Where-Object { $_.AD.otherMailbox -match $syncHash.Data.msgTable.StrSpecOrg } ) )
 		{
 			try
@@ -436,6 +471,7 @@ function Perform-Permissions
 				$syncHash.Data.ErrorHashes += WriteErrorLog -LogText "$( $syncHash.Data.msgTable.ErrMessageSetPassword )`n$_" -UserInput $u.AD.SamAccountName -Severity "UserInputFail"
 			}
 		}
+
 		foreach ( $c in $syncHash.AddComputer )
 		{
 			$syncHash.Controls.CbApp.SelectedItem.Tag.ComputerAdGroups | `
@@ -468,7 +504,16 @@ function Perform-Permissions
 					}
 				}
 		}
-		Create-LogText ( Create-Message )
+
+		if ( $null -eq $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )
+		{
+			Create-LogText ( Create-Message )
+		}
+		else
+		{
+			Create-LogText ( Create-SpecMessage )
+		}
+
 		Write-ToLogFile
 		Show-MessageBox -Text "$( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Count * ( @( $syncHash.AddUsers ).Count + @( $syncHash.RemoveUsers ).Count ) ) $( $syncHash.Data.msgTable.StrFinishMessage )" -Title "$( $syncHash.Data.msgTable.StrFinishMessageTitle )"
 
@@ -519,6 +564,15 @@ function Set-Localizations
 		}
 
 	$syncHash.Controls.IcLog.Resources['BrdClick'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.LogItemClickHandler
+
+	$syncHash.Data.SpecialMsgEnums = @{}
+	$syncHash.Data.SpecialMsgEnums.SB = @{
+		SpecMsgAddIntro = $syncHash.Data.msgTable.StrSpecAddIntroSB
+		SpecMsgAddOutro = $syncHash.Data.msgTable.StrSpecAddOutroSB
+		SpecMsgRemoveIntro = $syncHash.Data.msgTable.StrSpecRemIntroSB
+		Org1 = "Site1"
+		Org2 = "Site2"
+	}
 }
 
 function Set-UserSettings
@@ -563,18 +617,29 @@ function Update-AppList
 	$apps = @()
 	if ( $syncHash.Data.msgTable.StrBORoleGrp -in ( ( Get-ADUser -Identity ( [Environment]::UserName ) -Properties MemberOf ).MemberOf | Get-ADGroup | Select-Object -ExpandProperty Name ) )
 	{
-		$apps += [pscustomobject]@{ Text = "App 1"
-			Tag = @{ AppFilter = "(|(Name=App_1*)(Name=App1*))"
-				Exclude = $null
-				GroupType = "App1-groups" } }
+		$apps += [pscustomobject]@{ Text = "App1"
+		Tag = @{ AppFilter = "(Name=App_1*)"
+			Exclude = $null
+			GroupType = "App1-groups"
+			GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new() } }
+
+		$apps += [pscustomobject]@{ Text = "App 2"
+			Tag = @{ AppFilter = "(Name=App2*)"
+			Exclude = @( "Null", "Closed" )
+				GroupType = "App2-groups"
+				ExcludeSplitCharacter = "_"
+				ExcludedWordIndex = 2
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new() } }
 	}
 
-	$apps += [pscustomobject]@{ Text = "App 2"
-		Tag = @{ AppFilter = "(Name=App2*)"
-			Exclude = @( "Null", "Closed" )
-			GroupType = "App2-groups" }
-			split = "_"
-			index = 2 }
+	$apps += [pscustomobject]@{ Text = "App3"
+		Tag = @{ AppFilter = "(Name=App3)"
+			Exclude = @( "Docs" )
+			GroupType = "App3-groups"
+			GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			SpecialMsgEnums = "App3"
+			SpecialMsgNameSplitChar = "_"
+			SpecialMsgNameSplitIndex = 3 } }
 
 	$apps | `
 		ForEach-Object {
@@ -655,13 +720,28 @@ function Write-ToLogFile
 	$OFS = ", "
 
 	$LogText = "$( $syncHash.Data.msgTable.StrLogMessage ): $( $syncHash.Controls.CbApp.Text )`n"
-	if ( $syncHash.AddComputer.Count -gt 0 ) { $LogText += "$( $syncHash.Data.msgTable.LogMessageAddComputer ) $( $syncHash.AddComputer.Name )" }
-	if ( $syncHash.AddUsers.Count -gt 0 ) { $LogText += "$( $syncHash.Data.msgTable.LogMessageAdd ) $( $syncHash.AddUsers.Id )" }
-	if ( $syncHash.RemoveUsers.Count -gt 0 ) { $LogText += "$( $syncHash.Data.msgTable.LogMessageRemove ) $( $syncHash.RemoveUsers.Id )" }
+	if ( $syncHash.AddComputer.Count -gt 0 )
+	{
+		$LogText += "$( $syncHash.Data.msgTable.LogMessageAddComputer ) $( $syncHash.AddComputer.Name )"
+		}
+	if ( $syncHash.AddUsers.Count -gt 0 )
+	{
+		$LogText += "$( $syncHash.Data.msgTable.LogMessageAdd ) $( $syncHash.AddUsers.Id )"
+	}
+	if ( $syncHash.RemoveUsers.Count -gt 0 )
+	{
+		$LogText += "$( $syncHash.Data.msgTable.LogMessageRemove ) $( $syncHash.RemoveUsers.Id )"
+	}
 
 	$UserInput = ""
-	if ( $syncHash.Controls.TxtUsersAddPermission.Text.Length -gt 0 ) { $UserInput += "$( $syncHash.Data.msgTable.LogInputAdd ) $( $syncHash.Controls.TxtUsersAddPermission.Text -split "\W" )`n" }
-	if ( $syncHash.Controls.TxtUsersRemovePermission.Text.Length -gt 0 ) { $UserInput += "$( $syncHash.Data.msgTable.LogInputRemove ) $( $syncHash.Controls.TxtUsersRemovePermission.Text -split "\W" )`n" }
+	if ( $syncHash.Controls.TxtUsersAddPermission.Text.Length -gt 0 )
+	{
+		$UserInput += "$( $syncHash.Data.msgTable.LogInputAdd ) $( $syncHash.Controls.TxtUsersAddPermission.Text -split "\W" )`n"
+	}
+	if ( $syncHash.Controls.TxtUsersRemovePermission.Text.Length -gt 0 )
+	{
+		$UserInput += "$( $syncHash.Data.msgTable.LogInputRemove ) $( $syncHash.Controls.TxtUsersRemovePermission.Text -split "\W" )`n"
+	}
 	$UserInput += $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source
 
 	WriteLog -Text $LogText -UserInput $UserInput -Success ( $syncHash.Data.ErrorHashes.Count -lt 1 ) -ErrorLogHash $syncHash.Data.ErrorHashes
