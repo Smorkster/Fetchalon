@@ -57,5 +57,9 @@ StrProgressTitle = Applies group permissions
 StrRemovedUsersTitle = Permission removed
 StrSigGen = Sincerely
 StrSigSD = Servicedesk
+StrSigSD2 = Org2
+StrSpecAddIntroSB = Thank you for your order.
+StrSpecAddOutroSB = Login is required to access the page
 StrSpecOrg = org6
+StrSpecRemIntroSB = Permission has now been removed for
 '@
