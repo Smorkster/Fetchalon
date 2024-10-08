@@ -591,7 +591,7 @@ function Set-UserSettings
 			$syncHash.LogFilePath = $syncHash.Data.msgTable.StrOpLogPath
 			$syncHash.ErrorLogFilePath = "$( $syncHash.Data.msgTable.StrOpLogPath )\Errorlogs\$( [Environment]::UserName )-Errorlog.txt"
 		}
-		elseif ( ( Get-ADGroupMember $syncHash.Data.msgTable.StrBORoleGrp ).Name -contains ( Get-ADUser -Identity ( [Environment]::UserName ) ).Name )
+		elseif ( ( $syncHash.Data.msgTable.StrBORoleGrp, $syncHash.Data.msgTable.StrSDRoleGrp | Get-ADGroupMember ).Name -contains ( Get-ADUser -Identity ( [Environment]::UserName ) ).Name )
 		{
 			$syncHash.Data.Signature += "`n`n$( $syncHash.Data.msgTable.StrSigSD )"
 			$syncHash.Data.Signature += "`n$( $syncHash.Data.msgTable.StrSigSD2 )"
@@ -619,9 +619,9 @@ function Update-AppList
 	{
 		$apps += [pscustomobject]@{ Text = "App1"
 		Tag = @{ AppFilter = "(Name=App_1*)"
-			Exclude = $null
+				Exclude = $null
 			GroupType = "App1-groups"
-			GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new() } }
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new() } }
 
 		$apps += [pscustomobject]@{ Text = "App 2"
 			Tag = @{ AppFilter = "(Name=App2*)"
