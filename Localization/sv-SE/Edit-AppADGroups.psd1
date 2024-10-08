@@ -39,6 +39,7 @@ QCont3 = ändringar
 QContErr = Vissa användare har inte AD-konton
 QContTitle = Fortsätta
 StrBORoleGrp = Rol_Servicedesk_Backoffice
+StrSDRoleGrp = Rol_Servicedesk
 StrDuplicates = Det finns dubbletter av värden i listorna. Rätta till dessa och kör igen
 StrDuplicatesTitle = Dubbletter
 StrErrorUsersTitle = ID saknas i AD

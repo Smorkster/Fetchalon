@@ -39,6 +39,7 @@ QCont3 = changes
 QContErr = Some users do not have AD accounts
 QContTitle = Continue
 StrBORoleGrp = Rol_Servicedesk_Backoffice
+StrSDRoleGrp = Rol_Servicedesk
 StrDuplicates = There are duplicate values in the lists. Correct these and run again
 StrDuplicatesTitle = Duplicates
 StrErrorUsersTitle = ID not in AD
