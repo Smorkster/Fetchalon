@@ -1,6 +1,6 @@
 ﻿ConvertFrom-StringData @'
 ContentBtnCopyAsAD = Kopiera som AD-object
-ContentBtnCopyExtraction = Kopiera text
+ContentBtnCopyExtraction = Kopiera extraherad text
 ContentBtnUseRegEx = Använd regex
 ContentMatchGroupsTitle = Grupper
 ContentMatchIndexTitle = Index
@@ -16,5 +16,7 @@ ContentTblValuesTitle = Text som matchades
 ContentTiMatches = Matchningar
 ContentTiValues = Värden
 StrDefaultRegExAdSAN = AD SamAccountName
-StrDefaultRegExAdSANCode = (?s)((?<=\\W|\\b)((?![AaIiOo])[\\w]){4})\\b
+StrDefaultRegExAdSANCode = (?s)((?<=\\W|\\b)((?![AaIiOoUuEeÅåÄäÖöYy])[\\w]){4})\\b
+StrRegExFAccount = F-konton
+StrRegExFAccountCode = (?s)F\\w{3}
 '@

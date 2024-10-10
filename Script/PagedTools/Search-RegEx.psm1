@@ -34,8 +34,12 @@ function MatchText
 					{
 						switch ( $syncHash.Controls.CbDefaultsList.SelectedItem.ObjectClass )
 						{
-							"user" 
-							{ ( Get-ADUser $Match.Groups[0].Value -Properties * | Get-Member -MemberType Property ).Name | ForEach-Object { [void] $syncHash.Controls.Window.Resources['CvsPropertyNames'].Source.Add( $_ ) } }
+							"user" {
+								( Get-ADUser $Match.Groups[0].Value -Properties * | Get-Member -MemberType Property ).Name | `
+									ForEach-Object {
+										$syncHash.Controls.Window.Resources['CvsPropertyNames'].Source.Add( $_ ) | Out-Null
+									}
+								}
 							default {}
 						}
 					}
@@ -63,6 +67,7 @@ $syncHash.Controls.Window.Resources['CvsMatches'].Source = [System.Collections.O
 $syncHash.Controls.Window.Resources['CvsPropertyNames'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
 $syncHash.Controls.Window.Resources['CvsDefaultRegExs'].Source.Add( ( [pscustomobject]@{ Name = $syncHash.Data.msgTable.StrDefaultRegExAdSAN ; RegEx = $syncHash.Data.msgTable.StrDefaultRegExAdSANCode ; ObjectClass = "user" } ) )
+$syncHash.Controls.Window.Resources['CvsDefaultRegExs'].Source.Add( ( [pscustomobject]@{ Name = $syncHash.Data.msgTable.StrRegExFAccount ; RegEx = $syncHash.Data.msgTable.StrRegExFAccountCode ; ObjectClass = "user" } ) )
 
 $syncHash.Controls.IcMatches.Resources['BrdStyle'].Setters[0].Handler = [System.Windows.Input.MouseEventHandler] {
 	param ( $ObjectSender, $e )
