@@ -1,6 +1,6 @@
 ﻿ConvertFrom-StringData @'
 ContentBtnCopyAsAD = Copy as AD object
-ContentBtnCopyExtraction = Copy text
+ContentBtnCopyExtraction = Copy extracted text
 ContentBtnUseRegEx = Use regex
 ContentMatchGroupsTitle = Groups
 ContentMatchIndexTitle = Index
@@ -17,4 +17,6 @@ ContentTiMatches = Matches
 ContentTiValues = Values
 StrDefaultRegExAdSAN = AD SamAccountName
 StrDefaultRegExAdSANCode = (?s)((?<=\\W|\\b)((?![AaIiOo])[\\w]){4})\\b
+StrRegExFAccount = F-account
+StrRegExFAccountCode = (?s)F\\w{3}
 '@
