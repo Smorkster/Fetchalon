@@ -1962,6 +1962,113 @@ $(
 		Search
 	#>
 
+	function Load-PagedTool
+	{
+		param ( $ModuleName )
+
+		try
+		{
+			$page = CreatePage -FilePath $SenderObject.DataContext.Xaml
+			$page.Data.ModuleStartup = Get-Date
+			$page.Data.msgTable = Import-LocalizedData -BaseDirectory $SenderObject.DataContext.Localization.Directory.FullName -FileName $SenderObject.DataContext.Localization.Name
+			$page.Data.Modules = Get-Module
+			$page.Data.MainWindow = $syncHash.Window
+			$page.Data.ScriptInfo = $SenderObject.DataContext
+			$page.Page.DataContext = [pscustomobject]@{
+				MsgTable = $page.Data.msgTable
+			}
+			$SenderObject.DataContext.PageObject = $page
+			$syncHash.Window.Resources.Add( "LoadedPage$( $ModuleName )" , $page )
+
+			Import-Module $SenderObject.DataContext.PS -ArgumentList $page -Force
+
+			if ( $SenderObject.DataContext.Name -eq "Send-Feedback" )
+			{
+				if ( $null -eq $syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsFunctions'].Source )
+				{
+					# Insert a reference to all functions and tools
+					$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+
+					$syncHash.Window.Resources.GetEnumerator() | `
+						Where-Object { $_.Name -match "^CvsMi(?!(O365)|(Output))" } | `
+						Sort-Object -Property Name | `
+						ForEach-Object {
+							try
+							{
+								$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalFunctions'].Source.Add( ( [pscustomobject]@{
+									MenuItem = $syncHash."$( $_.Name -replace "^Cvs" )".Header.Children[1].Text
+									MenuItems = $_.Value.Source
+									MenuType = $_.Name -replace "^CvsMi"
+								} ) )
+							}
+							catch {}
+						}
+				}
+			}
+			elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
+			{
+				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
+				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsQuickAccessWordList'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+				$syncHash.Data.QuickAccessWordList.GetEnumerator() | `
+					ForEach-Object {
+						$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsQuickAccessWordList'].Source.Add( $_ ) | Out-Null
+					}
+			}
+			elseif ( $SenderObject.DataContext.Name -eq "Open-Admin" )
+			{
+				$MenuItemsHash = $syncHash.Window.Resources.GetEnumerator() | `
+					Where-Object { $_.Name -match "^CvsMi((?!(O365)|(Sub)).)*$" } | `
+					ForEach-Object {
+						$ResourceName = $_.Name
+						$N = $_.Name -replace "CvsMi" -replace "Functions"
+						$_.Value.Source | `
+							Where-Object { -not $_.IsSubMenuHeader } | `
+							ForEach-Object {
+								$SO = 0
+								switch -Regex ( $N )
+								{
+									"User" { $SO = 0 }
+									"DirectoryInfo" { $SO = 1 }
+									"FileInfo" { $SO = 2 }
+									"Computer" { $SO = 3 }
+									"Group" { $SO = 4 }
+									"PrintQueue" { $SO = 5 }
+									"Other" { $SO = 6 }
+									"Tools" { $SO = 7 }
+									"SeparateTools" { $SO = 8 }
+									"About" { $SO = 9 }
+								}
+								[pscustomobject]@{
+									N = "$( $SO )_$( $N )_$( $syncHash."$( $ResourceName -replace "^Cvs" )".Header.Children[1].Text )"
+									MenuItem = $_.MenuItem
+									Description = $_.Description
+									SearchedItemRequest = $_.SearchedItemRequest
+									Separate = $_.Separate
+									State = $_.State
+									RequiredAdGroups = $_.RequiredAdGroups
+								}
+							}
+					} | Group-Object -AsHashTable -Property N
+
+				$SubMenus = $syncHash.Window.Resources.GetEnumerator() | `
+					Where-Object { $_.Name -match "^CvsMi.*FunctionsSub.*$" }
+				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['MenuItemsHash'] = $MenuItemsHash
+				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['SubMenus'] = $SubMenus
+			}
+		}
+		catch
+		{
+			if ( "NotPage" -eq $_.Exception.Message )
+			{
+				Show-MessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
+			}
+			elseif ( $_.Exception.Message -notmatch "Item has already been added.*$( $ModuleName )" )
+			{
+				Show-MessageBox -Text $_
+			}
+		}
+	}
+
 	if ( $SenderObject.DataContext.IsSubMenuHeader -ne 1 )
 	{
 		Display-View -ViewName "FrameTool"
@@ -1973,107 +2080,24 @@ $(
 			if ( $SenderObject.DataContext.Separate -eq $false )
 			{
 				$name = $SenderObject.DataContext.Name -replace "\W"
+				#Check if tool already is loaded
 				if ( -not ( $syncHash.Window.Resources.Keys.Contains( "LoadedPage$( $name )" ) ) )
 				{
-					try
+					Load-PagedTool -ModuleName $name
+				}
+				elseif ( $syncHash.Window.Resources.Keys.Contains( "LoadedPage$( $name )" ) )
+				{
+					$ModuleStartup = $syncHash.Window.Resources."LoadedPage$( $name )".Data.ModuleStartup
+					if ( ( Get-Item -Path $syncHash.Window.Resources."LoadedPage$( $name )".Data.ScriptInfo.Ps ).LastWriteTime -gt $ModuleStartup -or `
+						( Get-Item -Path $syncHash.Window.Resources."LoadedPage$( $name )".Data.ScriptInfo.Xaml ).LastWriteTime -gt $ModuleStartup -or `
+						( Get-Item -Path $syncHash.Window.Resources."LoadedPage$( $name )".Data.ScriptInfo.Localization ).LastWriteTime -gt $ModuleStartup
+					)
 					{
-						$page = CreatePage -FilePath $SenderObject.DataContext.Xaml
-						$page.Data.msgTable = Import-LocalizedData -BaseDirectory $SenderObject.DataContext.Localization.Directory.FullName -FileName $SenderObject.DataContext.Localization.Name
-						$page.Data.Modules = Get-Module
-						$page.Data.MainWindow = $syncHash.Window
-						$page.Data.ScriptInfo = $SenderObject.DataContext
-						$page.Page.DataContext = [pscustomobject]@{
-							MsgTable = $page.Data.msgTable
-						}
-						$SenderObject.DataContext.PageObject = $page
-						$syncHash.Window.Resources.Add( "LoadedPage$( $name )" , $page )
-
-						Import-Module $SenderObject.DataContext.PS -ArgumentList $page -Force
-
-						if ( $SenderObject.DataContext.Name -eq "Send-Feedback" )
-						{
-							if ( $null -eq $syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsFunctions'].Source )
-							{
-								# Insert a reference to all functions and tools
-								$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsHierarchicalFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-
-								$syncHash.Window.Resources.GetEnumerator() | `
-									Where-Object { $_.Name -match "^CvsMi(?!(O365)|(Output))" } | `
-									Sort-Object -Property Name | `
-									ForEach-Object {
-										try
-										{
-											$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsHierarchicalFunctions'].Source.Add( ( [pscustomobject]@{
-												MenuItem = $syncHash."$( $_.Name -replace "^Cvs" )".Header.Children[1].Text
-												MenuItems = $_.Value.Source
-												MenuType = $_.Name -replace "^CvsMi"
-											} ) )
-										}
-										catch {}
-									}
-							}
-						}
-						elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
-						{
-							$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
-							$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsQuickAccessWordList'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-							$syncHash.Data.QuickAccessWordList.GetEnumerator() | `
-								ForEach-Object {
-									$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['CvsQuickAccessWordList'].Source.Add( $_ ) | Out-Null
-								}
-						}
-						elseif ( $SenderObject.DataContext.Name -eq "Open-Admin" )
-						{
-							$MenuItemsHash = $syncHash.Window.Resources.GetEnumerator() | `
-								Where-Object { $_.Name -match "^CvsMi((?!(O365)|(Sub)).)*$" } | `
-								ForEach-Object {
-									$ResourceName = $_.Name
-									$N = $_.Name -replace "CvsMi" -replace "Functions"
-									$_.Value.Source | `
-										Where-Object { -not $_.IsSubMenuHeader } | `
-										ForEach-Object {
-											$SO = 0
-											switch -Regex ( $N )
-											{
-												"User" { $SO = 0 }
-												"DirectoryInfo" { $SO = 1 }
-												"FileInfo" { $SO = 2 }
-												"Computer" { $SO = 3 }
-												"Group" { $SO = 4 }
-												"PrintQueue" { $SO = 5 }
-												"Other" { $SO = 6 }
-												"Tools" { $SO = 7 }
-												"SeparateTools" { $SO = 8 }
-												"About" { $SO = 9 }
-											}
-											[pscustomobject]@{
-												N = "$( $SO )_$( $N )_$( $syncHash."$( $ResourceName -replace "^Cvs" )".Header.Children[1].Text )"
-												MenuItem = $_.MenuItem
-												Description = $_.Description
-												SearchedItemRequest = $_.SearchedItemRequest
-												Separate = $_.Separate
-												State = $_.State
-												RequiredAdGroups = $_.RequiredAdGroups
-											}
-										}
-								} | Group-Object -AsHashTable -Property N
-
-							$SubMenus = $syncHash.Window.Resources.GetEnumerator() | `
-								Where-Object { $_.Name -match "^CvsMi.*FunctionsSub.*$" }
-							$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['MenuItemsHash'] = $MenuItemsHash
-							$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['SubMenus'] = $SubMenus
-						}
-					}
-					catch
-					{
-						if ( "NotPage" -eq $_.Exception.Message )
-						{
-							Show-MessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
-						}
-						elseif ( $_.Exception.Message -notmatch "Item has already been added.*$( $Name )" )
-						{
-							Show-MessageBox -Text $_
-						}
+						$syncHash.Window.Resources.Remove( "LoadedPage$( $name )" )
+						Remove-Module $SenderObject.DataContext.Name
+						Show-Splash -Text $syncHash.Data.msgTable.StrPagedModuleUpdated -NoProgressBar -NoTitle -SelfAdmin
+						Load-PagedTool -ModuleName $name
+						Close-SplashScreen
 					}
 				}
 
