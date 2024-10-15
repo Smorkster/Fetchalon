@@ -1,5 +1,6 @@
 ﻿ConvertFrom-StringData @'
 CodeGrpDescriptionMatch = \\\\(((gem)|(torg)|(app))\\$)|(dom.test.com)\\\\
+CodeGrpRegExDescriptionExclude = Denna grupp skall EJ populeras med användarkonton
 ContentBtnAbort = Avbryt
 ContentBtnCloseStreamsList = Stäng
 ContentBtnCreateQuestion = Kopiera fråga om hjälp, till Ops
