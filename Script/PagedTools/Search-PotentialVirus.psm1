@@ -345,7 +345,9 @@ function PrepGetFolders
 		foreach ( $g in ( $syncHash.Data.Groups | Select-Object -Unique | Where-Object { $_.Name -notmatch "_R$" } ) )
 		{
 			$p = $null
-			if ( $g.Description -match $syncHash.Data.msgTable.CodeGrpDescriptionMatch )
+			if ( $g.Description -match $syncHash.Data.msgTable.CodeGrpRegExDescription -and `
+				$g.Description -notmatch $syncHash.Data.msgTable.CodeGrpRegExDescriptionExclude
+				)
 			{
 				$p = ( ( $g.Description -split "$( $syncHash.Data.msgTable.StrGrpDescriptionSplit ) " )[1] -split "\." )[0] -replace " $( $syncHash.Data.msgTable.StrGrpDescriptionReplace )"
 			}
@@ -397,9 +399,9 @@ function PrepGetFolders
 			$syncHash.DC.TotalProgress[0] += 1
 		}
 
+		$syncHash.DC.TotalProgress[0] = [double] 0
+		$syncHash.DC.TotalProgress[1] = [System.Windows.Visibility]::Hidden
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-			$syncHash.DC.TotalProgress[0] = [double] 0
-			$syncHash.DC.TotalProgress[1] = [System.Windows.Visibility]::Hidden
 			$syncHash.DC.BtnStartSearch[1] = $syncHash.Controls.Window.Resources['CvsFolderList'].Source.Count -gt 0
 			$syncHash.Controls.Window.Title = ""
 		} )

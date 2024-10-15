@@ -1,5 +1,6 @@
 ﻿ConvertFrom-StringData @'
 CodeGrpDescriptionMatch = \\\\(((gem)|(torg)|(app))\\$)|(dom.test.com)\\\\
+CodeGrpRegExDescriptionExclude = This group is NOT to be populated with users
 ContentBtnAbort = Abort
 ContentBtnCloseStreamsList = Close
 ContentBtnCreateQuestion = Copy request for help, to Ops
