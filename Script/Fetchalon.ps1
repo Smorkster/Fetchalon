@@ -746,18 +746,30 @@ function Set-DefaultSettings
 		WindowWidth = 1442
 		WindowTop = 0
 	}
+
+	# Set the default properties per ObjectClass
 	$syncHash.Data.UserSettings.VisibleProperties.Computer.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+
 	$syncHash.Data.UserSettings.VisibleProperties.DirectoryInfo.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+
 	$syncHash.Data.UserSettings.VisibleProperties.FileInfo.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+
 	$syncHash.Data.UserSettings.VisibleProperties.Group.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+
 	$syncHash.Data.UserSettings.VisibleProperties.PrintQueue.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
+
 	$syncHash.Data.UserSettings.VisibleProperties.User.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "AD" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.User.Add( ( [pscustomobject]@{ Name = "info" ; MandatorySource = "AD" } ) ) | Out-Null
 	$syncHash.Data.UserSettings.VisibleProperties.User.Add( ( [pscustomobject]@{ Name = "AccountStatus" ; MandatorySource = "Other" } ) ) | Out-Null
+
 	$syncHash.Data.UserSettings.VisibleProperties.O365User.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
+
 	$syncHash.Data.UserSettings.VisibleProperties.O365SharedMailbox.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
+
 	$syncHash.Data.UserSettings.VisibleProperties.O365Resource.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
+
 	$syncHash.Data.UserSettings.VisibleProperties.O365Room.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
+
 	$syncHash.Data.UserSettings.VisibleProperties.O365Distributionlist.Add( ( [pscustomobject]@{ Name = "Name" ; MandatorySource = "Exchange" } ) ) | Out-Null
 }
 
@@ -1150,6 +1162,22 @@ $syncHash.Data.SettingsPath = "$( $env:UserProfile )\FetchalonSettings.json"
 $syncHash.Data.UserGroups = ( Get-ADUser -Identity ( [Environment]::UserName ) -Properties memberof ).memberof | Get-ADGroup | Select-Object -ExpandProperty Name
 $syncHash.Data.QuickAccessWordList = @{}
 
+# This will recursively collect all groupmemberships in AD
+$syncHash.Jobs.GetFullADMemberships = [powershell]::Create()
+$syncHash.Jobs.GetFullADMemberships.AddScript( {
+	param ( $Id, $modules , $s )
+
+	Import-Module $modules
+
+	$Dn = ( Get-ADUser $Id ).DistinguishedName
+	$s.APGM = Get-ADGroup -LDAPFilter "(member:1.2.840.113556.1.4.1941:=$( $Dn ))"
+} ) | Out-Null
+
+$syncHash.Jobs.GetFullADMemberships.AddArgument( ( $env:USERNAME ) ) | Out-Null
+$syncHash.Jobs.GetFullADMemberships.AddArgument( ( Get-Module ) ) | Out-Null
+$syncHash.Jobs.GetFullADMemberships.AddArgument( ( $syncHash ) ) | Out-Null
+$syncHash.Jobs.GetFullADMembershipsHandler = $syncHash.Jobs.GetFullADMemberships.BeginInvoke()
+
 # Check validity of culture, otherwise, default to 'sv-se'
 try
 {
@@ -1175,6 +1203,7 @@ $syncHash.Data.TestSearches = @{
 
 Update-SplashText -Text $msgTable.StrSplashReadingSettings
 
+# Check for suite settings file, if not present, create one with default settings
 try
 {
 	Resolve-Path $syncHash.Data.SettingsPath -ErrorAction Stop | Out-Null
@@ -1268,6 +1297,7 @@ $syncHash.Code.ListItem =
 					[array]::Reverse( $b )
 					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "OrgDn" -Value ( [string] $b ).TrimStart( "> " )
 				}
+				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "HasWritePermission" -Value "?"
 
 				break
 			}
@@ -1809,7 +1839,10 @@ Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximu
 	$p = [powershell]::Create()
 	$PHCode = '
 	param ( $syncHash, $SenderObject, $Modules, $SearchedItem, $PropLocalization )
-	Import-Module $Modules
+	$Modules | `
+		ForEach-Object {
+			Import-Module $_.Name -Force
+		}
 	$NewPropValue = $null
 
 	' + $SenderObject.DataContext.Handler.Code
