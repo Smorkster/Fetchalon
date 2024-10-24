@@ -5,6 +5,9 @@
       FocusManager.FocusedElement="{Binding ElementName=TbTextToMatch}">
     <Page.Resources>
         <Brush x:Key="DefaultFontColor">#FF444444</Brush>
+        <Thickness x:Key="StdMargin">5</Thickness>
+        <Thickness x:Key="StdPadding">5</Thickness>
+
         <CollectionViewSource x:Key="CvsDefaultRegExs">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
@@ -23,9 +26,6 @@
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
 
-        <Thickness x:Key="StdMargin">5</Thickness>
-        <Thickness x:Key="StdPadding">5</Thickness>
-
         <Style TargetType="Button"
                x:Key="BtnBaseStyle">
             <Setter Property="Foreground"
@@ -35,14 +35,51 @@
             <Setter Property="Padding"
                     Value="{StaticResource StdPadding}" />
         </Style>
+        <Style TargetType="Label"
+               x:Key="LblBaseStyle">
+            <Setter Property="Foreground"
+                    Value="{StaticResource DefaultFontColor}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="{StaticResource StdPadding}" />
+            <Setter Property="TextBlock.TextWrapping"
+                    Value="Wrap" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="Label"
+               x:Key="LblTitleStyle"
+               BasedOn="{StaticResource LblBaseStyle}">
+            <Setter Property="FontWeight"
+                    Value="Bold" />
+            <Setter Property="Padding"
+                    Value="{StaticResource StdPadding}" />
+            <Setter Property="TextBlock.TextWrapping"
+                    Value="Wrap" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
         <Style TargetType="TextBlock"
-               x:Key="TblTitleStyle">
+               x:Key="TblDefaultStyle">
+            <Setter Property="FontSize"
+                    Value="12" />
+            <Setter Property="FontWeight"
+                    Value="Normal" />
+            <Setter Property="Foreground"
+                    Value="{StaticResource DefaultFontColor}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="TextWrapping"
+                    Value="Wrap" />
+        </Style>
+        <Style TargetType="TextBlock"
+               x:Key="TblTitleStyle"
+               BasedOn="{StaticResource TblDefaultStyle}">
             <Setter Property="FontSize"
                     Value="14" />
             <Setter Property="FontWeight"
                     Value="Bold" />
-            <Setter Property="Margin"
-                    Value="{StaticResource StdMargin}" />
         </Style>
         <Style TargetType="TextBox"
                x:Key="TbBaseStyle">
@@ -66,28 +103,34 @@
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="30" />
-            <RowDefinition Height="40" />
-            <RowDefinition Height="30" />
-            <RowDefinition Height="30" />
-            <RowDefinition />
-            <RowDefinition Height="40" />
-            <RowDefinition Height="40" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="1*" />
         </Grid.RowDefinitions>
-        <TextBlock Name="TblRegexTitle"
-                   Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
-                   Style="{StaticResource TblTitleStyle}"
-                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblRegexTitle}" />
-        <Grid Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
-              Grid.Row="1">
+        <Grid Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition />
-                <ColumnDefinition Width="270" />
+                <ColumnDefinition Width="1*" />
+                <ColumnDefinition MinWidth="200"
+                                  Width="Auto" />
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Name="TblRegexTitle"
+                       Style="{StaticResource TblTitleStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblRegexTitle}" />
+            <TextBlock Name="TblPredefRegexTitle"
+                       Grid.Column="1"
+                       Grid.ColumnSpan="2"
+                       Style="{StaticResource TblTitleStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPredefRegexTitle}" />
             <TextBox Name="TbRegex"
                      AcceptsReturn="False"
                      FocusManager.IsFocusScope="True"
+                     Grid.Row="1"
                      Margin="{StaticResource StdMargin}"
                      Style="{StaticResource TbBaseStyle}"
                      TextWrapping="NoWrap"
@@ -96,6 +139,7 @@
                       DisplayMemberPath="Name"
                       FocusManager.IsFocusScope="True"
                       Grid.Column="1"
+                      Grid.Row="1"
                       ItemsSource="{Binding Source={StaticResource CvsDefaultRegExs}}"
                       Margin="{StaticResource StdMargin}"
                       Text="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Name}"
@@ -103,7 +147,8 @@
             <Button Name="BtnUseRegEx"
                     Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUseRegEx}"
                     FocusManager.IsFocusScope="True"
-                    Grid.Column="2">
+                    Grid.Column="2"
+                    Grid.Row="1">
                 <Button.Style>
                     <Style TargetType="Button"
                            BasedOn="{StaticResource BtnBaseStyle}">
@@ -120,143 +165,167 @@
                 </Button.Style>
             </Button>
         </Grid>
-        <TextBlock Name="TblTextToMatchTitle"
-                   Grid.Row="2"
-                   Style="{StaticResource TblTitleStyle}"
-                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblTextToMatchTitle}" />
-        <TextBlock Name="TblValuesTitle"
-                   FocusManager.IsFocusScope="True"
-                   Grid.Column="1"
-                   Grid.Row="2"
-                   Style="{StaticResource TblTitleStyle}"
-                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblValuesTitle}" />
-        <TextBlock Name="TblTextToMatchDescription"
-                   FontSize="12"
-                   FontWeight="Normal"
-                   Grid.Row="3"
-                   Style="{StaticResource TblTitleStyle}"
-                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblTextToMatchDescription}"
-                   TextWrapping="Wrap" />
-        <TextBox Name="TbTextToMatch"
-                 Grid.Row="4"
-                 IsInactiveSelectionHighlightEnabled="True"
-                 Style="{StaticResource TbBaseStyle}">
-            <TextBox.Resources>
-                <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"
-                                 Color="LightBlue" />
-            </TextBox.Resources>
-        </TextBox>
-        <TabControl Name="TabMatches"
-                    FocusManager.IsFocusScope="True"
-                    Grid.Column="1"
-                    Grid.Row="3"
-                    Grid.RowSpan="4"
-                    Margin="{StaticResource StdMargin}">
-            <TabItem Name="TiValues"
-                     Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiValues}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition />
-                        <RowDefinition Height="Auto" />
-                    </Grid.RowDefinitions>
-                    <TextBox Name="TbValues"
-                             IsReadOnly="True"
-                             Style="{StaticResource TbBaseStyle}" />
-                    <Grid Grid.Row="1">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition />
-                            <ColumnDefinition />
-                            <ColumnDefinition />
-                        </Grid.ColumnDefinitions>
-                        <Button Name="BtnCopyExtraction"
-                                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCopyExtraction}"
-                                Style="{StaticResource BtnBaseStyle}" />
-                        <Button Name="BtnCopyAsAD"
-                                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCopyAsAD}"
-                                Grid.Column="1"
-                                Style="{StaticResource BtnBaseStyle}"
-                                Visibility="Hidden" />
-                        <ComboBox Name="CbPropertyToCopy"
-                                  Grid.Column="2"
-                                  IsEditable="True"
-                                  ItemsSource="{Binding Source={StaticResource CvsPropertyNames}}"
-                                  Margin="{StaticResource StdMargin}"
-                                  VerticalContentAlignment="Center"
-                                  Visibility="{Binding ElementName=BtnCopyAsAD, Path=Visibility}" />
+        <Grid Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
+              Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition />
+            </Grid.ColumnDefinitions>
+            <Label Name="LblErrorsTitle"
+                       Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblErrorsTitle}">
+                <Label.Style>
+                    <Style TargetType="Label"
+                           BasedOn="{StaticResource LblTitleStyle}">
+                        <Setter Property="Foreground"
+                                Value="{StaticResource DefaultFontColor}" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=LblErrors, Path=Content.Length}"
+                                         Value="0">
+                                <Setter Property="Foreground"
+                                        Value="LightGray" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Label.Style>
+            </Label>
+            <Label Name="LblErrors"
+                       Foreground="Red"
+                       Grid.Column="1"
+                       Style="{StaticResource LblBaseStyle}" />
+        </Grid>
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="1*" />
+            </Grid.RowDefinitions>
+            <TextBlock Name="TblTextToMatchTitle"
+                       Style="{StaticResource TblTitleStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblTextToMatchTitle}" />
+            <TextBlock Name="TblTextToMatchDescription"
+                       Grid.Row="1"
+                       Style="{StaticResource TblDefaultStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblTextToMatchDescription}" />
+            <TextBox Name="TbTextToMatch"
+                     Grid.Row="2"
+                     IsInactiveSelectionHighlightEnabled="True"
+                     Style="{StaticResource TbBaseStyle}">
+                <TextBox.Resources>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"
+                                     Color="LightBlue" />
+                </TextBox.Resources>
+            </TextBox>
+        </Grid>
+        <Grid Grid.Column="1"
+              Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="1*" />
+            </Grid.RowDefinitions>
+            <TextBlock Name="TblValuesTitle"
+                       FocusManager.IsFocusScope="True"
+                       Style="{StaticResource TblTitleStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblValuesTitle}" />
+            <TabControl Name="TabMatches"
+                        FocusManager.IsFocusScope="True"
+                        Grid.Row="1"
+                        Margin="{StaticResource StdMargin}">
+                <TabControl.Style>
+                    <Style TargetType="TabControl">
+                        <Setter Property="IsEnabled"
+                                Value="False" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=LblErrors, Path=Content.Length}"
+                                         Value="0">
+                                <Setter Property="IsEnabled"
+                                        Value="True" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TabControl.Style>
+                <TabItem Name="TiValues"
+                         Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiValues}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBox Name="TbValues"
+                                 IsReadOnly="True"
+                                 Style="{StaticResource TbBaseStyle}" />
+                        <Grid Grid.Row="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <Button Name="BtnCopyExtraction"
+                                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCopyExtraction}"
+                                    Style="{StaticResource BtnBaseStyle}" />
+                            <Button Name="BtnCopyAsAD"
+                                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCopyAsAD}"
+                                    Grid.Column="1"
+                                    Style="{StaticResource BtnBaseStyle}"
+                                    Visibility="Hidden" />
+                            <ComboBox Name="CbPropertyToCopy"
+                                      Grid.Column="2"
+                                      IsEditable="True"
+                                      ItemsSource="{Binding Source={StaticResource CvsPropertyNames}}"
+                                      Margin="{StaticResource StdMargin}"
+                                      VerticalContentAlignment="Center"
+                                      Visibility="{Binding ElementName=BtnCopyAsAD, Path=Visibility}" />
+                        </Grid>
                     </Grid>
-                </Grid>
-            </TabItem>
-            <TabItem Name="TiMatches"
-                     Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiMatches}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" />
-                        <RowDefinition />
-                    </Grid.RowDefinitions>
-                    <TextBlock Name="TblMatchesTitle"
-                               Style="{StaticResource TblTitleStyle}"
-                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMatchesTitle}" />
-                    <ScrollViewer Grid.Row="1"
-                                  VerticalScrollBarVisibility="Auto">
-                        <ItemsControl Name="IcMatches"
-                                      ItemsSource="{Binding Source={StaticResource CvsMatches}}">
-                            <ItemsControl.Resources>
-                                <Style TargetType="Border"
-                                       x:Key="BrdStyle">
-                                    <EventSetter Event="MouseMove" />
-                                </Style>
-                            </ItemsControl.Resources>
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BorderBrush="Black"
-                                            BorderThickness="0,2,0,0">
-                                        <Border.Style>
-                                            <Style TargetType="Border"
-                                                   BasedOn="{StaticResource BrdStyle}">
-                                                <Setter Property="Background"
-                                                        Value="Transparent" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
-                                                                 Value="True">
-                                                        <Setter Property="Background"
-                                                                Value="PowderBlue" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <Grid>
-                                            <!--
-                                    Groups   : {0}
-                                    Success  : True
-                                    Name     : 0
-                                    Captures : {0}
-                                    Index    : 241
-                                    Length   : 1
-                                    Value    : -
-                                    -->
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition />
-                                                <RowDefinition />
-                                                <RowDefinition />
-                                            </Grid.RowDefinitions>
+                </TabItem>
+                <TabItem Name="TiMatches"
+                         Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiMatches}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <TextBlock Name="TblMatchesTitle"
+                                   Style="{StaticResource TblTitleStyle}"
+                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMatchesTitle}" />
+                        <ScrollViewer Grid.Row="1"
+                                      VerticalScrollBarVisibility="Auto">
+                            <ItemsControl Name="IcMatches"
+                                          ItemsSource="{Binding Source={StaticResource CvsMatches}}">
+                                <ItemsControl.Resources>
+                                    <Style TargetType="Border"
+                                           x:Key="BrdStyle">
+                                        <EventSetter Event="MouseMove" />
+                                    </Style>
+                                </ItemsControl.Resources>
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BorderBrush="Black"
+                                                BorderThickness="0,2,0,0">
+                                            <Border.Style>
+                                                <Style TargetType="Border"
+                                                       BasedOn="{StaticResource BrdStyle}">
+                                                    <Setter Property="Background"
+                                                            Value="Transparent" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
+                                                                     Value="True">
+                                                            <Setter Property="Background"
+                                                                    Value="PowderBlue" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <Grid>
-                                                <Grid.ColumnDefinitions>
-                                                    <ColumnDefinition />
-                                                    <ColumnDefinition />
-                                                </Grid.ColumnDefinitions>
-                                                <TextBlock Style="{StaticResource TblTitleStyle}"
-                                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchValueTitle}" />
-                                                <TextBlock FontWeight="Normal"
-                                                           Grid.Column="1"
-                                                           Style="{StaticResource TblTitleStyle}"
-                                                           Text="{Binding Path=Value}" />
-                                            </Grid>
-                                            <Grid Grid.Row="1">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition />
+                                                    <RowDefinition />
+                                                    <RowDefinition />
+                                                </Grid.RowDefinitions>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition />
                                                     <ColumnDefinition />
@@ -265,78 +334,83 @@
                                                     <ColumnDefinition />
                                                     <ColumnDefinition />
                                                 </Grid.ColumnDefinitions>
-                                                <TextBlock FontSize="12"
-                                                           Style="{StaticResource TblTitleStyle}"
-                                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchIndexTitle}" />
-                                                <TextBlock Grid.Column="1"
-                                                           Text="{Binding Path=Index}" />
-                                                <TextBlock FontSize="12"
-                                                           Grid.Column="2"
-                                                           Style="{StaticResource TblTitleStyle}"
-                                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchLengthTitle}" />
-                                                <TextBlock Grid.Column="3"
-                                                           Text="{Binding Path=Length}" />
-                                                <TextBlock FontSize="12"
-                                                           Grid.Column="4"
-                                                           Style="{StaticResource TblTitleStyle}"
-                                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchNameTitle}" />
-                                                <TextBlock Grid.Column="5"
-                                                           Text="{Binding Path=Name}" />
-                                            </Grid>
-                                            <Expander Grid.Row="2">
-                                                <Expander.Header>
-                                                    <TextBlock FontSize="12"
-                                                               Style="{StaticResource TblTitleStyle}"
-                                                               Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchGroupsTitle}" />
-                                                </Expander.Header>
-                                                <ItemsControl ItemsSource="{Binding Path=Groups}">
-                                                    <ItemsControl.ItemsPanel>
-                                                        <ItemsPanelTemplate>
-                                                            <StackPanel />
-                                                        </ItemsPanelTemplate>
-                                                    </ItemsControl.ItemsPanel>
-                                                    <ItemsControl.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <Grid>
-                                                                <Grid.ColumnDefinitions>
-                                                                    <ColumnDefinition />
-                                                                    <ColumnDefinition />
-                                                                    <ColumnDefinition />
-                                                                    <ColumnDefinition />
-                                                                </Grid.ColumnDefinitions>
-                                                                <TextBlock FontSize="12"
-                                                                           Style="{StaticResource TblTitleStyle}"
-                                                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchNameTitle}" />
-                                                                <TextBlock Grid.Column="1"
-                                                                           Text="{Binding Path=Name}" />
-                                                                <TextBlock FontSize="12"
+                                                <Label Grid.Row="0"
+                                                       Style="{StaticResource LblTitleStyle}"
+                                                       Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchValueTitle}" />
+                                                <Label Grid.Column="1"
+                                                       Grid.Row="0"
+                                                       Style="{StaticResource LblBaseStyle}"
+                                                       Content="{Binding Path=Value}" />
+                                                <Label Grid.Row="1"
+                                                       Style="{StaticResource LblTitleStyle}"
+                                                       Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchIndexTitle}" />
+                                                <Label Content="{Binding Path=Index}"
+                                                       Grid.Column="1"
+                                                       Grid.Row="1"
+                                                       Style="{StaticResource LblBaseStyle}" />
+                                                <Label Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchLengthTitle}"
+                                                       Grid.Column="2"
+                                                       Grid.Row="1"
+                                                       Style="{StaticResource LblTitleStyle}" />
+                                                <Label Content="{Binding Path=Length}"
+                                                       Grid.Column="3"
+                                                       Grid.Row="1"
+                                                       Style="{StaticResource LblBaseStyle}" />
+                                                <Label Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchNameTitle}"
+                                                       Grid.Column="4"
+                                                       Grid.Row="1"
+                                                       Style="{StaticResource LblTitleStyle}" />
+                                                <Label Content="{Binding Path=Name}"
+                                                       Grid.Column="5"
+                                                       Grid.Row="1"
+                                                       Style="{StaticResource LblBaseStyle}" />
+                                                <Expander Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
+                                                          Grid.Row="2">
+                                                    <Expander.Header>
+                                                        <TextBlock FontSize="12"
+                                                                   Style="{StaticResource TblTitleStyle}"
+                                                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchGroupsTitle}" />
+                                                    </Expander.Header>
+                                                    <ItemsControl ItemsSource="{Binding Path=Groups}">
+                                                        <ItemsControl.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <StackPanel />
+                                                            </ItemsPanelTemplate>
+                                                        </ItemsControl.ItemsPanel>
+                                                        <ItemsControl.ItemTemplate>
+                                                            <DataTemplate>
+                                                                <Grid>
+                                                                    <Grid.ColumnDefinitions>
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                        <ColumnDefinition Width="Auto" />
+                                                                    </Grid.ColumnDefinitions>
+                                                                    <Label Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchNameTitle}"
+                                                                           Style="{StaticResource LblTitleStyle}" />
+                                                                    <Label Content="{Binding Path=Name}"
+                                                                           Grid.Column="1"
+                                                                           Style="{StaticResource LblBaseStyle}" />
+                                                                    <Label Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchValueTitle}"
                                                                            Grid.Column="2"
-                                                                           Style="{StaticResource TblTitleStyle}"
-                                                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentMatchValueTitle}" />
-                                                                <TextBlock Grid.Column="3"
-                                                                           Text="{Binding Path=Value}" />
-                                                            </Grid>
-                                                        </DataTemplate>
-                                                    </ItemsControl.ItemTemplate>
-                                                </ItemsControl>
-                                            </Expander>
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
-                </Grid>
-            </TabItem>
-        </TabControl>
-        <TextBlock Name="TblErrorsTitle"
-                   Grid.Row="5"
-                   Style="{StaticResource TblTitleStyle}"
-                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblErrorsTitle}" />
-        <TextBlock Name="TblErrors"
-                   FontSize="12"
-                   Foreground="Red"
-                   Grid.Row="6"
-                   Style="{StaticResource TblTitleStyle}" />
+                                                                           Style="{StaticResource LblTitleStyle}" />
+                                                                    <Label Content="{Binding Path=Value}"
+                                                                           Grid.Column="3"
+                                                                           Style="{StaticResource LblBaseStyle}" />
+                                                                </Grid>
+                                                            </DataTemplate>
+                                                        </ItemsControl.ItemTemplate>
+                                                    </ItemsControl>
+                                                </Expander>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                    </Grid>
+                </TabItem>
+            </TabControl>
+        </Grid>
     </Grid>
 </Page>

@@ -2,13 +2,14 @@
 ContentBtnCopyAsAD = Kopiera som AD-object
 ContentBtnCopyExtraction = Kopiera extraherad text
 ContentBtnUseRegEx = Använd regex
+ContentLblErrorsTitle = Felmeddelanden
 ContentMatchGroupsTitle = Grupper
 ContentMatchIndexTitle = Index
 ContentMatchLengthTitle = Längd
 ContentMatchNameTitle = Namn
 ContentMatchValueTitle = Värde
-ContentTblErrorsTitle = Felmeddelanden
 ContentTblMatchesTitle = Matchningsobject
+ContentTblPredefRegexTitle = Fördefinierade RegEx-strängar
 ContentTblRegexTitle = Ange RegEx-sträng här
 ContentTblTextToMatchDescription = Klistra in text du vill matcha mot. Resultat kommer visas till höger.
 ContentTblTextToMatchTitle = Text som ska matchas
