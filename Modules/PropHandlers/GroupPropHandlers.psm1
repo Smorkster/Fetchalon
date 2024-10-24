@@ -35,5 +35,43 @@ $PHGroupAdMembers = [pscustomobject]@{
 	MandatorySource = "AD"
 }
 
+$PHGroupOtherHasWritePermission = [pscustomobject]@{
+	Code = '
+	if ( $syncHash.APGM.DistinguishedName.Count -eq 0 )
+	{
+		$NewPropValue = $PropLocalization.PLGroupOtherHasWritePermissionStrGrpCollectionNotReady
+	}
+	else
+	{
+		$PermGrps = [System.Collections.ArrayList]::new()
+		( Get-Acl "AD:$( $SearchedItem.DistinguishedName )" ).Access | `
+			Where-Object { $_.IdentityReference -match $PropLocalization.PLGroupOtherHasWritePermissionCodeIdentityReference } | `
+			ForEach-Object {
+				try
+				{
+					( Get-ADGroup -LDAPFilter "(Name=$( ( $_.IdentityReference -split "\\" )[1] ))" -Properties member -ErrorAction Stop ).member | `
+						Where-Object { $_ -in $syncHash.APGM.DistinguishedName } | `
+						ForEach-Object {
+							$PermGrps.Add( $_ ) | Out-Null
+						}
+				}
+				catch {}
+			}
+		if ( $PermGrps.Count -gt 0 )
+		{
+			$NewPropValue = "True"
+		}
+		else
+		{
+			$NewPropValue = "False"
+		}
+	}
+	'
+	Title = $IntMsgTable.HTGroupOtherHasWritePermission
+	Description = $IntMsgTable.HDescGroupOtherHasWritePermission
+	Progress = 0
+	MandatorySource = "Other"
+}
+
 Export-ModuleMember -Variable IntMsgTable
-Export-ModuleMember -Variable PHGroupAdMemberOf, PHGroupAdMembers
+Export-ModuleMember -Variable PHGroupAdMemberOf, PHGroupAdMembers, PHGroupOtherHasWritePermission
