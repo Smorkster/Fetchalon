@@ -2,13 +2,14 @@
 ContentBtnCopyAsAD = Copy as AD object
 ContentBtnCopyExtraction = Copy extracted text
 ContentBtnUseRegEx = Use regex
+ContentLblErrorsTitle = Errors
 ContentMatchGroupsTitle = Groups
 ContentMatchIndexTitle = Index
 ContentMatchLengthTitle = Length
 ContentMatchNameTitle = Name
 ContentMatchValueTitle = Value
-ContentTblErrorsTitle = Error messages
 ContentTblMatchesTitle = Match object
+ContentTblPredefRegexTitle = Predefined RegEx-strings
 ContentTblRegexTitle = Enter RegEx string here
 ContentTblTextToMatchDescription = Paste text you want to match against. Results will be displayed on the right.
 ContentTblTextToMatchTitle = Text to be matched

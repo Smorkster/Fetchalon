@@ -16,7 +16,7 @@ $syncHash = $args[0]
 
 function MatchText
 {
-	$syncHash.Controls.TbValues.Text = $syncHash.Controls.TblErrors.Text = ""
+	$syncHash.Controls.TbValues.Text = $syncHash.Controls.LblErrors.Content = ""
 	$syncHash.Controls.Window.Resources['CvsMatches'].Source.Clear()
 	$syncHash.Controls.Window.Resources['CvsPropertyNames'].Source.Clear()
 	$syncHash.Controls.TabMatches.SelectedIndex = 0
@@ -55,7 +55,7 @@ function MatchText
 		}
 		catch
 		{
-			$syncHash.Controls.TblErrors.Text = ( $_.Exception.InnerException.Message -split " - " )[1].TrimEnd( "." )
+			$syncHash.Controls.LblErrors.Content = ( $_.Exception.InnerException.Message -split " - " )[1].TrimEnd( "." )
 		}
 	}
 }
