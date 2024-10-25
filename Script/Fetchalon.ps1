@@ -1039,22 +1039,32 @@ function Start-Search
 			# None of the above, searchstring may be an id or name for an AD-object
 			else
 			{
-				$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsNoPatternAdSearch
 				$Id = $syncHash.DC.TbSearch[0].Trim()
 				$LDAPSearches = [System.Collections.ArrayList]::new()
 
 				if ( $Id -match "\w{5}\d{8}" )
 				{
+					$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsComputer
 					$LDAPSearches.Add( "(&(ObjectClass=computer)(Name=$Id))" ) | Out-Null
 				}
 				elseif ( $Id -match "(?i)^[a-z0-9]{4}$" )
 				{
+					$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsID
 					$LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null
 					$LDAPSearches.Add( "(&(ObjectClass=group)(($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id))" ) | Out-Null
+				}
+				elseif ( $Id -match "^\w{3}_([A-Za-z0-9.,]+?_)+?" -and `
+					$Id -notmatch "\s" -and `
+					( dsquery group -Name $Id -limit 1 )
+				)
+				{
+					$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsGroupName
+					$LDAPSearches.Add( "(&(ObjectClass=group)(Name=$Id))" ) | Out-Null
 				}
 				# Searchstring may be a name
 				else
 				{
+					$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsNoPatternAdSearch
 					# Group
 					switch -Regex ( $Id )
 					{
@@ -1293,9 +1303,8 @@ $syncHash.Code.ListItem =
 
 				if ( $syncHash.Data.SearchedItem."$( $syncHash.Data.msgTable.StrOrgDnPropName )" -ne $null )
 				{
-					$b = $syncHash.Data.SearchedItem."$( $syncHash.Data.msgTable.StrOrgDnPropName )" -split ",*\w*=" | Where-Object { $_ } | ForEach-Object { "> $( $_ )" }
-					[array]::Reverse( $b )
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "OrgDn" -Value ( [string] $b ).TrimStart( "> " )
+
+					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "OrgDn" -Value @()
 				}
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "HasWritePermission" -Value "?"
 
@@ -1600,6 +1609,73 @@ $syncHash.Code.ListProperties =
 {
 	param ( $Detailed )
 
+	function Get-PropValueAndType
+	{
+		<#
+		.Synopsis
+			Return proper value and type
+		.Description
+			Return properly formated value and value type to be desplayed
+		#>
+
+		param ( $Val )
+
+		if ( $null -eq $Val )
+		{
+			return "NULL", "String"
+		}
+		elseif (
+			$Val -is [array] -or `
+			$Val -is [System.Collections.ArrayList]
+		)
+		{
+			if ( $Val.Count -eq 0 )
+			{
+				return $syncHash.Data.msgTable.StrNoScriptOutput, "String"
+			}
+			elseif ( $Val[0] -is [string] )
+			{
+				return $Val, "ArrayList"
+			}
+			elseif ( "pscustomobject" -eq $Val[0].GetType().Name )
+			{
+				return $Val, "ObjectList"
+			}
+		}
+		elseif ( $Val -is [pscustomobject] )
+		{
+			$t = $Val
+			$Val = [System.Collections.ArrayList]::new()
+			$Val.Add( ( $t | Where-Object { $_ } )  ) | Out-Null
+			return $Val, "ObjectList"
+		}
+		else
+		{
+			if ( $Val.GetType().Name -eq "Int64" )
+			{
+				if ( 9223372036854775807 -eq $Val )
+				{
+					if ( $syncHash.Data.SearchedItem.ObjectClass -eq "user" )
+					{
+						return $syncHash.Data.msgTable.StrAccountNeverExpires, "String"
+					}
+				}
+				else
+				{
+					return ( Get-Date ( [datetime]::FromFileTime( $Val ) ) -Format "u" ), "String"
+				}
+			}
+			elseif ( "ADPropertyValueCollection" -eq $Val.GetType().Name )
+			{
+				return [System.Collections.ArrayList] $Val, "ArrayList"
+			}
+			else
+			{
+				return $Val, $Val.GetType().Name
+			}
+		}
+	}
+
 	$syncHash.Window.Resources['CvsDetailedProps'].Source.Clear()
 	$syncHash.Window.Resources['CvsPropsList'].Source.Clear()
 	$Props = if ( $Detailed )
@@ -1614,33 +1690,27 @@ $syncHash.Code.ListProperties =
 						if ( 0 -eq $c )
 						{
 							( Get-Member -InputObject $_ -MemberType NoteProperty ).Name | `
-								Where-Object { $_ } | `
-								Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
+								Where-Object { $_ -and `
+									$_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and `
+									$_ -notmatch "^PS"
+									} | `
 								ForEach-Object {
-									$Key = $_
-									if ( $syncHash.Data.SearchedItem.ObjectClass -match "^O365((SharedMailbox)|(Room)|(Resource)|(Distributionlist)|(User))" )
-									{
-										[pscustomobject]@{
-											Name = $Key
-											Value = $syncHash.Data.SearchedItem."$( $Key )"
-											Source = "Exchange"
-											Type = $null
-											Handler = $null
-											NameLocalization = ""
-											CheckedForVisible = $null
-										}
-									}
-									else
-									{
-										[pscustomobject]@{
-											Name = $Key
-											Value = $syncHash.Data.SearchedItem."$( $Key )"
-											Source = "AD"
-											Type = $null
-											Handler = $null
-											NameLocalization = ""
-											CheckedForVisible = $null
-										}
+									$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem."$( $_ )"
+									[pscustomobject]@{
+										Name = $_
+										Value = $v
+										Source = if ( $syncHash.Data.SearchedItem.ObjectClass -match "^O365((SharedMailbox)|(Room)|(Resource)|(Distributionlist)|(User))" )
+											{
+												"Exchange"
+											}
+											else
+											{
+												"AD"
+											}
+										Type = $t
+										Handler = $null
+										NameLocalization = ""
+										CheckedForVisible = $null
 									}
 								}
 						}
@@ -1649,15 +1719,17 @@ $syncHash.Code.ListProperties =
 							$_ | ForEach-Object {
 								$Source = $_
 								( Get-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.$Source -MemberType NoteProperty ).Name | `
-									Where-Object { $_ } | `
-									Where-Object { $_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and $_ -notmatch "^PS" } | `
+									Where-Object { $_ -and `
+										$_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and `
+										$_ -notmatch "^PS"
+										} | `
 									ForEach-Object {
-										$Key = $_
+										$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem.ExtraInfo."$( $Source )"."$( $_ )"
 										[pscustomobject]@{
-											Name = $Key
-											Value = $syncHash.Data.SearchedItem.ExtraInfo."$( $Source )"."$( $Key )"
+											Name = $_
+											Value = $v
 											Source = $Source
-											Type = $null
+											Type = $t
 											Handler = $null
 											NameLocalization = ""
 											CheckedForVisible = $null
@@ -1671,25 +1743,25 @@ $syncHash.Code.ListProperties =
 		else
 		{
 			$syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )" | `
-					ForEach-Object {
-						if ( $_.MandatorySource -match "(Exchange)|(AD)" )
-						{
-							$v = $syncHash.Data.SearchedItem."$( $_.Name )"
-						}
-						else
-						{
-							$v = $syncHash.Data.SearchedItem.ExtraInfo."$( $_.MandatorySource )"."$( $_.Name )"
-						}
-						[pscustomobject]@{
-							Name = $_.Name
-							Value = $v
-							Source = $_.MandatorySource
-							Type = $null
-							Handler = $null
-							NameLocalization = ""
-							CheckedForVisible = $null
-						}
+				ForEach-Object {
+					if ( $_.MandatorySource -match "(Exchange)|(AD)" )
+					{
+						$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem."$( $_.Name )"
 					}
+					else
+					{
+						$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem.ExtraInfo."$( $_.MandatorySource )"."$( $_.Name )"
+					}
+					[pscustomobject]@{
+						Name = $_.Name
+						Value = $v
+						Source = $_.MandatorySource
+						Type = $t
+						Handler = $null
+						NameLocalization = ""
+						CheckedForVisible = $null
+					}
+				}
 		}
 
 		if ( $Props.Name -notmatch "LogonWorkstations" `
@@ -1700,7 +1772,7 @@ $syncHash.Code.ListProperties =
 				Name = "LogonWorkstations"
 				Value = $syncHash.Data.SearchedItem.LogonWorkstations
 				Source = "AD"
-				Type = $null
+				Type = "ArrayList"
 				Handler = $Null
 				NameLocalization = ""
 				CheckedForVisible = $null
@@ -1710,62 +1782,6 @@ $syncHash.Code.ListProperties =
 		$Props | `
 			ForEach-Object {
 				$Prop = $_
-				if ( $null -eq $Prop.Value )
-				{
-					$Prop.Value = "NULL"
-				}
-				elseif (
-					$Prop.Value -is [array] -or `
-					$Prop.Value -is [System.Collections.ArrayList]
-				)
-				{
-					if ( $Prop.Value.Count -eq 0 )
-					{
-						$Prop.Value = $syncHash.Data.msgTable.StrNoScriptOutput
-						$Prop.Type = "String"
-					}
-					elseif ( $Prop.Value[0] -is [string] )
-					{
-						$Prop.Type = "ArrayList"
-					}
-					elseif ( "pscustomobject" -eq $Prop.Value[0].GetType().Name )
-					{
-						$Prop.Type = "ObjectList"
-					}
-				}
-				elseif ( $Prop.Value -is [pscustomobject] )
-				{
-					$t = $Prop.Value
-					$Prop.Value = [System.Collections.ArrayList]::new()
-					$Prop.Value.Add( ( $t | Where-Object { $_ } )  ) | Out-Null
-					$Prop.Type = "ObjectList"
-				}
-				else
-				{
-					$Prop.Type = $Prop.Value.GetType().Name
-				}
-
-				if ( $Prop.Type -eq "Int64" )
-				{
-					if ( 9223372036854775807 -eq $Prop.Value )
-					{
-						if ( $syncHash.Data.SearchedItem.ObjectClass -eq "user" )
-						{
-							$Prop.Value = $syncHash.Data.msgTable.StrAccountNeverExpires
-							$Prop.Type = "String"
-						}
-					}
-					else
-					{
-						$Prop.Value = Get-Date ( [datetime]::FromFileTime( $Prop.Value ) ) -Format "u"
-					}
-				}
-				elseif ( "ADPropertyValueCollection" -eq $Prop.Type )
-				{
-					[System.Collections.ArrayList] $Prop.Value = $Prop.Value
-					$Prop.Type = "ArrayList"
-				}
-
 				# Check if there is a PropHandler for this property
 				if ( $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PH$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )" )
 				{

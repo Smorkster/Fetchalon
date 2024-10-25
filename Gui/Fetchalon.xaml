@@ -539,73 +539,73 @@
                     Value="Normal" />
             <Setter Property="ToolTip">
                 <Setter.Value>
-                        <Border Background="{StaticResource HoverBorderBrush}"
-                                BorderBrush="Black"
-                                Margin="2">
-                            <StackPanel Margin="{StaticResource StdMargin}">
-                                <StackPanel.Resources>
+                    <Border Background="{StaticResource HoverBorderBrush}"
+                            BorderBrush="Black"
+                            Margin="2">
+                        <StackPanel Margin="{StaticResource StdMargin}">
+                            <StackPanel.Resources>
+                                <Style TargetType="TextBlock"
+                                       x:Key="TblTtStyle">
+                                    <Setter Property="FontStyle"
+                                            Value="Italic" />
+                                    <Setter Property="FontWeight"
+                                            Value="Bold" />
+                                    <Setter Property="Margin"
+                                            Value="{StaticResource StdMargin}" />
+                                </Style>
+                            </StackPanel.Resources>
+                            <TextBlock FontStyle="Normal"
+                                       FontWeight="Normal"
+                                       Text="{Binding Path=Description}">
+                                <TextBlock.Style>
                                     <Style TargetType="TextBlock"
-                                           x:Key="TblTtStyle">
-                                        <Setter Property="FontStyle"
-                                                Value="Italic" />
-                                        <Setter Property="FontWeight"
-                                                Value="Bold" />
-                                        <Setter Property="Margin"
-                                                Value="{StaticResource StdMargin}" />
+                                           BasedOn="{StaticResource TblTtStyle}">
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=Description}"
+                                                         Value="{x:Null}">
+                                                <Setter Property="Visibility"
+                                                        Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
                                     </Style>
-                                </StackPanel.Resources>
-                                <TextBlock FontStyle="Normal"
-                                           FontWeight="Normal"
-                                           Text="{Binding Path=Description}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock"
-                                               BasedOn="{StaticResource TblTtStyle}">
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Path=Description}"
-                                                             Value="{x:Null}">
-                                                    <Setter Property="Visibility"
-                                                            Value="Collapsed" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Grid.Row="1"
-                                           Text="{DynamicResource StrOpensSeparateWindow}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock"
-                                               BasedOn="{StaticResource TblTtStyle}">
-                                            <Setter Property="Visibility"
-                                                    Value="Collapsed" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Path=Separate}"
-                                                             Value="True">
-                                                    <Setter Property="Visibility"
-                                                            Value="Visible" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                                <TextBlock Grid.Row="2"
-                                           Text="{Binding Path=ValidDateNote}">
-                                    <TextBlock.Style>
-                                        <Style TargetType="TextBlock"
-                                               BasedOn="{StaticResource TblTtStyle}">
-                                            <Setter Property="Visibility"
-                                                    Value="Visible" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding Path=ValidDateNote}"
-                                                             Value="{x:Null}">
-                                                    <Setter Property="Visibility"
-                                                            Value="Collapsed" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </TextBlock.Style>
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Grid.Row="1"
+                                       Text="{DynamicResource StrOpensSeparateWindow}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock"
+                                           BasedOn="{StaticResource TblTtStyle}">
+                                        <Setter Property="Visibility"
+                                                Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=Separate}"
+                                                         Value="True">
+                                                <Setter Property="Visibility"
+                                                        Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <TextBlock Grid.Row="2"
+                                       Text="{Binding Path=ValidDateNote}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock"
+                                           BasedOn="{StaticResource TblTtStyle}">
+                                        <Setter Property="Visibility"
+                                                Value="Visible" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding Path=ValidDateNote}"
+                                                         Value="{x:Null}">
+                                                <Setter Property="Visibility"
+                                                        Value="Collapsed" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
                 </Setter.Value>
             </Setter>
             <Setter Property="ToolTipService.ShowOnDisabled"
@@ -713,7 +713,7 @@
                     <HierarchicalDataTemplate ItemsSource="{Binding Path=MenuItems}">
                         <Grid>
                             <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
                             <Border BorderThickness="5,0,0,0"
@@ -3628,6 +3628,7 @@
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition />
                                                     <ColumnDefinition Width="Auto" />
                                                     <ColumnDefinition Width="Auto" />
@@ -3654,16 +3655,64 @@
                                                         </Style>
                                                     </TextBlock.Style>
                                                 </TextBlock>
-                                                <TextBlock FontSize="13"
-                                                           Grid.Column="1"
-                                                           Style="{StaticResource PropTitleStyle}"
-                                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPropNameTT}" />
+                                                <TextBlock Grid.Column="1"
+                                                           TextAlignment="Center">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource PropTitleStyle}">
+                                                            <Setter Property="Visibility"
+                                                                    Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Path=Type}"
+                                                                             Value="ArrayList">
+                                                                    <Setter Property="Visibility"
+                                                                            Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                    <Run Text="(" />
+                                                    <Run Text="{Binding Path=Value.Count, Mode=OneWay}" />
+                                                    <Run Text=")" />
+                                                </TextBlock>
                                                 <TextBlock FontSize="13"
                                                            Grid.Column="2"
-                                                           Style="{StaticResource PropTitleStyle}"
-                                                           Text="{Binding Path=Source}" />
+                                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPropNameTT}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource PropTitleStyle}">
+                                                            <Setter Property="Visibility"
+                                                                    Value="Hidden" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=IsMouseOver}"
+                                                                             Value="True">
+                                                                    <Setter Property="Visibility"
+                                                                            Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
+                                                <TextBlock FontSize="13"
+                                                           Grid.Column="3"
+                                                           Text="{Binding Path=Source}">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock"
+                                                               BasedOn="{StaticResource PropTitleStyle}">
+                                                            <Setter Property="Visibility"
+                                                                    Value="Hidden" />
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=IsMouseOver}"
+                                                                             Value="True">
+                                                                    <Setter Property="Visibility"
+                                                                            Value="Visible" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                                 <Button Content="{Binding Path=Handler.Title}"
-                                                        Grid.Column="3"
+                                                        Grid.Column="4"
                                                         Padding="5,0"
                                                         ToolTip="{Binding Path=Handler.Description}">
                                                     <Button.Style>
@@ -3787,6 +3836,8 @@
                                                                                                   ItemTemplateSelector="{DynamicResource DataTemplateSelector}"
                                                                                                   ScrollViewer.HorizontalScrollBarVisibility="Auto"
                                                                                                   ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                                                                  VirtualizingPanel.CacheLength="1"
+                                                                                                  VirtualizingPanel.CacheLengthUnit="Item"
                                                                                                   VirtualizingPanel.IsVirtualizing="True"
                                                                                                   VirtualizingPanel.VirtualizationMode="Recycling">
                                                                                         <ItemsControl.ItemsPanel>
