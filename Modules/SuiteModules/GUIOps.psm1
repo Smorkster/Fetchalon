@@ -294,7 +294,9 @@ function LoadConverters
 										'C:\Program Files\PowerShell\7\WindowsBase.dll', `
 										'C:\Program Files\PowerShell\7\System.ComponentModel.Primitives.dll' ,
 										'C:\Program Files\PowerShell\7\System.Collections.NonGeneric.dll',
-										C:\Windows\Microsoft.NET\assembly\GAC_64\PresentationCore\v4.0_4.0.0.0__31bf3856ad364e35\PresentationCore.dll -TypeDefinition $Converters -ErrorAction Stop
+										C:\Windows\Microsoft.NET\assembly\GAC_64\PresentationCore\v4.0_4.0.0.0__31bf3856ad364e35\PresentationCore.dll `
+				-TypeDefinition $Converters `
+				-ErrorAction Stop
 	}
 	else
 	{
@@ -310,7 +312,9 @@ function LoadConverters
 										System.Xml, `
 										System.Xml.Linq, `
 										C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll,
-										C:\Windows\Microsoft.NET\assembly\GAC_32\PresentationCore\v4.0_4.0.0.0__31bf3856ad364e35\PresentationCore.dll -TypeDefinition $Converters -ErrorAction Stop
+										C:\Windows\Microsoft.NET\assembly\GAC_32\PresentationCore\v4.0_4.0.0.0__31bf3856ad364e35\PresentationCore.dll `
+				-TypeDefinition $Converters `
+				-ErrorAction Stop
 	}
 }
 
@@ -884,6 +888,8 @@ namespace FetchalonConverters
 
 		public override DataTemplate SelectTemplate ( object item, System.Windows.DependencyObject container )
 		{
+			bool VerifyAgainstAD = false;
+
 			try
 			{
 				if ( item.GetType() == typeof( bool ) )
@@ -894,7 +900,7 @@ namespace FetchalonConverters
 				{
 					return DateTimeTpl;
 				}
-				else if ( item.GetType() == typeof( String ) )
+				else if ( item.GetType() == typeof( String ) && VerifyAgainstAD )
 				{
 					DirectoryEntry de = new DirectoryEntry( "LDAP://CodeConverterADContainer" );
 					DirectorySearcher adsSearcher = new DirectorySearcher( de )
@@ -917,6 +923,10 @@ namespace FetchalonConverters
 					{
 						return StringTpl;
 					}
+				}
+				else
+				{
+					return StringTpl;
 				}
 			}
 			catch
