@@ -11,6 +11,43 @@
 
 param ( $culture = "sv-SE" )
 
+function Clear-DNSCache
+{
+	<#
+	.Synopsis
+		Flushes DNS cache on remote computer
+	.Description
+		Flushes DNS cache on remote computer
+	.MenuItem
+		Remove DNS cache
+	.SubMenu
+		Network
+	.Depends
+		WinRM
+	.SearchedItemRequest
+		Required
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	try
+	{
+		Invoke-Command -ComputerName $Item.Name -Scriptblock { ipconfig /flushdns }
+	}
+	catch
+	{
+		throw $_
+	}
+
+	return $IntMsgTable.ClearDNSCacheDone
+}
+
 function Clear-NetIdCache
 {
 	<#
@@ -83,43 +120,6 @@ function Close-CurrentOpenRemoteConnections
 	return $IntMsgTable.CloseCurrentOpenRemoteConnectionsSuccess
 }
 
-function Clear-DNSCache
-{
-	<#
-	.Synopsis
-		Flushes DNS cache on remote computer
-	.Description
-		Flushes DNS cache on remote computer
-	.MenuItem
-		Remove DNS cache
-	.SubMenu
-		Network
-	.Depends
-		WinRM
-	.SearchedItemRequest
-		Required
-	.OutputType
-		String
-	.State
-		Prod
-	.Author
-		Smorkster (smorkster)
-	#>
-
-	param ( $Item )
-
-	try
-	{
-		Invoke-Command -ComputerName $Item.Name -Scriptblock { ipconfig /flushdns }
-	}
-	catch
-	{
-		throw $_
-	}
-
-	return $IntMsgTable.ClearDNSCacheDone
-}
-
 function Connect-AsAdmin
 {
 	<#
@@ -151,53 +151,6 @@ function Connect-AsAdmin
 	{
 		throw $_
 	}
-}
-
-function Send-ForceLogout
-{
-	<#
-	.Synopsis
-		Fore logout for all users
-	.Description
-		Force all currently loged in users to logout from remote computer
-	.MenuItem
-		Force logout
-	.SubMenu
-		Login
-	.SearchedItemRequest
-		Required
-	.State
-		Prod
-	.OutputType
-		List
-	.Author
-		Smorkster (smorkster)
-	#>
-
-	param ( $Item )
-
-	try
-	{
-		$LogedIn = [System.Collections.ArrayList]::new()
-		quser /server:"$( $Item.Name )" |
-			Select-Object -Skip 1 | `
-			ForEach-Object {
-				$_ -split "\s" | `
-					Where-Object { $_ } | `
-					Select-Object -First 1 | `
-					Get-ADUser | `
-					Select-Object -ExpandProperty Name | `
-						ForEach-Object {
-							$LogedIn.Add( $_ ) | Out-Null
-						}
-			}
-		Invoke-CimMethod -ClassName Win32_Operatingsystem -ComputerName $Item.Name -MethodName Win32Shutdown -Arguments @{ Flags = 0 }
-	}
-	catch
-	{
-		throw $_
-	}
-	return $LogedIn
 }
 
 function Get-ComputersSameCostCenter
@@ -730,6 +683,63 @@ function Open-SysManUninstall
 	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Application/UninstallForClients#targetName=$( $Item.Name )" )
 }
 
+function Repair-CitrixIca
+{
+	<#
+	.Synopsis
+		Clear Citrix ICA user
+	.Description
+		Clear Citrix ICA user
+	.MenuItem
+		Clear Citrix ICA-user
+	.InputData
+		ComputerName, False, Computer to fix
+	.SearchedItemRequest
+		Allowed
+	.OutputType
+		String
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item, $InputData )
+
+	if ( $null -ne $Item )
+	{
+		$InputData.ComputerName = $Item.Name
+	}
+
+	try
+	{
+		$PingStatus = Get-CimInstance -ClassName Win32_Operatingsystem -ComputerName $InputData.ComputerName
+
+		if ( $null -eq $PingStatus )
+		{
+			throw "Datorn är inte tillgänglig!"
+		}
+		else
+		{
+			Invoke-Command -ComputerName $InputData.ComputerName -ScriptBlock {
+				Set-Location "C:\Program Files (x86)\Citrix\ICA Client\SelfServicePlugin\"
+				.\CleanUp.exe -cleanUser
+			}
+
+			Restart-Computer -ComputerName $InputData.ComputerName -Force
+		}
+	}
+	catch [Microsoft.Management.Infrastructure.CimException]
+	{
+		if ( $_.Exception.Message -match "WinRM cannot complete the operation" )
+		{
+			throw "Can not connect, there is probably already another remove connection connected to the computer"
+		}
+		else
+		{
+			throw $_.Exception.Message
+		}
+	}
+}
+
 function Reset-HostsFile
 {
 	<#
@@ -901,6 +911,53 @@ function Reset-SoftwareCenter
 	param ( $Item )
 
 	Get-CimInstance -ComputerName $Item.Name -Namespace root\ccm\CITasks -Query "Select * From CCM_CITask Where TaskState != ' PendingSoftReboot' AND TaskState != 'PendingHardReboot' AND TaskState != 'InProgress'" | Remove-CimInstance
+}
+
+function Send-ForceLogout
+{
+	<#
+	.Synopsis
+		Fore logout for all users
+	.Description
+		Force all currently loged in users to logout from remote computer
+	.MenuItem
+		Force logout
+	.SubMenu
+		Login
+	.SearchedItemRequest
+		Required
+	.State
+		Prod
+	.OutputType
+		List
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	try
+	{
+		$LogedIn = [System.Collections.ArrayList]::new()
+		quser /server:"$( $Item.Name )" |
+			Select-Object -Skip 1 | `
+			ForEach-Object {
+				$_ -split "\s" | `
+					Where-Object { $_ } | `
+					Select-Object -First 1 | `
+					Get-ADUser | `
+					Select-Object -ExpandProperty Name | `
+						ForEach-Object {
+							$LogedIn.Add( $_ ) | Out-Null
+						}
+			}
+		Invoke-CimMethod -ClassName Win32_Operatingsystem -ComputerName $Item.Name -MethodName Win32Shutdown -Arguments @{ Flags = 0 }
+	}
+	catch
+	{
+		throw $_
+	}
+	return $LogedIn
 }
 
 function Send-RestartComputer
