@@ -414,12 +414,14 @@ function Get-PropHandlers
 
 	$syncHash.Code = @{}
 	$syncHash.Code.PropHandlers = @{}
+	$syncHash.Code.PropDescriptions = @{}
 	$syncHash.Code.PropLocalizations = @{}
 	$syncHash.Code.PropNameLocalizations = @{}
 	Get-ChildItem -Path "$BaseDir\Modules\PropHandlers" | `
 		ForEach-Object {
 			$Module = $_.BaseName -replace "PropHandlers"
 			$syncHash.Code.PropHandlers."$( $Module )" = @{}
+			$syncHash.Code.PropDescriptions."$( $Module )" = @{}
 			$syncHash.Code.PropLocalizations."$( $Module )" = @{}
 			$syncHash.Code.PropNameLocalizations."$( $Module )" = @{}
 			( Import-Module $_.FullName -PassThru ).ExportedVariables.GetEnumerator() | `
@@ -448,6 +450,11 @@ function Get-PropHandlers
 							Where-Object { $_.Name -match "^PL" } | `
 							ForEach-Object {
 								$syncHash.Code.PropLocalizations."$( $Module )"."$( $_.Name )" = $_.Value
+							}
+						$_.Value.Value.GetEnumerator() | `
+							Where-Object { $_.Name -match "^PD" } | `
+							ForEach-Object {
+								$syncHash.Code.PropDescriptions."$( $Module )"."$( $_.Name )" = $_.Value
 							}
 						$_.Value.Value.GetEnumerator() | `
 							Where-Object { $_.Name -match "^PNL" } | `
@@ -784,6 +791,7 @@ function Set-Localizations
 	$syncHash.IcObjectDetailed.Resources['ContentTblPropNameTT'] = $msgTable.ContentTblPropNameTT
 	$syncHash.Window.Resources['ContentNoMembersOfList'] = @( $msgTable.ContentNoMembersOfList )
 	$syncHash.Window.Resources['StrOpensSeparateWindow'] = $msgTable.StrOpensSeparateWindow
+	$syncHash.Window.Resources['StrRealPropName'] = $msgTable.StrRealPropName
 	$syncHash.Window.Resources['MainOutput'].Resources['StrBtnNoteWarningUnderstood'] = $msgTable.ContentBtnNoteWarningUnderstood
 	$syncHash.Window.Resources['MainOutput'].Resources['StrGbFunctionInputTitle'] = $syncHash.Data.msgTable.ContentGbFunctionInputTitle
 	$syncHash.Window.Resources['MainOutput'].Resources['StrNoteWarningInfo'] = $msgTable.StrNoteWarningInfo
@@ -1047,7 +1055,7 @@ function Start-Search
 					$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsComputer
 					$LDAPSearches.Add( "(&(ObjectClass=computer)(Name=$Id))" ) | Out-Null
 				}
-				elseif ( $Id -match "(?i)^[a-z0-9]{4}$" )
+				elseif ( $Id -match "(?i)^($( $syncHash.Data.msgTable.StrAdmPrefix ))*[a-z0-9]{4}$" )
 				{
 					$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsID
 					$LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null
@@ -1068,19 +1076,42 @@ function Start-Search
 					# Group
 					switch -Regex ( $Id )
 					{
-						"_$" { $LDAPSearches.Add( "(&(ObjectClass=group)(Name=$Id*))" ) | Out-Null ; break }
-						"_" { $LDAPSearches.Add( "(&(ObjectClass=group)(Name=$Id))" ) | Out-Null ; break }
-						"\*" { $LDAPSearches.Add( "(&(ObjectClass=group)(|(Name=$Id)($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id)))" ) | Out-Null ; break }
-						default { $LDAPSearches.Add( "(&(ObjectClass=group)(|(Name=*$Id*)($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id)))" ) | Out-Null ; break }
+						"_$" {
+							$LDAPSearches.Add( "(&(ObjectClass=group)(Name=$Id*))" ) | Out-Null
+							break
+						}
+						"_" {
+							$LDAPSearches.Add( "(&(ObjectClass=group)(Name=$Id))" ) | Out-Null
+							break
+						}
+						"\*" {
+							$LDAPSearches.Add( "(&(ObjectClass=group)(|(Name=$Id)($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id)))" ) | Out-Null
+							break
+						}
+						default {
+							$LDAPSearches.Add( "(&(ObjectClass=group)(|(Name=*$Id*)($( $syncHash.Data.msgTable.StrIdPropName )=$( $syncHash.Data.msgTable.StrIdPrefix )-$Id)))" ) | Out-Null
+							break
+						}
 					}
 
 					# User
 					switch -Regex ( $Id )
 					{
-						"(?i)^$( $syncHash.Data.msgTable.StrSysAdmSANPrefix )" { $LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null ; break }
-						"(?i)f\w{3}\d*" { $LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null ; break }
-						"(?i)[aeiuoyåäöÀ-ÿ ].*[^\d]$" { $LDAPSearches.Add( "(&(ObjectClass=user)(Name=*$Id*))" ) | Out-Null ; break }
-						"\*" { $LDAPSearches.Add( "(&(ObjectClass=user)(|(SamAccountName=$Id)(Name=$Id)))" ) | Out-Null ; break }
+						"(?i)^f\w{3}\d*" {
+							$LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null
+							break
+						}
+						"(?i)[aeiuoyåäöÀ-ÿ ]*.*[^\d]$" {
+							$LDAPSearches.Add( "(&(ObjectClass=user)(Name=*$Id*))" ) | Out-Null
+							break
+						}
+						"\*" {
+							$LDAPSearches.Add( "(&(ObjectClass=user)(|(SamAccountName=$Id)(Name=$Id)))" ) | Out-Null
+							break
+						}
+						default {
+							$LDAPSearches.Add( "(&(ObjectClass=user)(Name=$Id*))" ) | Out-Null
+						}
 					}
 
 					# Computer
@@ -1541,8 +1572,19 @@ $syncHash.Code.ListItem =
 		{
 			$PsCmdLetData = $Object | Format-Table | Out-String
 		}
-		$ScriptObject = [pscustomobject]@{ OutputType = "String"; Name = $syncHash.Data.msgTable.StrPsGetCmdlet }
-		$Info = [pscustomobject]@{ Started = Get-Date ; Finished = Get-Date ; Data = $PsCmdLetData ; Script = $ScriptObject ; Error = $RunError ; Item = $null ; OutputType = "String" }
+
+		$Info = [pscustomobject]@{
+			Started = Get-Date
+			Finished = Get-Date
+			Data = $PsCmdLetData
+			Script = [pscustomobject]@{
+				OutputType = "String"
+				Name = $syncHash.Data.msgTable.StrPsGetCmdlet
+			}
+			Error = $RunError
+			Item = $null
+			OutputType = "String"
+		}
 		$syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $Info )
 	}
 	$syncHash.PopupMenu.IsOpen = $false
@@ -1708,9 +1750,8 @@ $syncHash.Code.ListProperties =
 												"AD"
 											}
 										Type = $t
-										Handler = $null
-										NameLocalization = ""
 										CheckedForVisible = $null
+										DisplayPropInfo = [System.Windows.Visibility]::Collapsed
 									}
 								}
 						}
@@ -1730,9 +1771,8 @@ $syncHash.Code.ListProperties =
 											Value = $v
 											Source = $Source
 											Type = $t
-											Handler = $null
-											NameLocalization = ""
 											CheckedForVisible = $null
+											DisplayPropInfo = [System.Windows.Visibility]::Collapsed
 										}
 									}
 								}
@@ -1757,9 +1797,8 @@ $syncHash.Code.ListProperties =
 						Value = $v
 						Source = $_.MandatorySource
 						Type = $t
-						Handler = $null
-						NameLocalization = ""
 						CheckedForVisible = $null
+						DisplayPropInfo = [System.Windows.Visibility]::Collapsed
 					}
 				}
 		}
@@ -1773,28 +1812,39 @@ $syncHash.Code.ListProperties =
 				Value = $syncHash.Data.SearchedItem.LogonWorkstations
 				Source = "AD"
 				Type = "ArrayList"
-				Handler = $Null
-				NameLocalization = ""
 				CheckedForVisible = $null
+				DisplayPropInfo = [System.Windows.Visibility]::Collapsed
 			}
 		}
 
 		$Props | `
 			ForEach-Object {
 				$Prop = $_
+				$PropGenName = "$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )"
 				# Check if there is a PropHandler for this property
-				if ( $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PH$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )" )
+				if ( $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PH$( $PropGenName )" )
 				{
-					$Prop.Handler = $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."PH$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )"
+					Add-Member -InputObject $Prop -MemberType NoteProperty -Name Handler -Value $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."PH$( $PropGenName )"
+				}
+
+				# Check if there is a PropDescription for this property
+				if ( $syncHash.Code.PropDescriptions."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PD$( $PropGenName )" )
+				{
+					Add-Member -InputObject $Prop -MemberType NoteProperty -Name PropDescription -Value $syncHash.Code.PropDescriptions."$( $syncHash.Data.SearchedItem.ObjectClass )"."PD$( $PropGenName )"
 				}
 
 				# Check if there a PropNameLocalization for this property
-				if ( $syncHash.Code.PropNameLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PNL$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )" )
+				if ( $syncHash.Code.PropNameLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PNL$( $PropGenName )" )
 				{
-					$Prop.NameLocalization = $syncHash.Code.PropNameLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )"."PNL$( $syncHash.Data.SearchedItem.ObjectClass )$( $Prop.Source )$( $Prop.Name )"
+					Add-Member -InputObject $Prop -MemberType NoteProperty -Name NameLocalization -Value $syncHash.Code.PropNameLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )"."PNL$( $PropGenName )"
 				}
 
 				$Prop.CheckedForVisible = ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.Name -eq $Prop.Name -and $_.MandatorySource -eq $Prop.Source } ).Count -gt 0 )
+
+				if ( $Prop.NameLocalization -or $Prop.PropDescription )
+				{
+					$Prop.DisplayPropInfo = [System.Windows.Visibility]::Visible
+				}
 
 				# Should the prop be added to the DetailedProps-list?
 				if ( $Detailed )
@@ -1808,7 +1858,7 @@ $syncHash.Code.ListProperties =
 					( $Props.Name -notmatch "LogonWorkstations" -and $syncHash.Data.SearchedItem.Name -match "^F\w{3}\d{4}" )
 				)
 				{
-					$syncHash.Window.Resources['CvsPropsList'].Source.Add( $Prop )
+					$syncHash.Window.Resources['CvsPropsList'].Source.Add( ( $Prop | Select-Object * ) )
 				}
 			}
 
@@ -2335,7 +2385,15 @@ $syncHash.Code.SBlockExecuteFunction = {
 	}
 	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
 
-	$Info = [pscustomobject]@{ Started = Get-Date ; Finished = $null ; Data = $null ; Script = $ScriptObject ; Error = [System.Collections.ArrayList]::new() ; Item = $ItemToSend ; OutputType = $ScriptObject.OutputType }
+	$Info = [pscustomobject]@{
+		Started = Get-Date
+		Finished = $null
+		Data = $null
+		Script = $ScriptObject
+		Error = [System.Collections.ArrayList]::new()
+		Item = $ItemToSend
+		OutputType = $ScriptObject.OutputType
+	}
 
 	try
 	{
@@ -2460,19 +2518,26 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\*.psm1" | `
 		Get-Command -Module $ModuleName | `
 			ForEach-Object {
 				$CodeDefinition = $_.Definition
+				$Name = $_.Name
 
 				$MiObject = [pscustomobject]@{
 					Name = $_.Name
 				}
-				$MiObject = GetScriptInfo -Text $CodeDefinition -InfoObject $MiObject -NoErrorRecord
-				if ( $ModuleName -notmatch "O365.*Functions" )
+				if ( $null -ne ( $MiObject = GetScriptInfo -Text $CodeDefinition -InfoObject $MiObject -NoErrorRecord ) )
 				{
-					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "ObjectClass" -Value ( $ModuleName -replace "Functions$" )
-				}
+					if ( $ModuleName -notmatch "O365.*Functions" )
+					{
+						Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "ObjectClass" -Value ( $ModuleName -replace "Functions$" )
+					}
 
-				if ( $null -ne $MiObject )
+					if ( $null -ne $MiObject )
+					{
+						Add-MenuItem $MiObject $ModuleName
+					}
+				}
+				else
 				{
-					Add-MenuItem $MiObject $ModuleName
+					WriteErrorlog -LogText "Error creating ScriptInfo" -UserInput "$ModuleName > $( $Name )" -Severity ScriptLogicFail
 				}
 			}
 	}
@@ -2755,8 +2820,7 @@ $syncHash.TbSearch.Add_PreviewKeyDown( {
 	{
 		$args[1].Handled = $true
 		$syncHash.DgSearchResults.SelectedIndex = 0
-		$a = $syncHash.DgSearchResults.ItemContainerGenerator.ContainerFromIndex( 0 )
-		$a.MoveFocus( ( [System.Windows.Input.TraversalRequest]::new( ( [System.Windows.Input.FocusNavigationDirection]::Next ) ) ) )
+		( $syncHash.DgSearchResults.ItemContainerGenerator.ContainerFromIndex( 0 ) ).MoveFocus( ( [System.Windows.Input.TraversalRequest]::new( ( [System.Windows.Input.FocusNavigationDirection]::Next ) ) ) )
 	}
 	elseif ( "Return" -eq $args[1].Key )
 	{
