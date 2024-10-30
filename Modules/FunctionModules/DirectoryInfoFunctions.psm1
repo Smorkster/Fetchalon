@@ -54,6 +54,7 @@ function Get-DirectoryADGroups
 	{
 		return $List
 	}
+
 }
 
 function Get-DirectoryContent
@@ -124,7 +125,7 @@ function Get-DirectoryPermissions
 		ForEach-Object {
 			$PermType = if ( $_ -match "C$" ) { "C" } else { "R" }
 
-			Get-ADGroup ( $_ -split "\\" )[1]  | `
+			Get-ADGroup ( $_ -split "\\" )[1] | `
 				Get-ADGroupMember | `
 					ForEach-Object {
 						if ( "group" -eq $_.ObjectClass )
@@ -132,20 +133,29 @@ function Get-DirectoryPermissions
 
 							if ( $_.Name -match "C$" )
 							{
-								Get-ADGroupMember $_.SamAccountName | `
-									Sort-Object Name | `
-									ForEach-Object {
-										[pscustomobject]@{ $IntMsgTable.GetDirectoryPermissionsParamName = $_.Name ; $IntMsgTable.GetDirectoryPermissionsParamPerm = $IntMsgTable.GetDirectoryPermissionsStrPermWrite }
-									}
-
+								try
+								{
+									Get-ADGroupMember $_.SamAccountName -ErrorAction Stop | `
+										Sort-Object Name | `
+										ForEach-Object {
+											[pscustomobject]@{ $IntMsgTable.GetDirectoryPermissionsParamName = $_.Name ; $IntMsgTable.GetDirectoryPermissionsParamPerm = $IntMsgTable.GetDirectoryPermissionsStrPermWrite }
+										}
+								}
+								catch
+								{}
 							}
 							else
 							{
-								Get-ADGroupMember $_.SamAccountName | `
-									Sort-Object Name | `
-									ForEach-Object {
-										[pscustomobject]@{ $IntMsgTable.GetDirectoryPermissionsParamName = $_.Name ; $IntMsgTable.GetDirectoryPermissionsParamPerm = $IntMsgTable.GetDirectoryPermissionsStrPermRead }
-									}
+								try
+								{
+									Get-ADGroupMember $_.SamAccountName -ErrorAction Stop | `
+										Sort-Object Name | `
+										ForEach-Object {
+											[pscustomobject]@{ $IntMsgTable.GetDirectoryPermissionsParamName = $_.Name ; $IntMsgTable.GetDirectoryPermissionsParamPerm = $IntMsgTable.GetDirectoryPermissionsStrPermRead }
+										}
+								}
+								catch
+								{}
 							}
 						}
 						elseif ( "user" -eq $_.ObjectClass )
@@ -179,4 +189,4 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Get-DirectoryContent, Get-DirectoryPermissions
+Export-ModuleMember -Function Get-DirectoryADGroups, Get-DirectoryContent, Get-DirectoryPermissions
