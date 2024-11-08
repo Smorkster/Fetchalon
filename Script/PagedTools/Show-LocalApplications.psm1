@@ -5,8 +5,8 @@
 	Show applications
 .Description
 	Show and uninstall applications on computer
-.Depends
-	WinRM
+.SubMenu
+	List
 .State
 	Prod
 .ObjectOperations
@@ -21,8 +21,18 @@ $syncHash = $args[0]
 function Reset
 {
 	<#
-	.Synopsis Resets controls
+	.Synopsis
+		Resets controls
 	#>
+
+	if ( $syncHash.Jobs.ContainsKey( "PFetchLocal") )
+	{
+		$syncHash.Jobs.PFetchLocal.EndInvoke( $syncHash.Jobs.HFetchLocal ) | Out-Null
+	}
+	if ( $syncHash.Jobs.ContainsKey( "PFetchSysMan") )
+	{
+		$syncHash.Jobs.PFetchSysMan.EndInvoke( $syncHash.Jobs.HFetchSysMan ) | Out-Null
+	}
 
 	"CvsAppsCore","CvsAppsLocal","CvsAppsSysMan","CvsAppsWrappers" | `
 		ForEach-Object {
@@ -49,12 +59,14 @@ function Reset
 			}
 			while ( -not $Refreshed -and $MaxRot -gt 0 )
 		}
-	$syncHash.DC.BtnGetAppList[0] = $true
+	$syncHash.DC.BtnGetAppList[0] = $false
+	$syncHash.DC.PComputerNotFoundInAdAlert[0] = [System.Windows.Visibility]::Hidden
+	$syncHash.DC.PComputerNotFoundInSysManAlert[0] = [System.Windows.Visibility]::Hidden
 	$syncHash.Controls.Window.Resources.CvsLogMessages.Source.Clear()
 	$syncHash.Controls.Window.Resources.CvsLogMessages.View.Refresh()
 }
 
-function SetLocalizations
+function Set-Localizations
 {
 	$syncHash.Controls.Window.Resources['CvsAppsCore'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Controls.Window.Resources['CvsAppsLocal'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
@@ -83,6 +95,183 @@ function SetLocalizations
 	$syncHash.Data.LocalApps = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 }
 
+function Uninstall-Local
+{
+	<#
+	.Synopsis
+		Start uninstallation on localy installed application
+	#>
+
+	try
+	{
+		$syncHash.Jobs.PUninstall.EndInvoke( $syncHash.Jobs.HUninstall ) | Out-Null
+		$syncHash.Jobs.PUninstall.Dispose()
+	} catch {}
+
+	$syncHash.Jobs.PUninstall = [powershell]::Create()
+	$syncHash.Jobs.PUninstall.AddScript( {
+		param ( $syncHash, $Modules, $AppToUninstall )
+		$Modules | `
+			ForEach-Object {
+				Import-Module $_.Name -Force
+			}
+
+
+		$syncHash.Window.Dispatcher.Invoke( [action] {
+			[System.Windows.Controls.Grid]::SetColumnSpan( $syncHash.Controls.PbProgressLocal , 2 )
+		} )
+		$syncHash.DC.PbProgressLocal[0] = [System.Windows.Visibility]::Visible
+		$ErrorList = [System.Collections.ArrayList]::new()
+		$Success = [System.Collections.ArrayList]::new()
+
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $syncHash.Data.msgTable.StrUninstalling ) $( $AppToUninstall.Name )" ; LogTime = ( Get-Date ) ; LogType = "Info" } ) )
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+		} )
+
+		try
+		{
+			$uninstallString = $AppToUninstall.UninstallString
+			$isExeOnly = Invoke-Command -ComputerName $syncHash.Data.Computer.Name -ScriptBlock { Test-Path -ErrorAction Ignore -LiteralPath $args[0] } -ArgumentList $uninstallString
+
+			if ( $isExeOnly )
+			{
+				$uninstallString = "`"$uninstallString`""
+			}
+			$uninstallString += ' /quiet /norestart'
+
+			Invoke-Command -ComputerName $syncHash.Data.Computer.Name -ScriptBlock { cmd /c $args[0] } -ArgumentList $uninstallString
+
+			$Success.Add( $AppToUninstall.Name ) | Out-Null
+		}
+		catch
+		{
+			[void] $ErrorList.Add( ( [pscustomobject]@{ App = $AppToUninstall.Name ; Err = $_ } ) )
+		}
+
+		$ErrText = $ErrorList | ForEach-Object { "$( $_.App ) $( $_.Err )" }
+		$SuccessText = $Success | Sort-Object | ForEach-Object { "$_" }
+		[void] $syncHash.Data.UninstallLog.Add( ( [pscustomobject]@{ ErrorText = $ErrText ; SuccessText = $SuccessText } ) )
+
+		$syncHash.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.BtnGetAppList.RaiseEvent( [System.Windows.RoutedEventArgs]::new( [System.Windows.Controls.Button]::ClickEvent ) )
+		} )
+
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $syncHash.Data.msgTable.StrDone )" ; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+			[System.Windows.Controls.Grid]::SetColumnSpan( $syncHash.Controls.PbProgressLocal , 1 )
+		} )
+	} ) | Out-Null
+	$syncHash.Jobs.PUninstall.AddArgument( $syncHash ) | Out-Null
+	$syncHash.Jobs.PUninstall.AddArgument( ( Get-Module ) ) | Out-Null
+	$syncHash.Jobs.PUninstall.AddArgument( ( $syncHash.Data.SelectedAppForUninstall | Select-Object * ) ) | Out-Null
+	$syncHash.Jobs.HUninstall = $syncHash.Jobs.PUninstall.BeginInvoke()
+}
+
+function Uninstall-SysMan
+{
+	<#
+	.Synopsis
+		Send uninstallation to SysMan
+	#>
+
+	$syncHash.DC.PbProgressSysMan[0] = [System.Windows.Visibility]::Visible
+	$UninstallJsonBody = "{
+		""targets"": [ $( $syncHash.Data.ComputerSysMan.id ) ],
+		""systems"": [ $( $syncHash.Data.SelectedAppForUninstall.id ) ],
+		""applications"": [],
+		""executeDate"": $( ( ( Get-Date ).AddSeconds( 15 ).GetDateTimeFormats() )[30] ),
+		""useDirectMembership"": true,
+		""useWakeOnLan"": false
+	}"
+
+	try
+	{
+		Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/application/Uninstall" -Body $UninstallJsonBody -Method Post -UseDefaultCredentials -ContentType "application/json"
+
+		Write-OpLog -Message "$( $syncHash.Data.SelectedAppForUninstall.Name ) $( $syncHash.Data.msgTable.StrUninstalledWithSysMan )" -LogMessageType "Success"
+		Invoke-Command $syncHash.Code.GetSysManApps -ArgumentList $syncHash, ( Get-Module ), $syncHash.Data.Computer.Name
+	}
+	catch
+	{
+		Write-OpLog -Message "$( $syncHash.Data.msgTable.ErrSysManUninstall ):`n$( $_.Exception.Message )" -LogMessageType "Error"
+	}
+	$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+	$syncHash.DC.PbProgressSysMan[0] = [System.Windows.Visibility]::Hidden
+}
+
+function Uninstall-Wrapper
+{
+	<#
+	.Synopsis
+		Uninstall a wrapper
+	#>
+
+	$syncHash.DC.PbProgressLocal[0] = [System.Windows.Visibility]::Visible
+	$syncHash.Jobs.PFetchSysMan = [powershell]::Create().AddScript( {
+		param ( $syncHash, $Modules )
+
+		$Modules | `
+			ForEach-Object {
+				Import-Module $_.Name
+			}
+
+		try
+		{
+			
+			Invoke-Command -ComputerName $syncHash.Data.Computer.Name -ScriptBlock {
+				Set-Location 'HKLM:'
+
+				$RegPath = Get-ChildItem -Path $args[1] | `
+					Where-Object { ( Get-ItemProperty $_.PsPath ).Appname -eq $args[0] }
+
+				if ( $RegPath )
+				{
+					Remove-Item $RegPath -Recurse -ErrorAction Stop
+				}
+				else
+				{
+					throw 0
+				}
+			} -ArgumentList $syncHash.Controls.DgAppListWrappers.SelectedItem.AppName, $syncHash.Data.msgTable.CodeWrapperHKey -ErrorAction Stop
+
+			[System.Collections.ObjectModel.ObservableCollection[object]] $Wrappers = Invoke-Command -ComputerName $syncHash.Data.Computer.Name -ScriptBlock $syncHash.Code.GetWrappers -ArgumentList $syncHash.Data.msgTable.CodeWrapperHKey -ErrorAction Stop | `
+				Where-Object { $_ -isnot [string] }
+
+			$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+				$syncHash.Controls.Window.Resources['CvsAppsWrappers'].Source = $Wrappers
+				$syncHash.Controls.Window.Resources['CvsAppsWrappers'].View.Refresh()
+
+				$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $syncHash.Data.msgTable.StrWrapperUninstallSuccess ) ('$( $syncHash.Controls.DgAppListWrappers.SelectedItem.AppName )')" ; LogTime = ( Get-Date ) ; LogType = "Success" } ) )
+				$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+			} )
+		}
+		catch
+		{
+			if ( $_.Exception.Message -eq 1 )
+			{
+				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+					$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $syncHash.Data.msgTable.ErrNoWrapperFound ) $( $syncHash.Controls.DgAppListWrappers.SelectedItem.AppName )" ; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
+					$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+				} )
+			}
+			else
+			{
+				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+					$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $syncHash.Data.msgTable.ErrWrapperUninstall ) $( $syncHash.Controls.DgAppListWrappers.SelectedItem.AppName )`n$( $_.Exception.Message )" ; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
+					$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+				} )
+			}
+		}
+		$syncHash.DC.PbProgressLocal[0] = [System.Windows.Visibility]::Hidden
+	} )
+	$syncHash.Jobs.PFetchSysMan.AddArgument( $syncHash )
+	$syncHash.Jobs.PFetchSysMan.AddArgument( ( Get-Module ) )
+	$syncHash.Jobs.PFetchSysMan.AddArgument( $syncHash.Data.Computer.Name )
+	$syncHash.Jobs.HFetchSysMan = $syncHash.Jobs.PFetchSysMan.BeginInvoke()
+}
+
 function Write-OpLog
 {
 	<#
@@ -105,15 +294,32 @@ function Write-OpLog
 
 ################### Start script
 $controls = [System.Collections.ArrayList]::new()
-[void]$controls.Add( @{ CName = "BtnGetAppList" ; Props = @( @{ PropName = "IsEnabled"; PropVal = $true } ) } )
-[void]$controls.Add( @{ CName = "BtnReset" ; Props = @( @{ PropName = "IsEnabled"; PropVal = $true } ) } )
-[void]$controls.Add( @{ CName = "BtnUninstall" ; Props = @( @{ PropName = "IsEnabled"; PropVal = $false } ) } )
-[void]$controls.Add( @{ CName = "PbProgressLocal" ; Props = @( @{ PropName = "IsIndeterminate"; PropVal = $true } ; @{ PropName = "Value"; PropVal = [double] 0 } ; @{ PropName = "Visibility" ; PropVal = [System.Windows.Visibility]::Hidden } ) } )
-[void]$controls.Add( @{ CName = "PbProgressSysMan" ; Props = @( @{ PropName = "IsIndeterminate"; PropVal = $true } ; @{ PropName = "Value"; PropVal = [double] 0 } ; @{ PropName = "Visibility" ; PropVal = [System.Windows.Visibility]::Hidden } ) } )
-[void]$controls.Add( @{ CName = "TblAppListCoreDeploymentName" ; Props = @( @{ PropName = "Text"; PropVal = "" } ; @{ PropName = "Foreground" ; PropVal = "Black" } ) } )
+[void]$controls.Add( @{ CName = "ChbGetLocal" ; Props = @(
+	@{ PropName = "IsChecked"; PropVal = $true }
+) } )
+[void]$controls.Add( @{ CName = "ChbGetSysMan" ; Props = @(
+	@{ PropName = "IsChecked"; PropVal = $true }
+) } )
+[void]$controls.Add( @{ CName = "PComputerNotFoundInAdAlert" ; Props = @(
+	@{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Hidden }
+) } )
+[void]$controls.Add( @{ CName = "PComputerNotFoundInSysManAlert" ; Props = @(
+	@{ PropName = "Visibility"; PropVal = [System.Windows.Visibility]::Hidden }
+) } )
+[void]$controls.Add( @{ CName = "PbProgressLocal" ; Props = @(
+	@{ PropName = "Visibility" ; PropVal = [System.Windows.Visibility]::Hidden }
+) } )
+[void]$controls.Add( @{ CName = "PbProgressSysMan" ; Props = @(
+	@{ PropName = "Visibility" ; PropVal = [System.Windows.Visibility]::Hidden }
+) } )
+[void]$controls.Add( @{ CName = "TblAppListCoreDeploymentName" ; Props = @(
+	@{ PropName = "Text"; PropVal = "" }
+	@{ PropName = "Foreground" ; PropVal = "Black" }
+) } )
 
 BindControls $syncHash $controls
-SetLocalizations
+Set-Localizations
+
 $syncHash.Code.GetWrappers = {
 	$Wrappers = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
@@ -129,96 +335,144 @@ $syncHash.Code.GetWrappers = {
 	return $Wrappers
 }
 
-$syncHash.Data.UninstallLog = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-$syncHash.Data.UninstallLog.Add_CollectionChanged( {
-	if ( $this[-1].ErrorText.Length -gt 0 )
-	{
-		$eh = WriteErrorlogTest -LogText $this[-1].ErrorText -Severity "OtherFail" -ComputerName $syncHash.Controls.TbComputerName.Text
-	}
-	$OFS = ", "
-	WriteLogTest -Text "$( $this[-1].SuccessText )" -UserInput $syncHash.Controls.TbComputerName.Text -Success ( $this[-1].SuccessText.Length -gt 0 ) -ErrorLogHash $eh | Out-Null
-} )
+$syncHash.Code.GetLocalApps = {
+	param ( $syncHash, $Modules, $Name )
 
-# Get list of applications
-$syncHash.Controls.BtnGetAppList.Add_Click( {
-	try
+	function Get-InstalledApplication
 	{
-		Reset
-		$this.IsEnabled = $syncHash.DC.BtnUninstall[0] = $syncHash.DC.BtnReset[0] = $false
-		$syncHash.Data.Computer = Get-ADComputer $syncHash.Controls.TbComputerName.Text -Properties MemberOf -ErrorAction Stop
-		$PCRole = $syncHash.Data.Computer.MemberOf | Where-Object { $_ -match ".*_Wrk_.*PC,.*" } | Get-ADGroup -Properties * | Select-Object -ExpandProperty CN
+		[CmdletBinding()]
+		param (
+			[string] $ComputerName
+		)
 
-		"Uninstall","FetchLocal","FetchSysMan" | `
-			ForEach-Object {
-				try
+		Begin {
+			function IsCpuX86
+			{
+				param (
+					[Microsoft.Win32.RegistryKey] $hklmHive
+				)
+				$regPath = 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+				$key = $hklmHive.OpenSubKey( $regPath )
+
+				$cpuArch = $key.GetValue( 'PROCESSOR_ARCHITECTURE' )
+
+				if ( $cpuArch -eq 'x86' )
 				{
-					$syncHash.Jobs."P$( $_ )".EndInvoke( $syncHash.Jobs."H$( $_ )" ) | Out-Null
-					$syncHash.Jobs."P$( $_ )".Dispose()
-				} catch {}
+					return $true
+				}
+				else
+				{
+					return $false
+				}
+			}
+			$AppCollection = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+		}
+		Process {
+			$regPath = @(
+				'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
+				'SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
+			)
+
+			# If CPU is x86, do not query for Wow6432Node
+			if ( $IsCpuX86 )
+			{
+				$regPath = $regPath[0]
 			}
 
-		Write-OpLog -Message $syncHash.Data.msgTable.StrGetApps
-		$syncHash.DC.PbProgressLocal[2] = [System.Windows.Visibility]::Visible
-		$syncHash.DC.PbProgressLocal[0] = $true
-		$syncHash.Jobs.PFetchLocal = [powershell]::Create().AddScript( {
-			param ( $syncHash, $Modules, $Name, $PCRole )
-
-			function Get-InstalledApplication
+			try
 			{
-				[CmdletBinding()]
-				param (
-					[string] $ComputerName
+				$LMhive = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey(
+					[Microsoft.Win32.RegistryHive]::LocalMachine, 
+					$ComputerName
 				)
 
-				Begin {
-					function IsCpuX86
-					{
-						param (
-							[Microsoft.Win32.RegistryKey] $hklmHive
-						)
-						$regPath = 'SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
-						$key = $hklmHive.OpenSubKey( $regPath )
-
-						$cpuArch = $key.GetValue( 'PROCESSOR_ARCHITECTURE' )
-
-						if ( $cpuArch -eq 'x86' )
-						{
-							return $true
-						}
-						else
-						{
-							return $false
-						}
-					}
-					$AppCollection = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+				if ( -not $LMhive )
+				{
+					continue
 				}
-				Process {
-					$regPath = @(
-						'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall',
-						'SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall'
-					)
 
-					# If CPU is x86, do not query for Wow6432Node
-					if ( $IsCpuX86 )
+				foreach ( $path in $regPath )
+				{
+					$key = $LMhive.OpenSubKey( $path )
+					if ( -not $key )
 					{
-						$regPath = $regPath[0]
+						continue
 					}
-
-					try
+					foreach ( $subKey in $key.GetSubKeyNames() )
 					{
-						$LMhive = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey(
-							[Microsoft.Win32.RegistryHive]::LocalMachine, 
-							$ComputerName
-						)
-
-						if ( -not $LMhive )
+						$subKeyObj = $null
+						$subKeyObj = $key.OpenSubKey( $subKey )
+						if ( -not $subKeyObj )
 						{
 							continue
 						}
+						$outHash = New-Object -TypeName Collections.Hashtable
+						$outHash.User = $syncHash.Data.msgTable.StrInstalledForAll
+						$appName = [String]::Empty
+						$appName = ( $subKeyObj.GetValue( 'DisplayName' ) )
+						if ( $appName )
+						{
+							foreach ( $keyName in ( $LMhive.OpenSubKey( "$path\$subKey" ) ).GetValueNames() )
+							{
+								if ( $keyname -match "InstallDate" )
+								{
+									try
+									{
+										$value = $subKeyObj.GetValue( $keyName )
+										if ( $value )
+										{
+											$outHash.$keyName = [datetime]::ParseExact( $value , "yyyyMMdd", $null )
+										}
+									}
+									catch
+									{
+										Write-Warning "Subkey: [$subkey]: $( $_.Exception.Message )"
+										continue
+									}
+								}
+								elseif ( $keyname -and ( $value = $subKeyObj.GetValue( $keyName ) ) )
+								{
+									$outHash.$keyName = $value
+								}
+							}
+							if ( -not $outHash.ContainsKey( "InstallDate" ) )
+							{
+								$outHash.InstallDate = 0
+							}
+							$outHash.AppName = $appName
+							$outHash.IdentifyingNumber = $subKey
+							$outHash.Path = $subKeyObj.ToString()
 
+							$AppCollection.Add( ( New-Object -TypeName pscustomobject -Property $outHash ) ) | Out-Null
+						}
+					}
+				}
+			}
+			catch
+			{
+				Write-Error $_
+			}
+
+			try
+			{
+				$UserHive = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey(
+					[Microsoft.Win32.RegistryHive]::Users, 
+					$ComputerName
+				)
+
+				if ( -not $UserHive )
+				{
+					continue
+				}
+
+				$UserHive.GetSubKeyNames() | `
+					Where-Object { $_ -match "S-1-5-21.*(?<!_Classes)$" } | `
+					ForEach-Object {
+						$SID = $_
 						foreach ( $path in $regPath )
 						{
-							$key = $LMhive.OpenSubKey( $path )
+							$path = "$SID\$( $path )"
+							$key = $UserHive.OpenSubKey( $path )
 							if ( -not $key )
 							{
 								continue
@@ -232,7 +486,7 @@ $syncHash.Controls.BtnGetAppList.Add_Click( {
 									continue
 								}
 								$outHash = New-Object -TypeName Collections.Hashtable
-								$outHash.User = "Alla"
+								$outHash.User = Get-ADUser $SID
 								$appName = [String]::Empty
 								$appName = ( $subKeyObj.GetValue( 'DisplayName' ) )
 								if ( $appName )
@@ -246,7 +500,7 @@ $syncHash.Controls.BtnGetAppList.Add_Click( {
 												$value = $subKeyObj.GetValue( $keyName )
 												if ( $value )
 												{
-													$outHash.$keyName = [datetime]::ParseExact( $value , "yyyyMMdd", $null )
+													$outHash.$keyName = [datetime]::ParseExact( $value, "yyyyMMdd", $null )
 												}
 											}
 											catch
@@ -264,220 +518,174 @@ $syncHash.Controls.BtnGetAppList.Add_Click( {
 									{
 										$outHash.InstallDate = 0
 									}
-									$outHash.AppName = $appName
+									$outHash.Name = $appName
 									$outHash.IdentifyingNumber = $subKey
+									$outHash.Publisher = $subKeyObj.GetValue( 'Publisher' )
 									$outHash.Path = $subKeyObj.ToString()
 
 									$AppCollection.Add( ( New-Object -TypeName pscustomobject -Property $outHash ) ) | Out-Null
 								}
 							}
 						}
-					}
-					catch
-					{
-						Write-Error $_
-					}
-
-					try
-					{
-						$UserHive = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey(
-							[Microsoft.Win32.RegistryHive]::Users, 
-							$ComputerName
-						)
-
-						if ( -not $UserHive )
-						{
-							continue
-						}
-
-						$UserHive.GetSubKeyNames() | `
-							Where-Object { $_ -match "S-1-5-21.*(?<!_Classes)$" } | `
-							ForEach-Object {
-								$SID = $_
-								foreach ( $path in $regPath )
-								{
-									$path = "$SID\$( $path )"
-									$key = $UserHive.OpenSubKey( $path )
-									if ( -not $key )
-									{
-										continue
-									}
-									foreach ( $subKey in $key.GetSubKeyNames() )
-									{
-										$subKeyObj = $null
-										$subKeyObj = $key.OpenSubKey( $subKey )
-										if ( -not $subKeyObj )
-										{
-											continue
-										}
-										$outHash = New-Object -TypeName Collections.Hashtable
-										$outHash.User = Get-ADUser $SID
-										$appName = [String]::Empty
-										$appName = ( $subKeyObj.GetValue( 'DisplayName' ) )
-										if ( $appName )
-										{
-											foreach ( $keyName in ( $LMhive.OpenSubKey( "$path\$subKey" ) ).GetValueNames() )
-											{
-												if ( $keyname -match "InstallDate" )
-												{
-													try
-													{
-														$value = $subKeyObj.GetValue( $keyName )
-														if ( $value )
-														{
-															$outHash.$keyName = [datetime]::ParseExact( $value, "yyyyMMdd", $null )
-														}
-													}
-													catch
-													{
-														Write-Warning "Subkey: [$subkey]: $( $_.Exception.Message )"
-														continue
-													}
-												}
-												elseif ( $keyname -and ( $value = $subKeyObj.GetValue( $keyName ) ) )
-												{
-													$outHash.$keyName = $value
-												}
-											}
-											if ( -not $outHash.ContainsKey( "InstallDate" ) )
-											{
-												$outHash.InstallDate = 0
-											}
-											$outHash.Name = $appName
-											$outHash.IdentifyingNumber = $subKey
-											$outHash.Publisher = $subKeyObj.GetValue( 'Publisher' )
-											$outHash.Path = $subKeyObj.ToString()
-
-											$AppCollection.Add( ( New-Object -TypeName pscustomobject -Property $outHash ) ) | Out-Null
-										}
-									}
-								}
-						}
-					}
-					catch
-					{
-						Write-Error $_
-					}
 				}
-				End {
-					$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-						$syncHash.Controls.Window.Resources['CvsAppsLocal'].Source = $AppCollection | Sort-Object DisplayName, User
-					} )
-				}
-			}
-
-			Import-Module $Modules
-			$MemberOf = ( Get-ADComputer $Name -Properties MemberOf ).MemberOf
-
-			try
-			{
-				Get-InstalledApplication -ComputerName $Name
-				[System.Collections.ObjectModel.ObservableCollection[object]] $Wrappers = Invoke-Command -ComputerName $Name -ScriptBlock $syncHash.Code.GetWrappers -ArgumentList $syncHash.Data.msgTable.CodeWrapperHKey -ErrorAction Stop | `
-					Where-Object { $_ -isnot [string] }
-
-				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsAppsWrappers'].Source = $Wrappers
-					$syncHash.Controls.Window.Resources['CvsAppsWrappers'].View.Refresh()
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $syncHash.Data.msgTable.StrLogAppInfoFetched ; LogTime = ( Get-Date ) ; LogType = "Success" } ) )
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
-				} )
-			}
-			catch [System.Management.Automation.Remoting.PSRemotingTransportException]
-			{
-				$syncHash.Errors.Add( $_ ) | Out-Null
-				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $syncHash.Data.msgTable.ErrComputerNotReachable ; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
-				} )
 			}
 			catch
 			{
-				$syncHash.Errors.Add( $_ ) | Out-Null
-				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $_ ; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
-				} )
+				Write-Error $_
 			}
-			$syncHash.DC.BtnGetAppList[0] = $true
-			$syncHash.DC.BtnReset[0] = $true
-			$syncHash.DC.PbProgressLocal[0] = $false
-			$syncHash.DC.PbProgressLocal[2] = [System.Windows.Visibility]::Hidden
-			
+		}
+		End {
+			$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+				$syncHash.Controls.Window.Resources['CvsAppsLocal'].Source = $AppCollection | Sort-Object DisplayName, User
+			} )
+		}
+	}
+
+	Import-Module $Modules
+	$MemberOf = ( Get-ADComputer $Name -Properties MemberOf ).MemberOf
+	$syncHash.DC.PbProgressLocal[0] = [System.Windows.Visibility]::Visible
+
+	try
+	{
+		Get-InstalledApplication -ComputerName $Name
+		[System.Collections.ObjectModel.ObservableCollection[object]] $Wrappers = Invoke-Command -ComputerName $Name -ScriptBlock $syncHash.Code.GetWrappers -ArgumentList $syncHash.Data.msgTable.CodeWrapperHKey -ErrorAction Stop | `
+			Where-Object { $_ -isnot [string] }
+
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsAppsWrappers'].Source = $Wrappers
+			$syncHash.Controls.Window.Resources['CvsAppsWrappers'].View.Refresh()
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $syncHash.Data.msgTable.StrLogAppInfoFetched ; LogTime = ( Get-Date ) ; LogType = "Success" } ) )
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
 		} )
-		$syncHash.Jobs.PFetchLocal.AddArgument( $syncHash )
-		$syncHash.Jobs.PFetchLocal.AddArgument( ( Get-Module ) )
-		$syncHash.Jobs.PFetchLocal.AddArgument( $syncHash.Data.Computer.Name )
-		$syncHash.Jobs.PFetchLocal.AddArgument( $PCRole )
-		$syncHash.Jobs.HFetchLocal = $syncHash.Jobs.PFetchLocal.BeginInvoke()
+	}
+	catch [System.Management.Automation.Remoting.PSRemotingTransportException]
+	{
+		$syncHash.Errors.Add( $_ ) | Out-Null
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $syncHash.Data.msgTable.ErrComputerNotReachable ; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+		} )
+	}
+	catch
+	{
+		$syncHash.Errors.Add( $_ ) | Out-Null
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $_ ; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+		} )
+	}
+	$syncHash.DC.PbProgressLocal[0] = [System.Windows.Visibility]::Hidden
+}
 
-		$syncHash.Jobs.PFetchSysMan = [powershell]::Create().AddScript( {
-			param ( $syncHash, $Modules, $Name, $PCRole )
+$syncHash.Code.GetSysManApps = {
+	param ( $syncHash, $Modules, $Name )
 
-			Import-Module $Modules
-			$SysManList = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-			$CoreApplicationsList = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	Import-Module $Modules
+	$SysManList = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$CoreApplicationsList = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.DC.PbProgressSysMan[0] = [System.Windows.Visibility]::Visible
 
+	try
+	{
+		Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/application/GetInstalledSystems?targetId=$( $syncHash.Data.ComputerSysMan.id )" -Method Get -UseDefaultCredentials -ContentType "application/json" | `
+			Select-Object -ExpandProperty result | `
+			ForEach-Object {
+				$SysManList.Add( $_ ) | Out-Null
+			}
 
-			try
-			{
-				Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/Client/?name=$( $Name )" -Method Get -UseDefaultCredentials -ContentType "application/json" | `
-					ForEach-Object {
-						Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/application/GetInstalledSystems?targetId=$( $_.id )" -Method Get -UseDefaultCredentials -ContentType "application/json"
-					} | `
-					Select-Object -ExpandProperty result | `
-					ForEach-Object {
-						$SysManList.Add( $_ ) | Out-Null
-					}
+		$syncHash.DC.TblAppListCoreDeploymentName[0] = " $( $syncHash.Data.PCRole )"
 
-				$syncHash.DC.TblAppListCoreDeploymentName[0] = " $PCRole"
+		if ( $syncHash.Data.PCRole -match "$( $syncHash.Data.msgTable.StrRoleOrg ).*" )
+		{
+			$PCRoleSysManId = ( Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/Application?name=$( $syncHash.Data.PCRole )" -Method Get -UseDefaultCredentials -ContentType "application/json" ).id
+			$PCRoleSysManSystemId = ( Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/application/Mapping?applicationId=$( $PCRoleSysManId )" -Method Get -UseDefaultCredentials -ContentType "application/json" ).result.id
+			( Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/reporting/System?systemId=$( $PCRoleSysManSystemId )" -Method Get -UseDefaultCredentials -ContentType "application/json" ).mappedApplications | `
+				Sort-Object Name | `
+				ForEach-Object {
+					$CoreApplicationsList.Add( $_ ) | Out-Null
+				}
+		}
 
-				if ( $PCRole -match "Org0.*" )
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsAppsSysMan'].Source = $SysManList
+			$syncHash.Controls.Window.Resources['CvsAppsSysMan'].View.Refresh()
+		} )
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsAppsCore'].Source = $CoreApplicationsList
+			$syncHash.Controls.Window.Resources['CvsAppsCore'].View.Refresh()
+		} )
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $syncHash.Data.msgTable.StrLogSmInfoFetched ; LogTime = ( Get-Date ) ; LogType = "Success" } ) )
+		} )
+	}
+	catch [System.Management.Automation.Remoting.PSRemotingTransportException]
+	{
+		$syncHash.Errors.Add( $_ ) | Out-Null
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $syncHash.Data.msgTable.ErrSmComputerNotReachable )`n$( $_ )"; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+		} )
+	}
+	catch
+	{
+		$syncHash.Errors.Add( $_ ) | Out-Null
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $_ )"; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+		} )
+	}
+	$syncHash.DC.PbProgressSysMan[0] = [System.Windows.Visibility]::Hidden
+}
+
+$syncHash.Data.UninstallLog = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+$syncHash.Data.UninstallLog.Add_CollectionChanged( {
+	if ( $this[-1].ErrorText.Length -gt 0 )
+	{
+		$eh = WriteErrorlogTest -LogText $this[-1].ErrorText -Severity "OtherFail" -ComputerName $syncHash.Controls.TbComputerName.Text
+	}
+	$OFS = ", "
+	WriteLogTest -Text "$( $this[-1].SuccessText )" -UserInput $syncHash.Controls.TbComputerName.Text -Success ( $this[-1].SuccessText.Length -gt 0 ) -ErrorLogHash $eh | Out-Null
+} )
+
+# Get list of applications
+$syncHash.Controls.BtnGetAppList.Add_Click( {
+	try
+	{
+		Reset
+		$this.IsEnabled = $false
+		$syncHash.Data.PCRole = $syncHash.Data.Computer.MemberOf | Where-Object { $_ -match ".*_Wrk_.*PC,.*" } | Get-ADGroup -Properties * | Select-Object -ExpandProperty CN
+
+		"Uninstall","FetchLocal","FetchSysMan" | `
+			ForEach-Object {
+				try
 				{
-					$PCRoleSysManId = ( Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/Application?name=$( $PCRole )" -Method Get -UseDefaultCredentials -ContentType "application/json" ).id
-					$PCRoleSysManSystemId = ( Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/application/Mapping?applicationId=$( $PCRoleSysManId )" -Method Get -UseDefaultCredentials -ContentType "application/json" ).result.id
-					( Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/reporting/System?systemId=$( $PCRoleSysManSystemId )" -Method Get -UseDefaultCredentials -ContentType "application/json" ).mappedApplications | `
-						Sort-Object Name | `
-						ForEach-Object {
-							$CoreApplicationsList.Add( $_ ) | Out-Null
-						}
-				}
+					if ( $syncHash.Jobs.ContainsKey( "P$( $_ )" ) )
+					{
+						$syncHash.Jobs."P$( $_ )".EndInvoke( $syncHash.Jobs."H$( $_ )" ) | Out-Null
+						$syncHash.Jobs."P$( $_ )".Dispose()
+					}
+				} catch {}
+			}
 
-				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsAppsSysMan'].Source = $SysManList
-					$syncHash.Controls.Window.Resources['CvsAppsSysMan'].View.Refresh()
-				} )
-				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsAppsCore'].Source = $CoreApplicationsList
-					$syncHash.Controls.Window.Resources['CvsAppsCore'].View.Refresh()
-				} )
-				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $syncHash.Data.msgTable.StrLogSmInfoFetched ; LogTime = ( Get-Date ) ; LogType = "Success" } ) )
-				} )
-			}
-			catch [System.Management.Automation.Remoting.PSRemotingTransportException]
-			{
-				$syncHash.Errors.Add( $_ ) | Out-Null
-				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $syncHash.Data.msgTable.ErrSmComputerNotReachable )`n$( $_ )"; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
-				} )
-			}
-			catch
-			{
-				$syncHash.Errors.Add( $_ ) | Out-Null
-				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $_ )"; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
-				} )
-			}
-			$syncHash.DC.PbProgressSysMan[0] = $false
-			$syncHash.DC.PbProgressSysMan[2] = [System.Windows.Visibility]::Hidden
-		} )
-		$syncHash.Jobs.PFetchSysMan.AddArgument( $syncHash )
-		$syncHash.Jobs.PFetchSysMan.AddArgument( ( Get-Module ) )
-		$syncHash.Jobs.PFetchSysMan.AddArgument( $syncHash.Data.Computer.Name )
-		$syncHash.Jobs.PFetchSysMan.AddArgument( $PCRole )
-		$syncHash.Jobs.HFetchSysMan = $syncHash.Jobs.PFetchSysMan.BeginInvoke()
+		Write-OpLog -Message $syncHash.Data.msgTable.StrGetApps
+
+		if ( $syncHash.DC.ChbGetLocal[0] )
+		{
+			$syncHash.Jobs.PFetchLocal = [powershell]::Create().AddScript( $syncHash.Code.GetLocalApps )
+			$syncHash.Jobs.PFetchLocal.AddArgument( $syncHash )
+			$syncHash.Jobs.PFetchLocal.AddArgument( ( Get-Module ) )
+			$syncHash.Jobs.PFetchLocal.AddArgument( $syncHash.Data.Computer.Name )
+			$syncHash.Jobs.HFetchLocal = $syncHash.Jobs.PFetchLocal.BeginInvoke()
+		}
+
+		if ( $syncHash.DC.ChbGetSysMan[0] )
+		{
+			$syncHash.Jobs.PFetchSysMan = [powershell]::Create().AddScript( $syncHash.Code.GetSysManApps )
+			$syncHash.Jobs.PFetchSysMan.AddArgument( $syncHash )
+			$syncHash.Jobs.PFetchSysMan.AddArgument( ( Get-Module ) )
+			$syncHash.Jobs.PFetchSysMan.AddArgument( $syncHash.Data.Computer.Name )
+			$syncHash.Jobs.HFetchSysMan = $syncHash.Jobs.PFetchSysMan.BeginInvoke()
+		}
 	}
 	catch
 	{
@@ -494,106 +702,62 @@ $syncHash.Controls.BtnReset.Add_Click( {
 
 # Uninstall the selected application
 $syncHash.Controls.BtnUninstall.Add_Click( {
-	try
-	{
-		$syncHash.Jobs.PUninstall.EndInvoke( $syncHash.Jobs.HUninstall ) | Out-Null
-		$syncHash.Jobs.PUninstall.Dispose()
-	} catch {}
-
-	if ( $syncHash.Controls.DgAppListLocal.SelectedItems.Count -gt 10 )
-	{
-		$summary = "$( $syncHash.Controls.DgAppListLocal.SelectedItems.Count ) $( $syncHash.Data.msgTable.StrAppSum )"
-	}
-	else
-	{
-		$summary = "`n`n$( $ofs = "`n"; [string] $syncHash.Controls.DgAppListLocal.SelectedItems.Name )"
-	}
-
+	$summary = "`n`n$( $syncHash.Data.SelectedAppForUninstall.Name )"
 	if ( [System.Windows.MessageBox]::Show( "$( $syncHash.Data.msgTable.QUninstall ) $summary", "", [System.Windows.MessageBoxButton]::YesNo ) -eq "Yes" )
 	{
-		$syncHash.Jobs.PUninstall = [powershell]::Create()
-		$syncHash.Jobs.PUninstall.AddScript( {
-			param ( $syncHash, $Modules, $list )
-			Import-Module $Modules -Force
-
-			$syncHash.Window.Dispatcher.Invoke( [action] {
-				[System.Windows.Controls.Grid]::SetColumnSpan( $syncHash.Controls.PbProgressLocal , 2 )
-			} )
-			$syncHash.DC.PbProgressSysMan[2] = [System.Windows.Visibility]::Collapsed
-			$syncHash.DC.PbProgressLocal[2] = [System.Windows.Visibility]::Visible
-			$syncHash.DC.PbProgressLocal[0] = $false
-			$ErrorList = [System.Collections.ArrayList]::new()
-			$Success = [System.Collections.ArrayList]::new()
-			for ( $c = 0; $c -lt $list.Count; $c++ )
-			{
-				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $syncHash.Data.msgTable.StrUninstalling ) $( $list[$c].Name )" ; LogTime = ( Get-Date ) ; LogType = "Info" } ) )
-					$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
-				} )
-
-				try
-				{
-					$uninstallString = $list[$c].UninstallString
-					$isExeOnly = Invoke-Command -ComputerName $syncHash.Data.Computer.Name -ScriptBlock { Test-Path -ErrorAction Ignore -LiteralPath $args[0] } -ArgumentList $uninstallString
-					if ( $isExeOnly )
-					{
-						$uninstallString = "`"$uninstallString`""
-					}
-					$uninstallString += ' /quiet /norestart'
-
-					Invoke-Command -ComputerName $syncHash.Data.Computer.Name -ScriptBlock { cmd /c $args[0] } -ArgumentList $uninstallString
-
-					$Success.Add( $list[$c].Name ) | Out-Null
-				}
-				catch
-				{
-					[void] $ErrorList.Add( ( [pscustomobject]@{ App = $list[$c].Name ; Err = $_ } ) )
-				}
-				$syncHash.DC.PbProgressLocal[1] = [double] ( ( $c / @( $list ).Count ) * 100 )
-			}
-
-			$ErrText = $ErrorList | ForEach-Object { "$( $_.App ) $( $_.Err )" }
-			$SuccessText = $Success | Sort-Object | ForEach-Object { "$_" }
-			[void] $syncHash.Data.UninstallLog.Add( ( [pscustomobject]@{ ErrorText = $ErrText ; SuccessText = $SuccessText } ) )
-
-			$syncHash.Window.Dispatcher.Invoke( [action] {
-				$syncHash.Controls.BtnGetAppList.RaiseEvent( [System.Windows.RoutedEventArgs]::new( [System.Windows.Controls.Button]::ClickEvent ) )
-			} )
-
-			$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-				$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = "$( $syncHash.Data.msgTable.StrDone )" ; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
-				$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
-			} )
-			$syncHash.DC.PbProgressLocal[0] = $true
-			$syncHash.DC.PbProgressLocal[1] = 0.0
-			$syncHash.DC.PbProgressLocal[2] = [System.Windows.Visibility]::Hidden
-			$syncHash.DC.PbProgressSysMan[2] = [System.Windows.Visibility]::Hidden
-			$syncHash.Window.Dispatcher.Invoke( [action] {
-				[System.Windows.Controls.Grid]::SetColumnSpan( $syncHash.Controls.PbProgressLocal , 1 )
-			} )
-		} )
-		$syncHash.Jobs.PUninstall.AddArgument( $syncHash )
-		$syncHash.Jobs.PUninstall.AddArgument( ( Get-Module ) )
-		$syncHash.Jobs.PUninstall.AddArgument( @( $syncHash.Controls.DgAppListLocal.SelectedItems | Where-Object { $_ } ) )
-		$syncHash.Jobs.HUninstall = $syncHash.Jobs.PUninstall.BeginInvoke()
+		if ( $syncHash.Controls.TcAppLists.SelectedIndex -eq 0 )
+		{
+			Uninstall-Local
+		}
+		elseif ( $syncHash.Controls.TcAppLists.SelectedIndex -eq 2 )
+		{
+			Uninstall-SysMan
+		}
 	}
 } )
 
 $syncHash.Controls.DgAppListLocal.Add_SelectionChanged( {
-	$syncHash.DC.BtnUninstall[0] = $this.SelectedIndex -ne -1
+	if ( $this.SelectedIndex -eq -1 )
+	{
+		$syncHash.Data.SelectedAppForUninstall = $null
+	}
+	else
+	{
+		$syncHash.Data.SelectedAppForUninstall = $this.SelectedItem
+	}
 } )
 
 $syncHash.Controls.DgAppListSysMan.Add_SelectionChanged( {
-	$syncHash.DC.BtnUninstall[0] = $this.SelectedIndex -ne -1
+	if ( $this.SelectedIndex -eq -1 )
+	{
+		$syncHash.Data.SelectedAppForUninstall = $null
+	}
+	else
+	{
+		$syncHash.Data.SelectedAppForUninstall = $this.SelectedItem
+	}
 } )
 
-$syncHash.Controls.TcAppLists.Add_SelectionChanged( {
-	$syncHash.Controls.DgAppListCore.SelectedIndex = -1
-	$syncHash.Controls.DgAppListLocal.SelectedIndex = -1
-	$syncHash.Controls.DgAppListSysMan.SelectedIndex = -1
-	$syncHash.Controls.DgAppListWrappers.SelectedIndex = -1
+# Verify that input is a valid and existing computername
+$syncHash.Controls.TbComputerName.Add_TextChanged( {
+	Reset
 
-	$syncHash.DC.BtnUninstall[0] = $false
+	if ( $this.Text -match "\w{5}\d{7,}" )
+	{
+		try
+		{
+			$syncHash.Data.Computer = Get-ADComputer $this.Text -Properties MemberOf -ErrorAction Stop
+			$syncHash.Data.ComputerSysMan = Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/Client?name=$( $this.Text )" -Method Get -UseDefaultCredentials -ContentType 'application/json'
+		}
+		catch
+		{
+			$syncHash.DC.PComputerNotFoundAlert[0] = [System.Windows.Visibility]::Visible
+		}
+	}
+	else
+	{
+		$syncHash.Controls.BtnGetAppList.IsEnabled = $false
+	}
 } )
 
 # When the GUI is visible, check if computername should be entered to the textbox or if applist is to be fetched
@@ -620,6 +784,9 @@ $syncHash.Controls.Window.Add_IsVisibleChanged( {
 
 # When GUI is first loaded, is there a name to enter to the textbox
 $syncHash.Controls.Window.Add_Loaded( {
-	try { $syncHash.Controls.TbComputerName.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Name }
+	try
+	{
+		$syncHash.Controls.TbComputerName.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Name
+	}
 	catch {}
 } )
