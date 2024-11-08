@@ -94,6 +94,56 @@ function Get-FilePermissions
 	}
 }
 
+function Get-FileSharePath
+{
+	<#
+	.Synopsis
+		Translate filename to fileshare
+	.Description
+		Try to find actual path to fileshare May be helpful to find the file if needed to unlock it
+	.MenuItem
+		Find path fileshare
+	.SearchedItemRequest
+		Allowed
+	.InputData
+		Path, True, Path to file
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $Item )
+
+	try
+	{
+		Test-Path -Path $Item -ErrorAction Stop
+
+		$s = "Can be found at the following address in ADUC:"
+		switch ( $Item.FullName.Substring( 0, 6 ) )
+		{
+			"G:\Org1" {
+				$s += $Item.FullName -replace "G:\\Org1", "C:\vol_vfiles_vol1\fs_org1_grp"
+			}
+			"G:\Org2" {
+				$s += $Item.FullName -replace "G:\\Org2", "C:\vol_vfiler_vol26\fs_org2_grp"
+			}
+			default {
+				$s += "Root folder not recognized"
+			}
+		}
+		
+		return $s
+
+	}
+	catch
+	{
+		throw $IntMsgTable.GetFileSharePathInvalidPath
+	}
+}
+
 function Search-Virus
 {
 	<#
