@@ -850,6 +850,77 @@ function Set-Localizations
 		}
 }
 
+function Set-MenuOrientation
+{
+	<#
+	.Synopsis
+		Set orientation of icons in menus
+	.Description
+		Set orientation in menus depending on window size
+	#>
+
+	if ( $syncHash.Window.ActualHeight -gt 773 )
+	{
+		$syncHash.OutputMenu.Resources.MenuOrientation = [System.Windows.Controls.Orientation]::Vertical
+	}
+	else
+	{
+		$syncHash.OutputMenu.Resources.MenuOrientation = [System.Windows.Controls.Orientation]::Horizontal
+	}
+
+	if ( $syncHash.Window.ActualHeight -gt 700 )
+	{
+		$syncHash.MenuObject.Resources.MenuOrientation = [System.Windows.Controls.Orientation]::Vertical
+	}
+	else
+	{
+		$syncHash.MenuObject.Resources.MenuOrientation = [System.Windows.Controls.Orientation]::Horizontal
+	}
+}
+
+function Set-MenuTextVisibility
+{
+	<#
+	.Synopsis
+		Adjust menutext visibility
+	.Description
+		Set visibility of menutext according to window size and if user has set MenuTextVisibility
+	#>
+
+	# Is Visible, to be Collapsed
+	if ( $syncHash.Data.UserSettings.MenuTextVisible -eq [System.Windows.Visibility]::Visible )
+	{
+		$syncHash.Window.Resources.MenuTextVisibility = [System.Windows.Visibility]::Collapsed
+		$syncHash.MenuObject.Resources.MenuTextVisibility = [System.Windows.Visibility]::Collapsed
+		$syncHash.OutputMenu.Resources.MenuTextVisibility = [System.Windows.Visibility]::Collapsed
+		$syncHash.FunctionsMenu.Resources.MenuTextVisibility = [System.Windows.Visibility]::Collapsed
+	}
+	else # Is Collapsed, To be Visible
+	{
+		$syncHash.Window.Resources.MenuTextVisibility = [System.Windows.Visibility]::Visible
+
+		if ( $syncHash.Window.ActualHeight -gt 773 )
+		{
+			$syncHash.OutputMenu.Resources.MenuTextVisibility = [System.Windows.Visibility]::Visible
+		}
+		else
+		{
+			$syncHash.OutputMenu.Resources.MenuTextVisibility = [System.Windows.Visibility]::Collapsed
+		}
+
+		if ( $syncHash.Window.ActualHeight -gt 700 )
+		{
+			$syncHash.MenuObject.Resources.MenuTextVisibility = [System.Windows.Visibility]::Visible
+		}
+		else
+		{
+			$syncHash.MenuObject.Resources.MenuTextVisibility = [System.Windows.Visibility]::Collapsed
+		}
+
+		$syncHash.FunctionsMenu.Resources.MenuTextVisibility = [System.Windows.Visibility]::Visible
+	}
+}
+
 function Start-Search
 {
 	<#
@@ -1195,6 +1266,7 @@ if ( $PSCommandPath -match "Development" )
 {
 	$Global:syncHash = $syncHash
 }
+
 $syncHash.Data.BaseDir = $BaseDir
 $syncHash.Data.Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $culture )
 $syncHash.Data.InitArgs = $InitArgs
@@ -1322,7 +1394,6 @@ $syncHash.Code.ListItem =
 				$syncHash.Data.SearchedItem.MemberOf.Where( { $_ -match $syncHash.Data.msgTable.CodeOrgGrpNamePrefix } )[0] -match $syncHash.Data.msgTable.CodeOrgGrpCaptureRegex | Out-Null
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "PCRoll" -Value $Matches.role
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Organisation" -Value $Matches.org
-				$syncHash.LblComputerOnlineStatus.Content = $syncHash.Data.SearchedItem.ExtraInfo.Other.IsOnline
 
 				break
 			}
@@ -1533,15 +1604,6 @@ $syncHash.Code.ListItem =
 		}
 
 		Invoke-Command $syncHash.Code.ListProperties -ArgumentList $false
-
-		if ( "computer" -eq $syncHash.Data.SearchedItem.ObjectClass )
-		{
-			$syncHash.SpComputerOnlineStatus.Visibility = [System.Windows.Visibility]::Visible
-		}
-		else
-		{
-			$syncHash.SpComputerOnlineStatus.Visibility = [System.Windows.Visibility]::Collapsed
-		}
 
 		$syncHash.Window.DataContext.SearchedItem = $syncHash.Data.SearchedItem
 		$syncHash.MenuObject.IsEnabled = $true
@@ -2620,18 +2682,16 @@ $syncHash.BtnEnterFunctionInput.Add_Click( {
 
 # Hides text for the menuitems at toplevel
 $syncHash.BtnHideMenuTexts.Add_Click( {
-	if ( $syncHash.Window.Resources['MenuTextVisibility'] -eq [System.Windows.Visibility]::Visible )
+	if ( $syncHash.Data.UserSettings.MenuTextVisible -eq [System.Windows.Visibility]::Visible )
 	{
-		$syncHash.Data.UserSettings.MenuTextVisible = $syncHash.Window.Resources['MenuTextVisibility'] = [System.Windows.Visibility]::Collapsed
-		$syncHash.GridObjMenu.RowDefinitions[0].Height = "Auto"
-		$syncHash.GridObjMenu.RowDefinitions[1].Height = "Auto"
+		$syncHash.Data.UserSettings.MenuTextVisible = [System.Windows.Visibility]::Collapsed
 	}
 	else
 	{
-		$syncHash.Data.UserSettings.MenuTextVisible = $syncHash.Window.Resources['MenuTextVisibility'] = [System.Windows.Visibility]::Visible
-		$syncHash.GridObjMenu.RowDefinitions[0].Height = 24
-		$syncHash.GridObjMenu.RowDefinitions[1].Height = 18
+		$syncHash.Data.UserSettings.MenuTextVisible = [System.Windows.Visibility]::Visible
 	}
+
+	Set-MenuTextVisibility
 } )
 
 # Hide the warning note
@@ -2885,6 +2945,9 @@ $syncHash.Window.Add_Loaded( {
 		$syncHash.Window.Left = $syncHash.Data.UserSettings.WindowLeft
 	}
 	$this.Resources['MenuTextVisibility'] = [System.Windows.Visibility]::Parse( [System.Windows.Visibility], $syncHash.Data.UserSettings.MenuTextVisible )
+	Set-MenuTextVisibility
+	Set-MenuOrientation
+
 	$this.Resources['MainOutput'].Title = $syncHash.Data.msgTable.StrDefaultMainTitle
 
 	if ( $PSCommandPath -match "(Development)|(User)" )
@@ -2913,6 +2976,13 @@ $syncHash.Window.Add_ContentRendered( {
 		}
 
 	$syncHash.Window.Resources['CvsDetailedProps'].View.Filter = $syncHash.Code.FilterSource
+
+	$automationElement = [System.Windows.Automation.AutomationElement]::FromHandle( $syncHash.Data.MainWindowHandle )
+	$processPattern = $automationElement.GetCurrentPattern( [System.Windows.Automation.WindowPatternIdentifiers]::Pattern )
+	$M = $processPattern.Current.WindowVisualState
+	$H = $syncHash.Window.ActualHeight
+	$W = $syncHash.Window.ActualWidth
+	WriteLog "Start > $( ( ( Get-DisplayResolution )[0].GetEnumerator() | Where-Object { -not [char]::IsControl( $_ ) } ) -join '' -split 'x' ) | $( $M ) | $( $H ) | $( $W )" -Success $true
 } )
 
 # Catch keystrokes to see if the menu is to be opened
@@ -3014,6 +3084,11 @@ $syncHash.Window.Add_Closing( {
 	$syncHash.Data.UserSettings.WindowWidth = $syncHash.Window.ActualWidth
 	$syncHash.Data.UserSettings.WindowTop = $syncHash.Window.Top
 	$syncHash.Data.UserSettings.WindowLeft  = $syncHash.Window.Left
+} )
+
+$syncHash.Window.Add_SizeChanged( {
+	Set-MenuTextVisibility
+	Set-MenuOrientation
 } )
 
 # When new output is added, clear ItemsControl and add output to be displayed

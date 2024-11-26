@@ -4,8 +4,7 @@
         xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
         xmlns:sys="clr-namespace:System;assembly=mscorlib"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        MinHeight="955"
-        MinWidth="1442"
+        MinHeight="590"
         Title="{Binding ElementName=FrameTool, Path=Content.Title, BindsDirectlyToSource=True, IsAsync=True, NotifyOnSourceUpdated=True}">
     <WindowChrome.WindowChrome>
         <WindowChrome GlassFrameThickness="-1"
@@ -169,12 +168,13 @@
 
         <!--#region Spacing -->
         <GridLength x:Key="GridDetailedColWidth">260</GridLength>
-        <GridLength x:Key="MiIconWidth">40</GridLength>
+        <GridLength x:Key="MiIconWidth">35</GridLength>
         <Thickness x:Key="StdMargin">5</Thickness>
         <Thickness x:Key="StdPadding">3</Thickness>
         <!--#endregion-->
 
         <!--#region Visuals -->
+        <Orientation x:Key="MenuOrientation">Vertical</Orientation>
         <TransformGroup x:Key="TgMirrored">
             <ScaleTransform ScaleX="-1"
                             ScaleY="-1" />
@@ -301,8 +301,6 @@
         </Style>
         <Style TargetType="Border"
                x:Key="PropBorder">
-            <Setter Property="HorizontalAlignment"
-                    Value="Stretch" />
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
             <Setter Property="MaxHeight"
@@ -337,10 +335,10 @@
                         <Storyboard>
                             <DoubleAnimation Storyboard.TargetProperty="Opacity"
                                              To="1"
-                                             Duration="00:00:01" />
+                                             Duration="00:00:00.5" />
                             <DoubleAnimation Storyboard.TargetProperty="(RenderTransform).X"
                                              To="0"
-                                             Duration="00:00:00.4" />
+                                             Duration="00:00:00.5" />
                         </Storyboard>
                     </BeginStoryboard>
                 </EventTrigger>
@@ -380,7 +378,7 @@
                                     <BeginStoryboard Name="StoryBtnEnterHover">
                                         <Storyboard>
                                             <ColorAnimation AutoReverse="True"
-                                                            Duration="0:0:0.5"
+                                                            Duration="0:0:0.3"
                                                             Storyboard.TargetName="BtnBrd"
                                                             Storyboard.TargetProperty="(Border.Background).(SolidColorBrush.Color)"
                                                             To="White" />
@@ -401,13 +399,18 @@
                                     </Storyboard>
                                 </BeginStoryboard>
                             </EventTrigger>
+                            <!--#endregion Button got focus -->
+                            <!--#region Button lost focus -->
                             <EventTrigger RoutedEvent="Keyboard.PreviewLostKeyboardFocus">
                                 <StopStoryboard BeginStoryboardName="BtnFocusStory" />
                             </EventTrigger>
                             <EventTrigger RoutedEvent="Keyboard.LostKeyboardFocus">
                                 <StopStoryboard BeginStoryboardName="BtnFocusStory" />
                             </EventTrigger>
-                            <!--#endregion Button got focus -->
+                            <EventTrigger RoutedEvent="FocusManager.LostFocus">
+                                <StopStoryboard BeginStoryboardName="BtnFocusStory" />
+                            </EventTrigger>
+                            <!--#endregion Button lost focus -->
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
@@ -519,18 +522,8 @@
 
         <Style TargetType="Menu"
                x:Key="MenuBaseStyle">
-            <Setter Property="ItemsPanel">
-                <Setter.Value>
-                    <ItemsPanelTemplate>
-                        <StackPanel />
-                    </ItemsPanelTemplate>
-                </Setter.Value>
-            </Setter>
-            <Setter Property="Background">
-                <Setter.Value>
-                    <SolidColorBrush Opacity="0" />
-                </Setter.Value>
-            </Setter>
+            <Setter Property="Background"
+                    Value="Transparent" />
         </Style>
 
         <Style TargetType="MenuItem"
@@ -691,7 +684,6 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-
         <Style TargetType="MenuItem"
                x:Key="MiSubLevelFunctionsStyle"
                BasedOn="{StaticResource MiSubLevelBaseStyle}">
@@ -923,51 +915,6 @@
             </Setter>
         </Style>
 
-        <Style TargetType="ScrollViewer"
-               x:Key="ScVObjStyle">
-            <Setter Property="HorizontalScrollBarVisibility"
-                    Value="Auto" />
-            <Setter Property="OverridesDefaultStyle"
-                    Value="True" />
-            <Setter Property="VerticalScrollBarVisibility"
-                    Value="Auto" />
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ScrollViewer">
-                        <Grid Background="Transparent">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <Grid.RowDefinitions>
-                                <RowDefinition />
-                                <RowDefinition Height="Auto" />
-                            </Grid.RowDefinitions>
-
-                            <ScrollContentPresenter />
-
-                            <ScrollBar Name="PART_VerticalScrollBar"
-                                       Grid.Column="1"
-                                       Maximum="{TemplateBinding ScrollableHeight}"
-                                       Value="{TemplateBinding VerticalOffset}"
-                                       ViewportSize="{TemplateBinding ViewportHeight}"
-                                       Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
-                            <ScrollBar Name="PART_HorizontalScrollBar"
-                                       Grid.Column="0"
-                                       Grid.ColumnSpan="2"
-                                       Grid.Row="1"
-                                       Maximum="{TemplateBinding ScrollableWidth}"
-                                       Orientation="Horizontal"
-                                       Value="{TemplateBinding HorizontalOffset}"
-                                       ViewportSize="{TemplateBinding ViewportWidth}"
-                                       Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" />
-
-                        </Grid>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
-
         <Style TargetType="TextBlock"
                x:Key="TblBaseStyle">
             <Setter Property="Padding"
@@ -979,8 +926,6 @@
                     Value="1" />
             <Setter Property="VerticalAlignment"
                     Value="Center" />
-            <Setter Property="Visibility"
-                    Value="{DynamicResource MenuTextVisibility}" />
         </Style>
         <Style TargetType="TextBlock"
                x:Key="TblMenuTitleStyle">
@@ -992,8 +937,6 @@
                     Value="{StaticResource StdMargin}" />
             <Setter Property="TextAlignment"
                     Value="Center" />
-            <Setter Property="Visibility"
-                    Value="{DynamicResource MenuTextVisibility}" />
         </Style>
         <Style TargetType="TextBlock"
                x:Key="TblObjectMenuStyle">
@@ -1003,8 +946,6 @@
                     Value="1" />
             <Setter Property="VerticalAlignment"
                     Value="Center" />
-            <Setter Property="Visibility"
-                    Value="{DynamicResource MenuTextVisibility}" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=MenuItem}, Path=IsEnabled}"
                              Value="False">
@@ -1114,6 +1055,13 @@
             </Style.Triggers>
         </Style>
 
+        <Style TargetType="WrapPanel"
+               x:Key="WpMenuStyle">
+            <Setter Property="MaxWidth"
+                    Value="260" />
+            <Setter Property="MinWidth"
+                    Value="95" />
+        </Style>
         <!--#region Styled controls -->
         <ControlTemplate TargetType="{x:Type ScrollBar}"
                          x:Key="VerticalScrollBar">
@@ -1194,6 +1142,19 @@
         <ControlTemplate TargetType="ToggleButton"
                          x:Key="TBtnWithProgressBarStyle">
             <Grid>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Background"
+                                Value="Transparent" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
+                                         Value="True">
+                                <Setter Property="Background"
+                                        Value="{StaticResource ScbPropMouseOver}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 <TextBlock Background="Transparent"
                            HorizontalAlignment="Stretch"
                            Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTBtnObjectDetailed}"
@@ -1204,6 +1165,19 @@
         <ControlTemplate TargetType="ToggleButton"
                          x:Key="TBtnCheckedWithProgressBarStyle">
             <Grid>
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="Background"
+                                Value="Transparent" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
+                                         Value="True">
+                                <Setter Property="Background"
+                                        Value="{StaticResource ScbPropMouseOver}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
                 <ProgressBar Background="Transparent"
                              IsIndeterminate="True">
                     <ProgressBar.Style>
@@ -2207,12 +2181,26 @@
                         Style="{StaticResource MenuTitleStyle}">
                     <Grid Name="GridObjMenu">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="24" />
-                            <RowDefinition Height="Auto" />
+                            <RowDefinition>
+                                <RowDefinition.Style>
+                                    <Style TargetType="RowDefinition">
+                                        <Setter Property="Height"
+                                                Value="24" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding ElementName=MenuObject, Path=Visibility}"
+                                                         Value="Collapsed">
+                                                <Setter Property="Height"
+                                                        Value="Auto" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </RowDefinition.Style>
+                            </RowDefinition>
                             <RowDefinition Height="Auto" />
                             <RowDefinition />
                         </Grid.RowDefinitions>
-                        <Grid Visibility="{DynamicResource MenuTextVisibility}">
+                        <Grid Name="GridObjMenuTitle"
+                              Visibility="{Binding ElementName=TblMiCloseObj, Path=Visibility}">
                             <Grid.Style>
                                 <Style TargetType="Grid">
                                     <Setter Property="Grid.RowSpan"
@@ -2227,6 +2215,7 @@
                                 </Style>
                             </Grid.Style>
                             <TextBlock Name="TblObjMenuTitle"
+                                       FontSize="20"
                                        Style="{StaticResource TblMenuTitleStyle}"
                                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblObjMenuTitle}"
                                        VerticalAlignment="Center" />
@@ -2251,58 +2240,23 @@
                                 </Style>
                             </TextBlock.Style>
                         </TextBlock>
-                        <StackPanel Name="SpComputerOnlineStatus"
-                                    Grid.Row="2"
-                                    Orientation="Horizontal">
-                            <StackPanel.Style>
-                                <Style TargetType="StackPanel">
-                                    <Setter Property="Visibility"
-                                            Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding Path=SearchedItem.ObjectClass}"
-                                                     Value="computer">
-                                            <Setter Property="Visibility"
-                                                    Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </StackPanel.Style>
-                            <TextBlock Name="TblComputerOnline"
-                                       FontSize="13"
-                                       Grid.Row="2"
-                                       Text="{Binding Path=MsgTable.StrComputerOnline}"
-                                       VerticalAlignment="Center"
-                                       Visibility="{DynamicResource MenuTextVisibility}" />
-                            <Border Name="BrdComputerOnlineStatus">
-                                <Border.Style>
-                                    <Style TargetType="Border">
-                                        <Setter Property="Background"
-                                                Value="Transparent" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding ElementName=LblComputerOnlineStatus, Path=Content, NotifyOnSourceUpdated=True}"
-                                                         Value="Online">
-                                                <Setter Property="Background"
-                                                        Value="LightGreen" />
-                                            </DataTrigger>
-                                            <DataTrigger Binding="{Binding ElementName=LblComputerOnlineStatus, Path=Content, NotifyOnSourceUpdated=True}"
-                                                         Value="Offline">
-                                                <Setter Property="Background"
-                                                        Value="Coral" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Border.Style>
-                                <Label Name="LblComputerOnlineStatus"
-                                       VerticalContentAlignment="Center" />
-                            </Border>
-                        </StackPanel>
                         <Menu Name="MenuObject"
                               Grid.Row="3"
                               IsEnabled="False"
-                              Style="{StaticResource MenuBaseStyle}"
-                              ToolTip="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTTMiCloseObj}">
+                              Style="{StaticResource MenuBaseStyle}">
+                            <Menu.Resources>
+                                <Orientation x:Key="MenuOrientation">Vertical</Orientation>
+                                <Visibility x:Key="MenuTextVisibility">Visible</Visibility>
+                            </Menu.Resources>
+                            <Menu.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="{DynamicResource MenuOrientation}"
+                                               Style="{StaticResource WpMenuStyle}"/>
+                                </ItemsPanelTemplate>
+                            </Menu.ItemsPanel>
                             <MenuItem Name="MiCloseObj"
-                                      Style="{StaticResource MiTopLevelStyle}">
+                                      Style="{StaticResource MiTopLevelStyle}"
+                                      ToolTip="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTTMiCloseObj}">
                                 <MenuItem.Header>
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -2311,8 +2265,10 @@
                                         </Grid.ColumnDefinitions>
                                         <Path Data="{StaticResource ObjCloseIcon}"
                                               Style="{StaticResource PathObjectMenuIconStyle}" />
-                                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiCloseObj}"
-                                                   Style="{StaticResource TblObjectMenuStyle}" />
+                                        <TextBlock Name="TblMiCloseObj"
+                                                   Style="{StaticResource TblObjectMenuStyle}"
+                                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiCloseObj}"
+                                                   Visibility="{DynamicResource MenuTextVisibility}" />
                                     </Grid>
                                 </MenuItem.Header>
                             </MenuItem>
@@ -2355,7 +2311,8 @@
                                                 </Style>
                                             </Path.Style>
                                         </Path>
-                                        <TextBlock>
+                                        <TextBlock Name="TblMiObjDetailed"
+                                                   Visibility="{DynamicResource MenuTextVisibility}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock"
                                                        BasedOn="{StaticResource TblObjectMenuStyle}">
@@ -2397,7 +2354,8 @@
                                         </Grid.ColumnDefinitions>
                                         <Path Data="{StaticResource ObjCopyInfoIcon}"
                                               Style="{StaticResource PathObjectMenuIconStyle}" />
-                                        <TextBlock>
+                                        <TextBlock Name="TblMiCopyObj"
+                                                   Visibility="{DynamicResource MenuTextVisibility}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock"
                                                        BasedOn="{StaticResource TblObjectMenuStyle}">
@@ -2448,7 +2406,8 @@
                                                 </Style>
                                             </Path.Style>
                                         </Path>
-                                        <TextBlock>
+                                        <TextBlock Name="TblMiShowHideObj"
+                                                   Visibility="{DynamicResource MenuTextVisibility}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock"
                                                        BasedOn="{StaticResource TblObjectMenuStyle}">
@@ -2479,8 +2438,10 @@
                                         </Grid.ColumnDefinitions>
                                         <Path Data="{StaticResource GetSysManInfo}"
                                               Style="{StaticResource PathObjectMenuIconStyle}" />
-                                        <TextBlock Style="{StaticResource TblObjectMenuStyle}"
-                                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiGetSysManInfo}" />
+                                        <TextBlock Name="TblMiGetSysManInfo"
+                                                   Style="{StaticResource TblObjectMenuStyle}"
+                                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiGetSysManInfo}"
+                                                   Visibility="{DynamicResource MenuTextVisibility}" />
                                     </Grid>
                                 </MenuItem.Header>
                             </MenuItem>
@@ -2498,12 +2459,19 @@
                         </Grid.RowDefinitions>
                         <TextBlock Name="TblOutputMenuTitle"
                                    Style="{StaticResource TblMenuTitleStyle}"
-                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblOutputMenuTitle}" />
+                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblOutputMenuTitle}"
+                                   Visibility="{Binding ElementName=TblMiShowHideOutputView, Path=Visibility}" />
                         <Menu Name="OutputMenu"
-                              Grid.Row="1">
+                              Grid.Row="1"
+                              Style="{StaticResource MenuBaseStyle}">
+                            <Menu.Resources>
+                                <Orientation x:Key="MenuOrientation">Vertical</Orientation>
+                                <Visibility x:Key="MenuTextVisibility">Visible</Visibility>
+                            </Menu.Resources>
                             <Menu.ItemsPanel>
                                 <ItemsPanelTemplate>
-                                    <StackPanel />
+                                    <WrapPanel Orientation="{DynamicResource MenuOrientation}"
+                                               Style="{StaticResource WpMenuStyle}" />
                                 </ItemsPanelTemplate>
                             </Menu.ItemsPanel>
                             <MenuItem Name="MiShowHideOutputView"
@@ -2556,7 +2524,8 @@
                                                 </Style>
                                             </Path.Style>
                                         </Path>
-                                        <TextBlock>
+                                        <TextBlock Name="TblMiShowHideOutputView"
+                                                   Visibility="{DynamicResource MenuTextVisibility}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock"
                                                        BasedOn="{StaticResource TblFunctionMenuStyle}">
@@ -2634,7 +2603,9 @@
                                                 </Style>
                                             </Path.Style>
                                         </Path>
-                                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiOutputHistoryText}">
+                                        <TextBlock Name="TblMiOutputHistory"
+                                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiOutputHistoryText}"
+                                                   Visibility="{DynamicResource MenuTextVisibility}">
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock"
                                                        BasedOn="{StaticResource TblFunctionMenuStyle}">
@@ -2713,7 +2684,18 @@
                 </Border>
                 <Menu Name="FunctionsMenu"
                       Grid.Row="3"
-                      Style="{StaticResource MenuBaseStyle}">
+                      Style="{StaticResource MenuBaseStyle}"
+                      VerticalContentAlignment="Bottom">
+                    <Menu.Resources>
+                        <Orientation x:Key="MenuOrientation">Vertical</Orientation>
+                        <Visibility x:Key="MenuTextVisibility">Visible</Visibility>
+                    </Menu.Resources>
+                    <Menu.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="{DynamicResource MenuOrientation}"
+                                       Style="{StaticResource WpMenuStyle}" />
+                        </ItemsPanelTemplate>
+                    </Menu.ItemsPanel>
                     <MenuItem Name="MiUserFunctions"
                               ItemsSource="{Binding Source={StaticResource CvsMiUserFunctions}}"
                               Style="{StaticResource MiTopLevelStyle}">
@@ -2726,7 +2708,8 @@
                                 <Path Data="{StaticResource UserIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiUserFunctionsText}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiUserFunctionsText}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -2759,7 +2742,8 @@
                                 <Path Data="{StaticResource FolderIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiDirectoryInfoFunctionsText}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiDirectoryInfoFunctionsText}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -2792,7 +2776,8 @@
                                 <Path Data="{StaticResource FileIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFileInfoText}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblFileInfoText}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -2825,7 +2810,8 @@
                                 <Path Data="{StaticResource ComputerIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiComputerFunctionsText}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiComputerFunctionsText}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -2858,7 +2844,8 @@
                                 <Path Data="{StaticResource GroupIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiGroupFunctionsText}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiGroupFunctionsText}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -2891,7 +2878,8 @@
                                 <Path Data="{StaticResource PrinterIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiPrintQueueFunctionsText}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiPrintQueueFunctionsText}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -2924,7 +2912,8 @@
                                 <Path Data="{StaticResource OtherIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiOtherFunctions}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiOtherFunctions}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -2963,7 +2952,8 @@
                                 </Path>
                                 <TextBlock Name="TblMiO365Connect"
                                            Foreground="Black"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiConnectO365ServicesText}">
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiConnectO365ServicesText}"
+                                           Visibility="{DynamicResource MenuTextVisibility}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock"
                                                BasedOn="{StaticResource TblFunctionMenuStyle}">
@@ -2993,7 +2983,8 @@
                                 <Path Data="{StaticResource O365UserIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiO365User}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiO365User}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -3037,7 +3028,8 @@
                                 <Path Data="{StaticResource O365SharedMailboxIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiO365SharedMailbox}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiO365SharedMailbox}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -3071,7 +3063,8 @@
                                 <Path Data="{StaticResource O365DistributionlistIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiO365Distributionlist}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiO365Distributionlist}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -3105,7 +3098,8 @@
                                 <Path Data="{StaticResource O365ResourceIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiO365Resource}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiO365Resource}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -3139,7 +3133,8 @@
                                 <Path Data="{StaticResource O365RoomIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiO365Room}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiO365Room}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -3189,7 +3184,8 @@
                                 <Path Data="{StaticResource ToolsIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiToolsText}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiToolsText}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -3226,7 +3222,8 @@
                                 <Path Data="{StaticResource SeparateToolsIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiSeparateToolsText}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiSeparateToolsText}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -3262,7 +3259,8 @@
                                 <Path Data="{StaticResource AboutIcon}"
                                       Style="{StaticResource PathMenuIconStyle}" />
                                 <TextBlock Style="{StaticResource TblFunctionMenuStyle}"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiAboutText}" />
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMiAboutText}"
+                                           Visibility="{DynamicResource MenuTextVisibility}" />
                             </Grid>
                         </MenuItem.Header>
                         <MenuItem.ItemContainerStyle>
@@ -3369,10 +3367,45 @@
                                   DataContext="{Binding ElementName=Window, Path=DataContext.SearchedObject}"
                                   Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
                                   Grid.Row="2"
-                                  Style="{StaticResource ScVObjStyle}"
+                                  HorizontalScrollBarVisibility="Disabled"
+                                  OverridesDefaultStyle="True"
+                                  VerticalScrollBarVisibility="Auto"
                                   Visibility="Visible">
-                        <Grid Name="GridObjInfo"
-                              HorizontalAlignment="Stretch">
+                        <ScrollViewer.Template>
+                            <ControlTemplate TargetType="ScrollViewer">
+                                <Grid Background="Transparent">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <ScrollContentPresenter />
+
+                                    <ScrollBar Name="PART_VerticalScrollBar"
+                                               Grid.Column="1"
+                                               Maximum="{TemplateBinding ScrollableHeight}"
+                                               Value="{TemplateBinding VerticalOffset}"
+                                               ViewportSize="{TemplateBinding ViewportHeight}"
+                                               Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+                                    <ScrollBar Name="PART_HorizontalScrollBar"
+                                               Grid.Column="0"
+                                               Grid.ColumnSpan="2"
+                                               Grid.Row="1"
+                                               Maximum="{TemplateBinding ScrollableWidth}"
+                                               Orientation="Horizontal"
+                                               Value="{TemplateBinding HorizontalOffset}"
+                                               ViewportSize="{TemplateBinding ViewportWidth}"
+                                               Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" />
+
+                                </Grid>
+                            </ControlTemplate>
+
+                        </ScrollViewer.Template>
+                        <Grid Name="GridObjInfo">
                             <Grid.RowDefinitions>
                                 <RowDefinition />
                             </Grid.RowDefinitions>
@@ -3933,11 +3966,11 @@
                                                                                 <DataGrid ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Value}"
                                                                                           MaxColumnWidth="300"
                                                                                           MaxHeight="{StaticResource PropValMaxHeight}"
-                                                                                          MaxWidth="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ActualWidth}"
+                                                                                          MaxWidth="{Binding ElementName=IcPropsList, Path=ActualWidth}"
                                                                                           ScrollViewer.CanContentScroll="False"
                                                                                           Style="{StaticResource DgPropValueStyle}"
                                                                                           VerticalScrollBarVisibility="Auto"
-                                                                                          Width="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ActualWidth}" />
+                                                                                          Width="{Binding ElementName=IcPropsList, Path=ActualWidth}" />
                                                                             </DataTemplate>
                                                                         </Setter.Value>
                                                                     </Setter>
