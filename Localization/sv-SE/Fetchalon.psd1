@@ -116,7 +116,6 @@ StrSplashCheckO365Roles = Kontrollerar Office365 roller
 StrSplashConnectedO365 = Redan inloggad till Office365 online tjänster:
 StrSplashConnectO365 = Logga in till Office365 online tjänster
 StrSplashCreatingHandlers = Läser in funktioner
-StrSplashCreatingWindow = Skapar huvudfönster
 StrSplashFinished = Klar, hej då!
 StrSplashJoke1 = Hackar CIA
 StrSplashJoke10 = Vinka till tittarna

@@ -108,56 +108,6 @@ function Add-MenuItem
 		$StateApproved = $true
 	}
 
-	$ValidDateApproved = $true
-	$ValidDateNote = ""
-
-	if ( ( $MiObject | Get-Member ).Name -match "(?:In)*valid(?:ate)*(?:(?:Start)|(?:End))*DateTime" )
-	{
-		$Date = Get-Date
-		if ( ( $MiObject.ValidStartDateTime -and $MiObject.InvalidateDateTime ) -and `
-			( $MiObject.ValidStartDateTime -le $MiObject.InvalidateDateTime )
-		)
-		{
-			if ( ( $Date -ge $MiObject.ValidStartDateTime -or $Date.Date -ge $MiObject.ValidStartDateTime ) -and `
-				( $Date -le $MiObject.InvalidateDateTime -or $Date.Date -le $MiObject.InvalidateDateTime )
-			)
-			{
-				$ValidDateNote = "$( $syncHash.Data.msgTable.StrValidDateNotePrefixBetween ) $( Get-Date $MiObject.ValidStartDateTime -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] ) - $( Get-Date $MiObject.InvalidateDateTime -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] )"
-			}
-			else
-			{
-				$ValidDateApproved = $false
-			}
-		}
-		elseif ( $MiObject.ValidStartDateTime )
-		{
-			if ( $Date -lt $MiObject.ValidStartDateTime )
-			{
-				$ValidDateApproved = $false
-			}
-			else
-			{
-				$ValidDateNote = "$( $syncHash.Data.msgTable.StrValidDateNotePrefixFrom ) $( Get-Date $MiObject.ValidStartDateTime -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] )"
-			}
-		}
-		elseif ( $MiObject.InvalidateDateTime )
-		{
-			if ( $Date -gt $MiObject.InvalidateDateTime )
-			{
-				$ValidDateApproved = $false
-			}
-			else
-			{
-				$ValidDateNote = "$( $syncHash.Data.msgTable.StrValidDateNotePrefixUntil ) $( Get-Date $MiObject.InvalidateDateTime -Format $syncHash.Window.Resources['StrFullDateTimeFormat'] )"
-			}
-		}
-
-		if ( $ValidDateApproved )
-		{
-			Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "ValidDateNote" -Value $ValidDateNote
-		}
-	}
-
 	# Check permissions for using the function or tool that MiObject refers to
 	if (
 		( -not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and `
@@ -165,9 +115,10 @@ function Add-MenuItem
 			$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or `
 			$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0 ) -and `
 		$StateApproved -and `
-		$ValidDateApproved
+		( $MiObject.ValidDateApproved -in $null, $true )
 	)
 	{
+		# Should menuitem be in a sublist?
 		if ( $null -ne $MiObject.SubMenu )
 		{
 			if ( [string]::IsNullOrEmpty( $ModuleName ) )
@@ -179,7 +130,7 @@ function Add-MenuItem
 				$CvsTopName = "CvsMi$( $ModuleName )"
 			}
 
-			# Create a CollectionViewSource for the menuitems in the submenu
+			# Submenu has not been created, create a CollectionViewSource for the menuitems in the submenu
 			$ResourceName = "$( $CvsTopName )Sub$( $MiObject.SubMenu )"
 			if ( $syncHash.Window.Resources.Keys -notcontains $ResourceName )
 			{
@@ -208,12 +159,12 @@ function Add-MenuItem
 			elseif (
 				$null -ne $MiObject.ObjectOperations -and `
 				"None" -ne $MiObject.ObjectOperations -and `
-				$null -ne ( $syncHash.Window.Resources.Keys | Where-Object { $_ -match "CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions" } )
+				$null -ne ( $ResourceName = $syncHash.Window.Resources.Keys -match "CvsMi$( $MiObject.ObjectOperations )Functions$" )
 			)
 			{
 				try
 				{
-					( $syncHash.Window.Resources.GetEnumerator() | Where-Object { $_.Key -match "^CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions$" } ).Value.Source.Add( $MiObject )
+					$syncHash.Window.Resources."$( $ResourceName )".Source.Add( $MiObject )
 				}
 				catch
 				{
@@ -899,7 +850,7 @@ function Set-MenuTextVisibility
 	{
 		$syncHash.Window.Resources.MenuTextVisibility = [System.Windows.Visibility]::Visible
 
-		if ( $syncHash.Window.ActualHeight -gt 773 )
+		if ( $syncHash.Window.ActualHeight -gt 773 -and $syncHash.Window.ActualWidth -gt 710 )
 		{
 			$syncHash.OutputMenu.Resources.MenuTextVisibility = [System.Windows.Visibility]::Visible
 		}
@@ -908,7 +859,7 @@ function Set-MenuTextVisibility
 			$syncHash.OutputMenu.Resources.MenuTextVisibility = [System.Windows.Visibility]::Collapsed
 		}
 
-		if ( $syncHash.Window.ActualHeight -gt 700 )
+		if ( $syncHash.Window.ActualHeight -gt 700 -and $syncHash.Window.ActualWidth -gt 710 )
 		{
 			$syncHash.MenuObject.Resources.MenuTextVisibility = [System.Windows.Visibility]::Visible
 		}
@@ -917,7 +868,14 @@ function Set-MenuTextVisibility
 			$syncHash.MenuObject.Resources.MenuTextVisibility = [System.Windows.Visibility]::Collapsed
 		}
 
-		$syncHash.FunctionsMenu.Resources.MenuTextVisibility = [System.Windows.Visibility]::Visible
+		if ( $syncHash.Window.ActualWidth -gt 710 )
+		{
+			$syncHash.FunctionsMenu.Resources.MenuTextVisibility = [System.Windows.Visibility]::Visible
+		}
+		else
+		{
+			$syncHash.FunctionsMenu.Resources.MenuTextVisibility = [System.Windows.Visibility]::Collapsed
+		}
 	}
 }
 
@@ -1257,8 +1215,6 @@ $controls = [System.Collections.ArrayList]::new()
 [void] $controls.Add( @{ CName = "TblUnfinishedInputCount" ; Props = @( @{ PropName = "Text" ; PropVal = 0 } ) } )
 [void] $controls.Add( @{ CName = "TblUnfinishedInputCountTitle" ; Props = @( @{ PropName = "Text" ; PropVal = $msgTable.ContentTblUnfinishedInputCountTitle } ) } )
 [void] $controls.Add( @{ CName = "TbSearch" ; Props = @( @{ PropName = "Text" ; PropVal = "" } ) } )
-
-Update-SplashText -Text $msgTable.StrSplashCreatingWindow
 
 $syncHash = CreateWindowExt -ControlsToBind $controls -IncludeConverters
 # Only save syncHash if in development
@@ -1933,7 +1889,139 @@ $syncHash.Code.ListProperties =
 	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
 }
 
-Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximum ( $syncHash.Data.msgTable.Keys.Where( { $_ -match "Joke" } ).Count ) )"
+# Code for running a function and display its output
+$syncHash.Code.SBlockExecuteFunction = {
+	param ( $syncHash, $ScriptObject, $Modules, $ItemToSend, $InputData )
+
+	$Error.Clear()
+	if ( -not $ScriptObject.NoRunspace )
+	{
+		Add-Type -AssemblyName PresentationFramework
+		Import-Module ( $Modules | Where-Object { Test-Path $_.Path } ) -Force -WarningAction SilentlyContinue
+	}
+	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
+
+	$Info = [pscustomobject]@{
+		Started = Get-Date
+		Finished = $null
+		Data = $null
+		Script = $ScriptObject
+		Error = [System.Collections.ArrayList]::new()
+		Item = $ItemToSend
+		OutputType = $ScriptObject.OutputType
+	}
+
+	try
+	{
+		if ( $null -ne $InputData )
+		{
+			if ( "None" -eq $ScriptObject.SearchedItemRequest )
+			{
+				$ScriptOutput = . $ScriptObject.Name $InputData
+			}
+			else
+			{
+				if ( $ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass )
+				{
+					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem $InputData
+				}
+				else
+				{
+					$ScriptOutput = . $ScriptObject.Name $null $InputData
+				}
+			}
+		}
+		else
+		{
+			if ( "None" -eq $ScriptObject.SearchedItemRequest )
+			{
+				$ScriptOutput = . $ScriptObject.Name
+			}
+			else
+			{
+				if ( $ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass )
+				{
+					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem
+				}
+				else
+				{
+					$ScriptOutput = . $ScriptObject.Name $null
+				}
+			}
+		}
+		$Info.Data = $ScriptOutput
+
+		if ( $null -eq $Info.Data )
+		{
+			$Info.OutputType = "String"
+		}
+		elseif ( $Info.Data -is [pscustomobject] )
+		{
+			if ( "ObjectList" -eq $Info.OutputType )
+			{
+				$temp = [System.Collections.ArrayList]::new()
+				$temp.Add( $Info.Data ) | Out-Null
+				$Info.Data = $temp
+			}
+			else
+			{
+				$Info.Data | Get-Member -MemberType NoteProperty | `
+					ForEach-Object `
+						-Begin { $l = [System.Collections.ArrayList]::new() } `
+						-Process { $l.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrOutputPropName = $_.Name ; $syncHash.Data.msgTable.StrOutputPropValue = $Info.Data."$( $_.Name )" } ) ) | Out-Null } `
+						-End { $Info.Data = $l }
+				$Info.OutputType = "ObjectList"
+			}
+		}
+
+		if ( $Info.Data -is [string] )
+		{
+			$Info.OutputType = "String"
+		}
+		elseif ( "String", "List", "ObjectList" -match $ScriptObject.OutputType )
+		{
+			$Info.OutputType = $ScriptObject.OutputType
+		}
+		else
+		{
+			$Info.OutputType = "String"
+		}
+	}
+	catch {}
+
+	$Error | `
+		ForEach-Object {
+			$Info.Error.Add( $_ ) | Out-Null
+		}
+	$Info.Finished = Get-Date
+
+	# Log activity
+	if ( $null -ne $ItemToSend )
+	{
+		$LogText = "Function: $( $ScriptObject.Name )`r`n$( $syncHash.Data.msgTable.LogStrSearchItemTitle ): $( $ItemToSend.Name )"
+	}
+	else
+	{
+		$LogText = "Function: $( $ScriptObject.Name )"
+	}
+
+	if ( $Info.Error )
+	{
+		$eh = WriteErrorlog -LogText $LogText -UserInput $null -Severity -1
+	}
+	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $InputData | ConvertTo-Json -Compress ) -ErrorLogHash $eh | Out-Null
+
+	$syncHash.Window.Dispatcher.Invoke( [action] {
+		$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Collapsed
+		$syncHash.GridFunctionOp.DataContext = $null
+
+		# Send result to GUI
+		if ( "None" -ne $ScriptObject.OutputType )
+		{
+			$syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $Info )
+		}
+	} )
+}
 
 # Eventhandler to copy function output
 [System.Windows.RoutedEventHandler] $syncHash.Code.CopyOutputData =
@@ -2435,157 +2523,20 @@ $(
 	$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count
 }
 
-# Code for running a function and display its output
-$syncHash.Code.SBlockExecuteFunction = {
-	param ( $syncHash, $ScriptObject, $Modules, $ItemToSend, $InputData )
-
-	$Error.Clear()
-	if ( -not $ScriptObject.NoRunspace )
-	{
-		Add-Type -AssemblyName PresentationFramework
-		Import-Module ( $Modules | Where-Object { Test-Path $_.Path } ) -Force -WarningAction SilentlyContinue
-	}
-	$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Visible
-
-	$Info = [pscustomobject]@{
-		Started = Get-Date
-		Finished = $null
-		Data = $null
-		Script = $ScriptObject
-		Error = [System.Collections.ArrayList]::new()
-		Item = $ItemToSend
-		OutputType = $ScriptObject.OutputType
-	}
-
-	try
-	{
-		if ( $null -ne $InputData )
-		{
-			if ( "None" -eq $ScriptObject.SearchedItemRequest )
-			{
-				$ScriptOutput = . $ScriptObject.Name $InputData
-			}
-			else
-			{
-				if ( $ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass )
-				{
-					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem $InputData
-				}
-				else
-				{
-					$ScriptOutput = . $ScriptObject.Name $null $InputData
-				}
-			}
-		}
-		else
-		{
-			if ( "None" -eq $ScriptObject.SearchedItemRequest )
-			{
-				$ScriptOutput = . $ScriptObject.Name
-			}
-			else
-			{
-				if ( $ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass )
-				{
-					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem
-				}
-				else
-				{
-					$ScriptOutput = . $ScriptObject.Name $null
-				}
-			}
-		}
-		$Info.Data = $ScriptOutput
-
-		if ( $null -eq $Info.Data )
-		{
-			$Info.OutputType = "String"
-		}
-		elseif ( $Info.Data -is [pscustomobject] )
-		{
-			if ( "ObjectList" -eq $Info.OutputType )
-			{
-				$temp = [System.Collections.ArrayList]::new()
-				$temp.Add( $Info.Data ) | Out-Null
-				$Info.Data = $temp
-			}
-			else
-			{
-				$Info.Data | Get-Member -MemberType NoteProperty | `
-					ForEach-Object `
-						-Begin { $l = [System.Collections.ArrayList]::new() } `
-						-Process { $l.Add( ( [pscustomobject]@{ $syncHash.Data.msgTable.StrOutputPropName = $_.Name ; $syncHash.Data.msgTable.StrOutputPropValue = $Info.Data."$( $_.Name )" } ) ) | Out-Null } `
-						-End { $Info.Data = $l }
-				$Info.OutputType = "ObjectList"
-			}
-		}
-
-		if ( $Info.Data -is [string] )
-		{
-			$Info.OutputType = "String"
-		}
-		elseif ( "String", "List", "ObjectList" -match $ScriptObject.OutputType )
-		{
-			$Info.OutputType = $ScriptObject.OutputType
-		}
-		else
-		{
-			$Info.OutputType = "String"
-		}
-	}
-	catch {}
-
-	$Error | `
-		ForEach-Object {
-			$Info.Error.Add( $_ ) | Out-Null
-		}
-	$Info.Finished = Get-Date
-
-	# Log activity
-	if ( $null -ne $ItemToSend )
-	{
-		$LogText = "Function: $( $ScriptObject.Name )`r`n$( $syncHash.Data.msgTable.LogStrSearchItemTitle ): $( $ItemToSend.Name )"
-	}
-	else
-	{
-		$LogText = "Function: $( $ScriptObject.Name )"
-	}
-
-	if ( $Info.Error )
-	{
-		$eh = WriteErrorlog -LogText $LogText -UserInput $null -Severity -1
-	}
-	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $InputData | ConvertTo-Json -Compress ) -ErrorLogHash $eh | Out-Null
-
-	$syncHash.Window.Dispatcher.Invoke( [action] {
-		$syncHash.DC.GridProgress[0] = [System.Windows.Visibility]::Collapsed
-		$syncHash.GridFunctionOp.DataContext = $null
-
-		# Send result to GUI
-		if ( "None" -ne $ScriptObject.OutputType )
-		{
-			$syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $Info )
-		}
-	} )
-}
-
 Set-Localizations
+
+Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximum ( $syncHash.Data.msgTable.Keys.Where( { $_ -match "Joke" } ).Count ) )"
 
 # Load imported functions to menuitems
 Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\*.psm1" | `
 	ForEach-Object {
 		$ModuleName = $_.BaseName
-		Import-Module $_.FullName -Force -ArgumentList $culture
-
-		Get-Command -Module $ModuleName | `
+		( Import-Module $_.FullName -Force -ArgumentList $culture -PassThru ).ExportedCommands.GetEnumerator() | `
 			ForEach-Object {
-				$CodeDefinition = $_.Definition
-				$Name = $_.Name
-
 				$MiObject = [pscustomobject]@{
-					Name = $_.Name
+					Name = $_.Key
 				}
-				if ( $null -ne ( $MiObject = GetScriptInfo -Text $CodeDefinition -InfoObject $MiObject -NoErrorRecord ) )
+				if ( $null -ne ( $MiObject = GetScriptInfo -Text $_.Value.Definition -InfoObject $MiObject -NoErrorRecord ) )
 				{
 					if ( $ModuleName -notmatch "O365.*Functions" )
 					{
@@ -2599,55 +2550,52 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\*.psm1" | `
 				}
 				else
 				{
-					WriteErrorlog -LogText "Error creating ScriptInfo" -UserInput "$ModuleName > $( $Name )" -Severity ScriptLogicFail
+					WriteErrorlog -LogText "Error creating ScriptInfo" -UserInput "$ModuleName > $( $_.Key )" -Severity ScriptLogicFail
 				}
 			}
 	}
 
 # Load tools to menuitems
-Get-ChildItem -Directory -Path "$( $syncHash.Data.BaseDir )\Script" | `
-	Where-Object { "PagedTools", "SeparateTools" -match $_.Name } | `
+Get-ChildItem "$( $syncHash.Data.BaseDir )\Script\PagedTools", "$( $syncHash.Data.BaseDir )\Script\SeparateTools" | `
 	ForEach-Object {
-		Get-ChildItem $_.FullName | `
-			ForEach-Object {
-				$MiObject = $File = $null
-				$File = $_
-				$MiObject = GetScriptInfo -FilePath $File.FullName -NoErrorRecord
+		$MiObject = $File = $null
+		$File = $_
+		$MiObject = GetScriptInfo -FilePath $File.FullName -NoErrorRecord
 
-				if (
-					-not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or`
-					$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or`
-					$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0
-				)
+		if (
+			-not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or`
+			$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or`
+			$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0
+		)
+		{
+			Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "BaseDir" -Value $File.Directory.FullName
+			Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "PageObject" -Value $null
+			Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Process" -Value $null
+			Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Ps" -Value $File.FullName
+			Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Separate" -Value ( "PagedTools" -ne $_.Directory.Name )
+
+			if ( "PagedTools" -eq $_.Directory.Name )
+			{
+				Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Xaml" -Value ( Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Gui\$( $File.BaseName ).xaml" ).FullName
+				try
 				{
-					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "BaseDir" -Value $File.Directory.FullName
-					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "PageObject" -Value $null
-					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Process" -Value $null
-					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Ps" -Value $File.FullName
-					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Separate" -Value ( "PagedTools" -ne $_.Directory.Name )
-
-					if ( "PagedTools" -eq $_.Directory.Name )
-					{
-						Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Xaml" -Value ( Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Gui\$( $File.BaseName ).xaml" ).FullName
-						try
-						{
-							$LocFile = Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Localization\$( $syncHash.Data.Culture.Name )\$( $_.BaseName ).psd1" -ErrorAction Stop
-						}
-						catch
-						{
-							# No culture found, default to Swedish
-							$LocFile = Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Localization\sv-SE\$( $_.BaseName ).psd1"
-						}
-						Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Localization" -Value $LocFile
-					}
-
-					if ( $null -ne $MiObject )
-					{
-						Add-MenuItem $MiObject
-					}
+					$LocFile = Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Localization\$( $syncHash.Data.Culture.Name )\$( $_.BaseName ).psd1" -ErrorAction Stop
 				}
+				catch
+				{
+					# No culture found, default to Swedish
+					$LocFile = Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Localization\sv-SE\$( $_.BaseName ).psd1"
+				}
+				Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "Localization" -Value $LocFile
 			}
+
+			if ( $null -ne $MiObject )
+			{
+				Add-MenuItem $MiObject
+			}
+		}
 	}
+
 
 Update-SplashText -Text $msgTable.StrSplashAddControlHandlers
 
