@@ -12,4 +12,7 @@ StrSurveyMsgOperatorTitle = Operator:
 StrSurveyMsgScriptTitle = Script name:
 StrSurveyMsgStart = A message has been left about your script in Test phase
 StrSurveySubject = Notification when answering a survey
+StrValidDateNotePrefixBetween = Valid between
+StrValidDateNotePrefixFrom = Valid from
+StrValidDateNotePrefixUntil = Valid until
 '@
