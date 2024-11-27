@@ -12,4 +12,7 @@ StrSurveyMsgOperatorTitle = Handläggare:
 StrSurveyMsgScriptTitle = Skriptnamn:
 StrSurveyMsgStart = Ett meddelande har lämnats om ditt skript i Test-fas
 StrSurveySubject = Meddelande vid svar på undersökning
+StrValidDateNotePrefixBetween = Giltig mellan
+StrValidDateNotePrefixFrom = Giltig från
+StrValidDateNotePrefixUntil = Giltig fram till
 '@

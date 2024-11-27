@@ -219,9 +219,14 @@ function Get-LogFilePath
 
 	param ( $TopFolder, $SubFolder, $FileName )
 
-	$path = "{0}\{1}\{2}\{3}" -f $RootDir, $TopFolder, "$( if ( $SubFolder ) { $SubFolder } else { "$( [datetime]::Now.Year )\$( [datetime]::Now.Month )" } )", $FileName
-	if ( -not ( Test-Path $path ) ) { New-Item -Path $path -ItemType File -Force | Out-Null }
-	return $path
+	$Path = "{0}\{1}\{2}\{3}" -f $RootDir, $TopFolder, "$( if ( $SubFolder ) { $SubFolder } else { "$( [datetime]::Now.Year )\$( [datetime]::Now.Month )" } )", $FileName
+
+	if ( -not ( Test-Path $Path ) )
+	{
+		New-Item -Path $Path -ItemType File -Force | Out-Null
+	}
+
+	return $Path
 }
 
 ##############################
@@ -265,6 +270,10 @@ function GetScriptInfo
 		Code text, such as function
 	.Parameter Function
 		A functioninfo object
+	.Parameter InfoObject
+		Object returned, containing scriptinfo
+	.Parameter NoErrorRecord
+		Indicate if error should be thrown for malformed textblock
 	.Outputs
 		A PsCustomObject with the code information
 	.State
@@ -433,6 +442,57 @@ function GetScriptInfo
 						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "InputData" -Value $ListInputData -Force
 					}
 				}
+
+				if ( $InfoObject.psobject.Members.Name -Match "(?:In)*valid(?:ate)*(?:(?:Start)|(?:End))*DateTime" )
+				{
+					$Date = Get-Date
+					$DateTimeFormats = [System.Globalization.CultureInfo]::CurrentCulture.DateTimeFormat
+					Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name ValidDateApproved -Value $true
+
+					if ( ( $InfoObject.ValidStartDateTime -and $InfoObject.InvalidateDateTime ) -and `
+						( $InfoObject.ValidStartDateTime -le $InfoObject.InvalidateDateTime )
+					)
+					{
+						if ( ( $Date -ge $InfoObject.ValidStartDateTime -or $Date.Date -ge $InfoObject.ValidStartDateTime ) -and `
+							( $Date -le $InfoObject.InvalidateDateTime -or $Date.Date -le $InfoObject.InvalidateDateTime )
+						)
+						{
+							$ValidDateNote = "$( $IntmsgTable.StrValidDateNotePrefixBetween ) $( Get-Date $InfoObject.ValidStartDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" ) - $( Get-Date $InfoObject.InvalidateDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" )"
+						}
+						else
+						{
+							$InfoObject.ValidDateApproved = $false
+						}
+					}
+					elseif ( $InfoObject.ValidStartDateTime )
+					{
+						if ( $Date -lt $InfoObject.ValidStartDateTime )
+						{
+							$InfoObject.ValidDateApproved = $false
+						}
+						else
+						{
+							$ValidDateNote = "$( $IntmsgTable.StrValidDateNotePrefixFrom ) $( Get-Date $InfoObject.ValidStartDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" )"
+						}
+					}
+					elseif ( $InfoObject.InvalidateDateTime )
+					{
+						if ( $Date -gt $InfoObject.InvalidateDateTime )
+						{
+							$InfoObject.ValidDateApproved = $false
+						}
+						else
+						{
+							$ValidDateNote = "$( $IntmsgTable.StrValidDateNotePrefixUntil ) $( Get-Date $InfoObject.InvalidateDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" )"
+						}
+					}
+
+					if ( $InfoObject.ValidDateApproved )
+					{
+						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "ValidDateNote" -Value $ValidDateNote
+					}
+				}
+
 
 			if ( [string]::IsNullOrEmpty( $InfoObject.MenuItem ) )
 			{
