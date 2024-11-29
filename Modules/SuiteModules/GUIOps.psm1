@@ -641,6 +641,7 @@ using System.DirectoryServices;
 using System.DirectoryServices.AccountManagement;
 using System.Drawing;
 using System.Globalization;
+using System.Net.Mail;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
@@ -731,6 +732,76 @@ namespace FetchalonConverters
 
 			var res = ( adsSearcher.FindOne() ).GetDirectoryEntry();
 			return res != null;
+		}
+
+		public object ConvertBack ( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	public class ADVerifyIdOrMail : IValueConverter
+	{
+		/// <summary>Verify that id or mail exists</summary>
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			if ( value == null || string.IsNullOrEmpty( (string) value ) )
+			{
+				return "";
+			}
+			else
+			{
+				DirectoryEntry de = new DirectoryEntry( "LDAP://CodeConverterADContainer" );
+				System.DirectoryServices.DirectoryEntry res;
+
+				if ( ( (string) value ).Length == 4 )
+				{
+					try
+					{
+						DirectorySearcher adsSearcher = new DirectorySearcher( de )
+						{
+							Filter = "(SamAccountName=" + (string)value + ")"
+						};
+						res = ( adsSearcher.FindOne() ).GetDirectoryEntry();
+
+						if ( res == null )
+						{
+							return "IdError";
+						}
+					}
+					catch ( System.Exception )
+					{
+						return "IdError";
+					}
+				}
+				else
+				{
+					try
+					{
+						MailAddress m = new MailAddress( (string) value );
+
+						DirectorySearcher adsSearcher = new DirectorySearcher( de )
+						{
+							Filter = "(mail=" + (string)value + ")"
+						};
+						res = ( adsSearcher.FindOne() ).GetDirectoryEntry();
+
+						if ( res == null )
+						{
+							return "MailError";
+						}
+					}
+					catch ( System.FormatException )
+					{
+						return "MailError";
+					}
+					catch ( System.NullReferenceException )
+					{
+						return "MailError";
+					}
+				}
+				return res.Properties["mail"];
+			}
 		}
 
 		public object ConvertBack ( object value, Type targetType, object parameter, CultureInfo culture )
