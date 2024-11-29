@@ -23,6 +23,7 @@ function Reset
 		Reset controls
 	#>
 
+	$syncHash.Controls.TbOrganizer.Text = ""
 	$syncHash.Controls.TbSubject.Text = ""
 	$syncHash.Controls.TbMessage.Text = ""
 	$syncHash.Controls.DpDate.SelectedDate = $null
@@ -89,7 +90,7 @@ $controls = [System.Collections.ArrayList]::new()
 BindControls $syncHash $controls
 Set-Localizations
 
-#
+# Show a rendered preview of the text in a separate window
 $syncHash.Controls.BtnPreview.Add_Click( {
 	$syncHash.Controls.PreviewBrowser.NavigateToString( ( $syncHash.Controls.TbMessage.Text -replace "`n", "<br>" ) )
 	$syncHash.Controls.Window.Resources.WindowPreview.Visibility = [System.Windows.Visibility]::Visible
@@ -97,15 +98,23 @@ $syncHash.Controls.BtnPreview.Add_Click( {
 
 # Send booking to bot calendar
 $syncHash.Controls.BtnSendBooking.Add_Click( {
+
 	$DateTime = "$( $syncHash.Controls.DpDate.SelectedDate.ToShortDateString() )"
 	$DateTime += " $( $syncHash.Controls.CbHourPicker.SelectedValue ):"
 	$DateTime += "$( $syncHash.Controls.CbMinutePicker.SelectedValue ):00"
-	
+
+	if ( $syncHash.Controls.POrganizerVerifier.Tag -notin "0", "MailError", "IdError" )
+	{
+		$Organizer = $syncHash.Controls.POrganizerVerifier.Tag
+	}
+
 	$Info = "{""DateTime"":""$( $DateTime )"",
 	""Subject"":""$( $syncHash.Controls.TbSubject.Text )"",
 	""Body"":""$( $syncHash.Controls.TbMessage.Text -replace "`n", "<br>" )"",
 	""Team"":""$( $syncHash.Controls.CbTeam.SelectedValue.Name )"",
-	""Channel"":""$( $syncHash.Controls.CbChannel.SelectedValue )""}"
+	""Channel"":""$( $syncHash.Controls.CbChannel.SelectedValue )"",
+	""Organizer"":""$( $Organizer )""}"
+
 	try
 	{
 		$syncHash.Data.Resp = Invoke-RestMethod -Uri "<Power Automate flow http request address>" `
@@ -198,7 +207,7 @@ $syncHash.Controls.TbMessage.Add_SelectionChanged( {
 	$syncHash.Controls.SpStyling.IsEnabled = $this.SelectionLength -gt 0
 } )
 
-#
+# Page is loaded, do some preparations
 $syncHash.Controls.Window.Add_Loaded( {
 	$syncHash.Controls.SpStyling.IsEnabled = $false
 } )

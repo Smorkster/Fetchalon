@@ -1,11 +1,14 @@
 <Page Name="Window"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:c="clr-namespace:FetchalonConverters;assembly=FetchalonConverterAssembly"
       xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
-      xmlns:system="clr-namespace:System;assembly=mscorlib">
+      xmlns:system="clr-namespace:System;assembly=mscorlib"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Page.Resources>
         <system:Double x:Key="Height">30</system:Double>
         <Thickness x:Key="StdMargin">5</Thickness>
+
+        <c:ADVerifyIdOrMail x:Key="ADVerifyIdOrMail" />
 
         <CollectionViewSource x:Key="CvsChannels"
                               Source="{Binding ElementName=CbTeam, Path=SelectedItem.Channels}">
@@ -70,6 +73,8 @@
                     Value="M21 13H14.4L19.1 17.7L17.7 19.1L13 14.4V21H11V14.3L6.3 19L4.9 17.6L9.4 13H3V11H9.6L4.9 6.3L6.3 4.9L11 9.6V3H13V9.4L17.6 4.8L19 6.3L14.3 11H21V13Z" />
             <Setter Property="Grid.Column"
                     Value="1" />
+            <Setter Property="VerticalAlignment"
+                    Value="Center" />
         </Style>
         <Style TargetType="TextBlock"
                x:Key="TblBaseStyle">
@@ -116,6 +121,7 @@
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="1*" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -123,10 +129,50 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="1*" />
         </Grid.RowDefinitions>
+        <TextBlock Name="TblOrganizerTitle"
+                   Style="{StaticResource TblBaseStyle}"
+                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblOrganizerTitle}" />
+        <Path Name="POrganizerVerifier">
+            <Path.Style>
+                <Style TargetType="Path"
+                       BasedOn="{StaticResource PathBaseStyle}">
+                    <Setter Property="Fill"
+                            Value="LightGreen" />
+                    <Setter Property="Tag"
+                            Value="{Binding ElementName=TbOrganizer, Path=Text, Converter={StaticResource ADVerifyIdOrMail}}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Tag}"
+                                     Value="MailError">
+                            <Setter Property="Fill"
+                                    Value="Red" />
+                            <Setter Property="ToolTip"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ErrNoMail}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Tag}"
+                                     Value="IdError">
+                            <Setter Property="Fill"
+                                    Value="Red" />
+                            <Setter Property="ToolTip"
+                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ErrNoId}" />
+                        </DataTrigger>
+                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Tag}"
+                                     Value="0">
+                            <Setter Property="Fill"
+                                    Value="Red" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Path.Style>
+        </Path>
+        <TextBox Name="TbOrganizer"
+                 Grid.Column="2"
+                 Style="{StaticResource TbBaseStyle}" />
         <TextBlock Name="TblSubjectTitle"
+                   Grid.Row="1"
                    Style="{StaticResource TblBaseStyle}"
                    Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblSubjectTitle}" />
-        <Path Name="PSubjectVerifier">
+        <Path Name="PSubjectVerifier"
+              Grid.Row="1">
             <Path.Style>
                 <Style TargetType="Path"
                        BasedOn="{StaticResource PathBaseStyle}">
@@ -144,14 +190,15 @@
         </Path>
         <TextBox Name="TbSubject"
                  Grid.Column="2"
+                 Grid.Row="1"
                  Style="{StaticResource TbBaseStyle}" />
         <TextBlock Name="TblMessageTitle"
-                   Grid.Row="1"
+                   Grid.Row="2"
                    Style="{StaticResource TblBaseStyle}"
                    Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblMessageTitle}"
                    VerticalAlignment="Top" />
         <Path Name="PMessageVerifier"
-              Grid.Row="1">
+              Grid.Row="2">
             <Path.Style>
                 <Style TargetType="Path"
                        BasedOn="{StaticResource PathBaseStyle}">
@@ -168,7 +215,7 @@
             </Path.Style>
         </Path>
         <Grid Grid.Column="2"
-              Grid.Row="1">
+              Grid.Row="2">
             <Grid.RowDefinitions>
                 <RowDefinition />
                 <RowDefinition Height="Auto" />
@@ -226,11 +273,22 @@
                               ItemsSource="{Binding Source={StaticResource CvsStyleTextSize}}"
                               Style="{StaticResource CbBaseStyle}" />
                 </StackPanel>
-                <Path Data="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
-                      Grid.Column="2"
+                <Grid Grid.Column="2">
+                    <Ellipse Fill="White"
+                             Height="{Binding ElementName=PInfo, Path=ActualHeight}"
+                             Width="{Binding ElementName=PInfo, Path=ActualWidth}">
+                        <Ellipse.RenderTransform>
+                            <TransformGroup>
+                                <TranslateTransform X="1"
+                                                    Y="1" />
+                            </TransformGroup>
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+                    <Path Name="PInfo" Data="M11,9H13V7H11M12,20C7.59,20 4,16.41 4,12C4,7.59 7.59,4 12,4C16.41,4 20,7.59 20,12C20,16.41 16.41,20 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,17H13V11H11V17Z"
                       Fill="Blue"
                       ToolTip="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentInfoTt}"
                       VerticalAlignment="Center" />
+                </Grid>
                 <Button Name="BtnPreview"
                         Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPreview}"
                         Grid.Column="3"
@@ -253,11 +311,11 @@
             </Grid>
         </Grid>
         <TextBlock Name="TblTeamTitle"
-                   Grid.Row="2"
+                   Grid.Row="3"
                    Style="{StaticResource TblBaseStyle}"
                    Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblTeamTitle}" />
         <Path Name="PTeamVerifier"
-              Grid.Row="2">
+              Grid.Row="3">
             <Path.Style>
                 <Style TargetType="Path"
                        BasedOn="{StaticResource PathBaseStyle}">
@@ -276,15 +334,15 @@
         <ComboBox Name="CbTeam"
                   DisplayMemberPath="Name"
                   Grid.Column="2"
-                  Grid.Row="2"
+                  Grid.Row="3"
                   ItemsSource="{Binding Source={StaticResource CvsTeams}}"
                   Style="{StaticResource CbBaseStyle}" />
         <TextBlock Name="TblChannelTitle"
-                   Grid.Row="3"
+                   Grid.Row="4"
                    Style="{StaticResource TblBaseStyle}"
                    Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblChannelTitle}" />
         <Path Name="PChannelVerifier"
-              Grid.Row="3">
+              Grid.Row="4">
             <Path.Style>
                 <Style TargetType="Path"
                        BasedOn="{StaticResource PathBaseStyle}">
@@ -302,16 +360,16 @@
         </Path>
         <ComboBox Name="CbChannel"
                   Grid.Column="2"
-                  Grid.Row="3"
+                  Grid.Row="4"
                   ItemsSource="{Binding Source={StaticResource CvsChannels}}"
                   Style="{StaticResource CbBaseStyle}" />
         <TextBlock Name="TblDateTimeTitle"
-                   Grid.Row="4"
+                   Grid.Row="5"
                    Style="{StaticResource TblBaseStyle}"
                    Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblDateTimeTitle}"
                    VerticalAlignment="Top" />
         <Path Name="PDateTimeVerifier"
-              Grid.Row="4">
+              Grid.Row="5">
             <Path.Style>
                 <Style TargetType="Path"
                        BasedOn="{StaticResource PathBaseStyle}">
@@ -335,7 +393,7 @@
             </Path.Style>
         </Path>
         <Grid Grid.Column="2"
-              Grid.Row="4">
+              Grid.Row="5">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition />
@@ -430,7 +488,7 @@
         <Button Name="BtnSendBooking"
                 Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSendBooking}"
                 Grid.Column="2"
-                Grid.Row="5"
+                Grid.Row="6"
                 Height="50">
             <Button.Style>
                 <Style TargetType="Button"
@@ -440,6 +498,8 @@
                     <Style.Triggers>
                         <MultiDataTrigger>
                             <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding ElementName=POrganizerVerifier, Path=Fill}"
+                                           Value="LightGreen" />
                                 <Condition Binding="{Binding ElementName=PSubjectVerifier, Path=Fill}"
                                            Value="LightGreen" />
                                 <Condition Binding="{Binding ElementName=PMessageVerifier, Path=Fill}"
@@ -460,7 +520,7 @@
         </Button>
         <GroupBox Name="GbHttpResponse"
                   Grid.ColumnSpan="3"
-                  Grid.Row="6"
+                  Grid.Row="7"
                   Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbHttpResponse}"
                   Margin="{StaticResource StdMargin}">
             <ItemsControl Name="IcLog"
