@@ -180,6 +180,81 @@ function Search-Virus
 
 }
 
+function Unlock-NetworkShareFile
+{
+	<#
+	.Synopsis
+		Disconnect locked network file
+	.Description
+		Unlock the path of a stuck network file.
+	.MenuItem
+		Unlock network file
+	.SearchedItemRequest
+		None
+	.NoRunspace
+	.InputData
+		Path, True, Full path to the file
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $InputData )
+
+	if ( [System.IO.Directory]::Exists( $InputData.Path ) )
+	{
+		throw $IntMsgTable.UnlockNetworkShareFileErrIsDir
+	}
+	elseif ( [System.IO.File]::Exists( $InputData.Path ) )
+	{
+		$ShareNames = @{ "fs_org1_app$" = "C:\vol_vfile_vol1\fs_org1_app"; "fs_org1_gem$" = "C:\vol_vfile_vol1\fs_org1_gem"; "fs_org1_grp$" = "C:\vol_vfile_vol1\fs_org1_grp"; "fs_org1_usr$" = "C:\vol_vfile_vol1\fs_org1_usr"; "fs_org2_usr$" = "C:\vol_vfile_vol1\fs_org2_usr"; "fs_org2_app$" = "C:\vol_vfile_vo2\fs_org2_app"; "fs_org2_gem$" = "C:\vol_vfile_vol2\fs_org2_gem" }
+
+		if ( ( [System.Uri]$InputData.Path ).IsUnc )
+		{
+			$ns = $InputData.Path
+		}
+		else
+		{
+			$OrgMatch = @{ "True" = "02" ; "False" = "01" }
+			$FolderType = @{ "G" = "grp$" ; "R" = "app$" ; "S" = "gem$" }
+			$SharePathMatch = @{ "True" = "vfile_.domain.com" ; "False" = "vfile2_domain.com" }
+
+			$ns = "\\domfs$( $InputData.Path.Split( "\" )[1].ToLower() )" + `
+				$OrgMatch."$( $InputData.Path -match "G:\\(Org1)|(Org2).*" )" + `
+				".domain.com\fs_$( $InputData.Path.Split( "\" )[1].ToLower() )_" + `
+				$FolderType."$( $InputData.Path[0] )" + `
+				"\$( $InputData.Path.Split( "\", 3 )[2] )"
+		}
+
+		try
+		{
+			Get-Item $ns -ErrorAction Stop | Out-Null
+			$Val = $ShareNames.GetEnumerator() | Where-Object { $ns -like "*$( $_.Name -replace "\$" )*" }
+			$SharePath = "$( $Val.Value )$( ( $ns -split ( $Val.Name -replace "\$", "\$" ) )[1] )"
+			$Ret = openfiles.exe /s $SharePathMatch."$( $SharePath -match "vfile_domain" )" /disconnect /a * /op "$( $SharePath )"
+			if ( $Ret -match "^SUCCESS" )
+			{
+				return $IntMsgTable.UnlockNetworkShareFileSuccess
+			}
+			else
+			{
+				return "$( $IntMsgTable.UnlockNetworkShareFileFailed )`n$( $Ret )"
+			}
+		}
+		catch
+		{
+			throw "$( $IntMsgTable.UnlockNetworkShareFileErrFormingPath )\n$_"
+		}
+	}
+	else
+	{
+		throw "$( $IntMsgTable.UnlockNetworkShareFileErrFileNotFound )`n$( $InputData.Path )"
+	}
+}
+
 $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
