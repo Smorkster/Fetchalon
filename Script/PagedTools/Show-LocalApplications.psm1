@@ -740,23 +740,31 @@ $syncHash.Controls.DgAppListSysMan.Add_SelectionChanged( {
 
 # Verify that input is a valid and existing computername
 $syncHash.Controls.TbComputerName.Add_TextChanged( {
-	Reset
-
-	if ( $this.Text -match "\w{5}\d{7,}" )
+	if ( $this.Text.Length -eq 0 )
+	{
+		Reset
+	}
+	elseif ( $this.Text -match "\w{5}\d{7,}" )
 	{
 		try
 		{
 			$syncHash.Data.Computer = Get-ADComputer $this.Text -Properties MemberOf -ErrorAction Stop
-			$syncHash.Data.ComputerSysMan = Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/Client?name=$( $this.Text )" -Method Get -UseDefaultCredentials -ContentType 'application/json'
+			$syncHash.DC.PComputerNotFoundInAdAlert[0] = [System.Windows.Visibility]::Hidden
 		}
 		catch
 		{
-			$syncHash.DC.PComputerNotFoundAlert[0] = [System.Windows.Visibility]::Visible
+			$syncHash.DC.PComputerNotFoundInAdAlert[0] = [System.Windows.Visibility]::Visible
 		}
-	}
-	else
-	{
-		$syncHash.Controls.BtnGetAppList.IsEnabled = $false
+
+		try
+		{
+			$syncHash.Data.ComputerSysMan = Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/Client?name=$( $this.Text )" -Method Get -UseDefaultCredentials -ContentType 'application/json'
+			$syncHash.DC.PComputerNotFoundInSysManAlert[0] = [System.Windows.Visibility]::Hidden
+		}
+		catch
+		{
+			$syncHash.DC.PComputerNotFoundInSysManAlert[0] = [System.Windows.Visibility]::Visible
+		}
 	}
 } )
 
