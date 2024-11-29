@@ -25,65 +25,58 @@ function Clear-FileDownloads
 	.SearchedItemRequest
 		None
 	.NoRunspace
+	.OutputType
+		String
 	.Author
 		Smorkster (smorkster)
 	#>
 
 	Import-Module ActiveDirectory -Force
-	$Files = Get-ChildItem $IntMsgTable.StrClearFileDownloadsCodeDirPath -File -Recurse -Force
-	$Removed = [System.Collections.ArrayList]::new()
 	$ReturnText = [System.Text.StringBuilder]::new()
 
-	$filesToRemove = $Files | `
-		Where-Object { $_.CreationTime -lt ( Get-Date ).AddDays( -7 ) }
-	if ( 0 -lt $filesToRemove.Count )
-	{
-		$filesToRemove | `
-			ForEach-Object `
-				-Begin {
-					$FaultyRemovals = [System.Collections.ArrayList]::new()
-				} `
-				-Process {
-					$File = $_ | Select-Object *
-					try
-					{
-						Remove-Item $File.FullName -Force -ErrorAction Stop
-						$Removed.Add( $File ) | Out-Null
-					}
-					catch
-					{
-						$FaultyRemovals.Add( $File ) | Out-Null
-					}
-				} `
-				-End {
+	Get-ChildItem $IntMsgTable.StrClearFileDownloadsCodeDirPath -File -Recurse -Force | `
+		Where-Object { $_.CreationTime -lt ( Get-Date ).AddDays( -7 ) } | `
+		ForEach-Object `
+			-Begin {
+				$FaultyRemovals = [System.Collections.ArrayList]::new()
+				$FileCount = 0
+				$FileSizeSum = 0
+			} `
+			-Process {
+				try
+				{
+					$TempSize = $_.Length
+					$_.FullName
+					Remove-Item -LiteralPath $_.FullName -Force -ErrorAction Stop -Verbose
+					$FileCount += 1
+					$FileSizeSum += $TempSize
+				}
+				catch
+				{
+					$FaultyRemovals.Add( $_ ) | Out-Null
+				}
+			} `
+			-End {
+				if ( 0 -eq $FileCount )
+				{
+					$ReturnText.AppendLine( $IntMsgTable.StrClearFileDownloadsNoFiles ) | Out-Null
+				}
+				else
+				{
+					$ReturnText.AppendLine( "$( $FileCount ) $( $IntMsgTable.StrClearFileDownloadsOld )" ) | Out-Null
+					$ReturnText.AppendLine( "$( $IntMsgTable.StrClearFileDownloadsRemovedSize ) $( [System.Math]::Round( $FileSizeSum / 1MB , 2 ) )" ) | Out-Null
+
 					if ( $FaultyRemovals.Count -gt 0 )
 					{
-						WriteErrorlog -LogText $IntMsgTable.StrClearFileDownloadsFilePermissions -UserInput "$( $FaultyRemovals.FullName | ForEach-Object { "$( $_ -split "\\" | Select-Object -Last 2 )" } )" -Severity 3 | Out-Null
+						$ReturnText.AppendLine() | Out-Null
+						$ReturnText.AppendLine( "$( $FaultyRemovals.Count ):" ) | Out-Null
+						$FaultyRemovals | `
+							ForEach-Object {
+								$ReturnText.AppendLine( $_.FullName ) | Out-Null
+							}
 					}
 				}
-
-		$percentage = [Math]::Round( ( $filesToRemove.Count / $Files.Count ) * 100, 2 )
-		$ReturnText.AppendLine( "$( $filesToRemove.Count ) $( $IntMsgTable.StrClearFileDownloadsOld ) ($percentage %)" ) | Out-Null
-		$ReturnText.AppendLine() | Out-Null
-		if ( $FaultyRemovals.Count -gt 0 )
-		{
-			$ReturnText.AppendLine( $IntMsgTable.StrClearFileDownloadsFaultyFiles ) | Out-Null
-			$OFS = "`n"
-			$ReturnText.AppendLine( ( $FaultyRemovals | ForEach-Object { "$( $_.Directory.Name )\$( $_.Name )" } ) ) | Out-Null
-			$ReturnText.AppendLine() | Out-Null
-		}
-
-		if ( $Removed.Count -gt 0 )
-		{
-			$ReturnText.Append( "$( $IntMsgTable.StrClearFileDownloadsRemovedSize ): " ) | Out-Null
-			$ReturnText.Append( ( $Removed | ForEach-Object -Begin { $l = 0 } -Process { $l += $_.Length } -End { [System.Math]::Round( $l / 1MB , 2 ) } ) ) | Out-Null
-			$ReturnText.AppendLine( " MB" ) | Out-Null
-		}
-	}
-	else
-	{
-		$ReturnText.AppendLine( $IntMsgTable.StrClearFileDownloadsNoFiles ) | Out-Null
-	}
+			}
 
 	try
 	{
@@ -346,12 +339,12 @@ function Write-String
 		String
 	.Description
 		Write string as input. Used to show how output is displayed
+	.InputDataList
+		Strings| True| | | 1,2,3,4
 	.InputData
 		String, True, String to write
 	.InputData
 		String2, True, String to write
-	.InputDataList
-		Strings | True | | | 1,2,3,4
 	.State
 		Dev
 	.Author
