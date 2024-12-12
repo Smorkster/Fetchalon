@@ -18,7 +18,77 @@
 Add-Type -AssemblyName PresentationFramework
 $syncHash = $args[0]
 
-function CheckForUpdates
+function Confirm-NewCommandInput
+{
+	<#
+	.Synopsis
+		Verify entered input
+	#>
+
+	$SettingsOk = ( $syncHash.Controls.GetEnumerator() | `
+		Where-Object { $_.Name -match "^Tbl.*Error" -and $_.Value.Text.Length -gt 0 } ).Count -eq 0
+	$InputOk = ( $syncHash.Controls.TiNewTemplate.Resources.CvsInputData.Source.Where( { $_.Valid -eq $false } ).Count `
+			+ $syncHash.Controls.TiNewTemplate.Resources.CvsInputDataList.Source.Where( { $_.Valid -eq $false } ).Count `
+			+ $syncHash.Controls.TiNewTemplate.Resources.CvsInputDataBool.Source.Where( { $_.Valid -eq $false } ).Count ) -eq 0
+	$syncHash.Controls.TiNewTemplate.Resources.InputOk = $SettingsOk -and $InputOk
+}
+
+function Confirm-NewCommandName
+{
+	<#
+	.Synopsis
+		Verify name for new command template
+	#>
+
+	if ( "$( $syncHash.Controls.CbPsVerbs.SelectedValue )-$( $syncHash.Controls.TbName.Text )" -in $syncHash.Data.ExistingCommandNames )
+	{
+		$syncHash.Controls.TblNameError.Text = $syncHash.Data.msgTable.ErrNewCommandNameExists
+	}
+	elseif ( $syncHash.Controls.TbName.Text -match "[\s\W]" )
+	{
+		$syncHash.Controls.TblNameError.Text = $syncHash.Data.msgTable.ErrNewCommandIllegalCharacters
+	}
+	elseif ( $syncHash.Controls.CbPsVerbs.SelectedIndex -eq -1 -or $syncHash.Controls.TbName.Text.Length -eq 0 )
+	{
+		$syncHash.Controls.TblNameError.Text = $syncHash.Data.msgTable.ErrNewCommandNoNameInput
+	}
+	else
+	{
+		$syncHash.Data.NewCodeTemplateInfo.Name = "$( $syncHash.Controls.CbPsVerbs.SelectedValue )-$( ( Get-Culture ).TextInfo.ToTitleCase( $syncHash.Controls.TbName.Text ) )"
+		$syncHash.Controls.TblNameError.Text = ""
+	}
+}
+
+function Get-NewCodeTemplateInput
+{
+	$syncHash.Controls.TiNewTemplate.Resources.CvsInputData.Source | `
+		ForEach-Object {
+			$syncHash.Data.CodeInfo += "`t.InputData`n`t`t$( $_.Name ), $( if ( $_.Mandatory ) { "True" } else { "False" } ), $( $_.Description )`n"
+		}
+
+	$syncHash.Controls.TiNewTemplate.Resources.CvsInputDataList.Source | `
+		ForEach-Object {
+			$syncHash.Data.CodeInfo += "`t.InputDataList`n`t`t$( $_.Name ) | $( if ( $_.Mandatory ) { "True" } else { "False" } ) | $( $_.Description ) | $( $_.DefaultValue ) | $( $_.OptionsList )`n"
+		}
+
+	$syncHash.Controls.TiNewTemplate.Resources.CvsInputDataBool.Source | `
+		ForEach-Object {
+			$syncHash.Data.CodeInfo += "`t.InputDataBool`n`t`t$( $_.Name ), $( $_.Description )`n"
+		}
+}
+
+function Get-NewTemplateTypeSelected
+{
+	<#
+	.Synopsis
+		Verify selected new code template type
+	#>
+
+	$syncHash.Controls.GridMainSettings.IsEnabled = $syncHash.Controls.GridFuncSpecificSettings.IsEnabled = $syncHash.Controls.GridToolSpecificSettings.IsEnabled = $syncHash.Controls.BtnAddSettingTitle.IsEnabled = $syncHash.Controls.RbCodeTypeFunction.IsChecked -or $syncHash.Controls.RbCodeTypeTool.IsChecked
+	$syncHash.Controls.TiNewTemplate.Resources.CvsSettingsCollection.View.Refresh()
+}
+
+function Get-Updates
 {
 	<#
 	.Synopsis
@@ -33,54 +103,40 @@ function CheckForUpdates
 	$syncHash.Jobs.HParseUpdates = $syncHash.Jobs.PParseUpdates.BeginInvoke()
 }
 
-function OpenFile
+function Initialize-NewTemplateControls
 {
 	<#
 	.Synopsis
-		Open the specified file/-s
-	.Parameter FilePaths
-		Array containing any file that is to be opened
+		Reset form
 	#>
 
-	param ( [string[]] $FilePaths )
+	"RbCodeTypeFunction", "RbCodeTypeTool", "RbFuncNoteTypeInfo", "RbFuncNoteTypeWarning" | `
+		ForEach-Object {
+			$syncHash.Controls."$( $_ )".IsChecked = $true
+		}
 
-	$FilePaths | ForEach-Object { if ( Test-Path $_ ) { Start-Process $syncHash.Data.Editor "`"$_`"" } }
+	"CbPsVerbs", "CbState", "CbFuncObjectClass", "CbToolObjectOperations", "CbExistingSubMenus", "CbFuncOutputType", "CbFuncSearchedItemRequest" | `
+		ForEach-Object {
+			$syncHash.Controls."$( $_ )".SelectedIndex = 1
+		}
+
+	"TbName", "TbAuthor", "TbSynopsis", "TbDescription", "TbMenuItem", "TbAllowedUsers", "TbRequiredAdGroups", "TbValidStartDateTime", "TbInvalidateDateTime" | `
+		ForEach-Object {
+			$syncHash.Controls."$( $_ )".Text = " "
+		}
+
+	"ChbNoRunspace", "ChbToolSeparate" | `
+		ForEach-Object {
+			$syncHash.Controls."$( $_ )".IsChecked = $true
+		}
+
+	"CvsInputData", "CvsInputDataList", "CvsInputDataBool" | `
+		ForEach-Object {
+			$syncHash.Controls.TiNewTemplate.Resources."$( $_ )".Source.Add( 1 )
+		}
 }
 
-function ParseErrorlogs
-{
-	<#
-	.Synopsis
-		Parse errorlogs
-	#>
-
-	try { $syncHash.Jobs.PParseErrorLogs.EndInvoke( $syncHash.Jobs.HParseErrorLogs ) } catch {}
-	$syncHash.Jobs.HParseErrorLogs = $syncHash.Jobs.PParseErrorLogs.BeginInvoke()
-}
-
-function ParseLogs
-{
-	<#
-	.Synopsis
-		Parse logfiles
-	#>
-
-	try { $syncHash.Jobs.PParseLogs.EndInvoke( $syncHash.Jobs.HParseLogs ) } catch {}
-	$syncHash.Jobs.HParseLogs = $syncHash.Jobs.PParseLogs.BeginInvoke()
-}
-
-function ParseRollbacks
-{
-	<#
-	.Synopsis
-		Parse rollbacked files
-	#>
-
-	try { $syncHash.Jobs.PParseRollbacks.EndInvoke( $syncHash.Jobs.HParseRollBacks ) } catch {}
-	$syncHash.Jobs.HParseRollBacks = $syncHash.Jobs.PParseRollbacks.BeginInvoke()
-}
-
-function PrepParsing
+function Initialize-Parsing
 {
 	<#
 	.Synopsis
@@ -392,7 +448,254 @@ function PrepParsing
 	$syncHash.Jobs.PParseUpdates.AddArgument( ( Get-Module ) )
 }
 
-function SetLocalizations
+function New-CodeInfo
+{
+	if ( $syncHash.Controls.RbCodeTypeFunction.IsChecked )
+	{
+		$Indent = "`t"
+	}
+	else
+	{
+		$Indent = ""
+	}
+
+	$syncHash.Data.NewCodeTemplateInfo.GetEnumerator() | `
+		ForEach-Object `
+		-Begin { $syncHash.Data.CodeInfo = "$( $Indent )<#`n" } `
+		-Process {
+			if ( $_.Name -notin "Name", "Separate" )
+			{
+				$syncHash.Data.CodeInfo += "$( $Indent ).$( $_.Name )`n`t$( $Indent )$( $_.Value )`n"
+			}
+		} `
+		-End {
+			Get-NewCodeTemplateInput
+			$syncHash.Data.CodeInfo += "$( $Indent )#>"
+		}
+
+}
+
+function New-CodeTemplateFunc
+{
+	$ObjectClass = $syncHash.Data.NewCodeTemplateInfo.ObjectClass
+	$ModulePath = ( Get-Module "$( $ObjectClass )Functions" ).Path
+	$ModuleContent = [System.Collections.ArrayList]::new()
+	( Get-Content -LiteralPath $ModulePath ) -split "`r`n" | `
+		ForEach-Object {
+			$ModuleContent.Add( $_ ) | Out-Null
+		}
+
+	$NewFunctionName = $syncHash.Data.NewCodeTemplateInfo.Name
+
+	$ExistingNames = ( Get-Module "$( $ObjectClass )Functions" ).ExportedCommands.Keys | Sort-Object
+	$NewNameIndex = ( $ExistingNames + $NewFunctionName | Sort-Object ).IndexOf( $NewFunctionName )
+	$NextFunc = ( $ExistingNames + $NewFunctionName | Sort-Object )[$NewNameIndex+1]
+	if ( $null -eq $NextFunc )
+	{
+		$InsertIndex = $ModuleContent.IndexOf( "function $( $ExistingNames[-1] )" ) + ( ( Get-Command $ExistingNames[-1] ).Definition -split "`n" ).Count + 2
+	}
+	else
+	{
+		$InsertIndex = $ModuleContent.IndexOf( "function $( $NextFunc )" )
+	}
+
+	New-CodeInfo
+
+	$FunctionText = "function $( $NewFunctionName )`n{`n$( $syncHash.Data.CodeInfo )"
+	if ( $syncHash.Data.CodeInfo -match "(InputData)|(SearchedItemRequest)" )
+	{
+		if ( $syncHash.Data.CodeInfo -match "InputData" -and $syncHash.Data.CodeInfo -match "SearchedItemRequest" -and $syncHash.Data.CodeInfo.SearchedItemRequest -match "(Allowed)|(Required)" )
+		{
+			$FunctionText += "`n`n`tparam ( $( '$' )Item, $( '$' )InputData )`n"
+		}
+		elseif ( $syncHash.Data.CodeInfo -match "InputData" )
+		{
+			$FunctionText += "`n`n`tparam ( $( '$' )InputData )`n"
+		}
+		elseif ( $syncHash.Data.CodeInfo -match "SearchedItemRequest" -and $syncHash.Data.CodeInfo.SearchedItemRequest -match "(Allowed)|(Required)" )
+		{
+			$FunctionText += "`n`n`tparam ( $( '$' )Item )`n"
+		}
+		else
+		{
+		}
+	}
+	$FunctionText +="`n`n}"
+	$ModuleContent.Insert( $InsertIndex, "$( $FunctionText )`n" )
+	try
+	{
+		Set-Content -Path $ModulePath -Value ( $ModuleContent -join "`r`n" ) -Encoding UTF8 -ErrorAction Stop
+
+		if ( ( Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrFunctionCreated )`n$( $ModulePath )" -Button "YesNo" ) -eq "Yes" )
+		{
+			Open-File ( ,$ModulePath )
+		}
+	}
+	catch
+	{
+		
+	}
+}
+
+function New-CodeTemplateTool
+{
+	New-CodeInfo
+	if ( $syncHash.Data.NewCodeTemplateInfo.Separate )
+	{
+		try
+		{
+			$File = New-Item -Path "$( $syncHash.Data.BaseDir )\Script\SeparateTools" -Name "$( $syncHash.Data.NewCodeTemplateInfo.Name ).ps1" -ItemType File -Value $syncHash.Data.CodeInfo -ErrorAction Stop
+			if ( ( Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrSeparateToolCreated )`n$( $File.FullName )" -Button "YesNo" ) -eq "Yes" )
+			{
+				Open-File ( ,$File )
+			}
+		}
+		catch
+		{
+			Show-MessageBox $_ | Out-Null
+		}
+	}
+	else
+	{
+		$syncHash.Data.CodeInfo += @"
+
+Add-Type -AssemblyName PresentationFramework
+$syncHash = $args[0]
+
+
+######################### Script start
+$controls = [System.Collections.ArrayList]::new( @(
+) )
+
+"@
+		try
+		{
+			$PsmFile = New-Item -Path "$( $syncHash.Data.BaseDir )\Script\PagedTools" -Name "$( $syncHash.Data.NewCodeTemplateInfo.Name ).psm1" -ItemType File -Value $syncHash.Data.CodeInfo -ErrorAction Stop
+			$LocFile = New-Item -Path "$( $syncHash.Data.BaseDir )\Localization\$( $syncHash.Data.CultureInfo.CurrentCulture.Name )\" -Name "$( $syncHash.Data.NewCodeTemplateInfo.Name ).psd1" -ItemType File -Value "ConvertFrom-StringData @'`n`n'@" -ErrorAction Stop
+			$GuiFile = New-Item -Path "$( $syncHash.Data.BaseDir )\Gui\" -Name "$( $syncHash.Data.NewCodeTemplateInfo.Name ).xaml" -ItemType File -Value "" -ErrorAction Stop
+			$syncHash.Data.p = $PsmFile
+			$syncHash.Data.L = $LocFile
+			$syncHash.data.g = $GuiFile
+			if ( ( Show-MessageBox -Text "$( $syncHash.Data.msgTable.StrSeparateToolCreated )`n$( $File.FullName )" -Button "YesNo" ) -eq "Yes" )
+			{
+				Open-File @( $PsmFile, $LocFile, $GuiFile )
+			}
+		}
+		catch
+		{
+			Show-MessageBox $_ | Out-Null
+		}
+	}
+}
+
+function Open-File
+{
+	<#
+	.Synopsis
+		Open the specified file/-s
+	.Parameter FilePaths
+		Array containing any file that is to be opened
+	#>
+
+	param ( [string[]] $FilePaths )
+
+	$FilePaths | ForEach-Object { if ( Test-Path $_ ) { Start-Process $syncHash.Data.Editor "`"$_`"" } }
+}
+
+function Read-Errorlogs
+{
+	<#
+	.Synopsis
+		Parse errorlogs
+	#>
+
+	try { $syncHash.Jobs.PParseErrorLogs.EndInvoke( $syncHash.Jobs.HParseErrorLogs ) } catch {}
+	$syncHash.Jobs.HParseErrorLogs = $syncHash.Jobs.PParseErrorLogs.BeginInvoke()
+}
+
+function Read-Logs
+{
+	<#
+	.Synopsis
+		Parse logfiles
+	#>
+
+	try { $syncHash.Jobs.PParseLogs.EndInvoke( $syncHash.Jobs.HParseLogs ) } catch {}
+	$syncHash.Jobs.HParseLogs = $syncHash.Jobs.PParseLogs.BeginInvoke()
+}
+
+function Read-Rollbacks
+{
+	<#
+	.Synopsis
+		Parse rollbacked files
+	#>
+
+	try { $syncHash.Jobs.PParseRollbacks.EndInvoke( $syncHash.Jobs.HParseRollBacks ) } catch {}
+	$syncHash.Jobs.HParseRollBacks = $syncHash.Jobs.PParseRollbacks.BeginInvoke()
+}
+
+function Remove-DatagridSelection
+{
+	<#
+	.Synopsis
+		If a click in a datagrid did not occur on a row, unselect selected row
+	.Parameter Click
+		UI-Object where the click occured
+	.Parameter DataGrid
+		What datagrid did the click occur in
+	#>
+
+	param ( $Click, $Datagrid )
+
+	if ( $Click.Name -ne "" ) { if ( $Datagrid.SelectedItems.Count -lt 1 ) { $Datagrid.SelectedIndex = -1 } }
+}
+
+function Reset-NewTemplateControls
+{
+	<#
+	.Synopsis
+		Reset form
+	#>
+
+	$syncHash.Controls.TiNewTemplate.Resources.CvsSettingsCollection.Source | `
+		ForEach-Object {
+			$syncHash.Controls."Grid$( $_.Setting )Setting".Visibility = [System.Windows.Visibility]::Collapsed
+			$_.Added = $false
+		}
+	$syncHash.Controls.TiNewTemplate.Resources.CvsSettingsCollection.View.Refresh()
+
+	"RbCodeTypeFunction", "RbCodeTypeTool", "RbFuncNoteTypeInfo", "RbFuncNoteTypeWarning" | `
+		ForEach-Object {
+			$syncHash.Controls."$( $_ )".IsChecked = $false
+		}
+
+	"CbPsVerbs", "CbState", "CbFuncObjectClass", "CbToolObjectOperations", "CbExistingSubMenus", "CbFuncOutputType", "CbFuncSearchedItemRequest" | `
+		ForEach-Object {
+			$syncHash.Controls."$( $_ )".SelectedIndex = -1
+		}
+
+	"TbName", "TbAuthor", "TbSynopsis", "TbDescription", "TbMenuItem", "TbAllowedUsers", "TbRequiredAdGroups", "TbValidStartDateTime", "TbInvalidateDateTime" | `
+		ForEach-Object {
+			$syncHash.Controls."$( $_ )".Text = ""
+		}
+
+	"ChbNoRunspace", "ChbToolSeparate" | `
+		ForEach-Object {
+			$syncHash.Controls."$( $_ )".IsChecked = $false
+		}
+
+	"CvsInputData", "CvsInputDataList", "CvsInputDataBool" | `
+		ForEach-Object {
+			$syncHash.Controls.TiNewTemplate.Resources."$( $_ )".Source.Clear()
+		}
+
+	$syncHash.Data.NewCodeTemplateInfo.Clear()
+	Confirm-NewCommandInput
+
+}
+
+function Set-Localizations
 {
 	<#
 	.Synopsis
@@ -407,6 +710,7 @@ function SetLocalizations
 	$syncHash.Controls.Window.Resources['CvsDgUpdates'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Controls.Window.Resources['CvsLvRollbackFileNames'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Controls.Window.Resources['CvsCbLogsScriptNames'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Controls.TiKbSummary.Resources['CvsKdSummary'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
 	[System.Windows.Data.BindingOperations]::EnableCollectionSynchronization( $syncHash.Controls.Window.Resources['CvsCbLogsScriptNames'].View, $syncHash.Controls.CbLogsScriptNames )
 	[System.Windows.Data.BindingOperations]::EnableCollectionSynchronization( $syncHash.Controls.Window.Resources['CvsDgUpdates'].View, $syncHash.Controls.DgUpdates )
@@ -484,9 +788,78 @@ function SetLocalizations
 	$syncHash.Controls.Window.Resources['FailedTestCount'] = "$( $syncHash.Data.msgTable.StrFailedTestCount ): " # Text for number of failed tests
 	$syncHash.Controls.Window.Resources['NewFileTitle'] = $syncHash.Data.msgTable.StrNewFileTitle # Text for indicating the file is new and not present in production
 	$syncHash.Controls.Window.Resources['LogSearchNoType'] = $syncHash.Data.msgTable.StrLogSearchNoType # Text for indicating the file is new and not present in production
+
+	# region Controls for new function/tool
+	$syncHash.Controls.IcInputData.Resources.StrIcInputDataNameTitle = $syncHash.Data.msgTable.StrIcInputDataNameTitle
+	$syncHash.Controls.IcInputData.Resources.StrIcInputDataMandatoryTitle = $syncHash.Data.msgTable.StrIcInputDataMandatoryTitle
+	$syncHash.Controls.IcInputData.Resources.StrIcInputDataDescriptionTitle = $syncHash.Data.msgTable.StrIcInputDataDescriptionTitle
+
+	"CvsInputData", "CvsInputDataList", "CvsInputDataBool", "CvsFuncOutputType", "CvsFuncSearchedItemRequest", "CvsState", "CvsToolObjectOperations", "CvsFuncObjectClass", "CvsPsVerbs", "CvsSubMenus", "CvsSettingsCollection" | `
+		ForEach-Object {
+			$syncHash.Controls.TiNewTemplate.Resources."$( $_ )".Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+
+			if ( $_ -match "^CvsInput")
+			{
+				$syncHash.Controls.TiNewTemplate.Resources."$( $_ )".Source.Add_CollectionChanged( {
+					Confirm-NewCommandInput
+				} )
+			}
+		}
+
+	"String", "ObjectList", "List", "None" | `
+		ForEach-Object {
+			$syncHash.Controls.TiNewTemplate.Resources.CvsFuncOutputType.Source.Add( $_ )
+		}
+	"Allowed", "None", "Required" | `
+		ForEach-Object {
+			$syncHash.Controls.TiNewTemplate.Resources.CvsFuncSearchedItemRequest.Source.Add( $_ )
+		}
+	"Dev", "Test", "Prod" | `
+		ForEach-Object {
+			$syncHash.Controls.TiNewTemplate.Resources.CvsState.Source.Add( $_ )
+		}
+	( Get-Verb ).Verb | `
+		ForEach-Object {
+			$syncHash.Controls.TiNewTemplate.Resources.CvsPsVerbs.Source.Add( $_ )
+		}
+	@( "Func" , "AllowedUsers" ), @( "Func" , "RequiredAdGroups" ), @( "Func" , "SubMenu" ), @( "Func" , "ValidStartDateTime" ), @( "Func" , "InvalidateDateTime" ), @( "Func" , "NoRunspace" ), @( "Func" , "Note" ), @( "Func" , "SearchedItemRequest" ), @( "Func" , "InputData" ), @( "Func" , "InputDataList" ), @( "Func" , "InputDataBool" ), @( "All" , "Author" ), @( "Tool" , "Separate" ) | `
+		ForEach-Object {
+			$syncHash.Controls.TiNewTemplate.Resources.CvsSettingsCollection.Source.Add( ( [pscustomobject]@{ Type = $_[0] ; Setting = $_[1] ; Added = $false ; Tt = $syncHash.Data.msgTable."ContentTtGrid$( $_[1] )Info" } ) )
+		}
+
+	$syncHash.Data.msgTable.CvsToolObjectOperationsList -split ";" | `
+		Where-Object { $_ } | `
+		ForEach-Object {
+			$l,$oo = $_ -split ","
+			$syncHash.Controls.TiNewTemplate.Resources.CvsToolObjectOperations.Source.Add( ( [pscustomobject]@{ LocalizedName = $l ; ObjectOperation = $oo } ) )
+		}
+
+	$syncHash.Data.msgTable.CvsFuncObjectClassList -split ";" | `
+		Where-Object { $_ } | `
+		ForEach-Object {
+			$l,$oo = $_ -split ","
+			$syncHash.Controls.TiNewTemplate.Resources.CvsFuncObjectClass.Source.Add( ( [pscustomobject]@{ LocalizedName = $l ; ObjectOperation = $oo } ) )
+		}
+
+	$syncHash.Controls.TiNewTemplate.Resources.GetEnumerator() | `
+		Where-Object { $_.Name -match "^Cvs" } | `
+		ForEach-Object { $_.Value.View.Refresh() }
+
+	$syncHash.Controls.TiNewTemplate.Resources.BtnRemoveInputDataVar.Setters[0].Handler = $syncHash.Code.RemoveInputDataVar
+	$syncHash.Controls.TiNewTemplate.Resources.BtnRemoveInputDataListVar.Setters[0].Handler = $syncHash.Code.RemoveInputDataListVar
+	$syncHash.Controls.TiNewTemplate.Resources.BtnRemoveInputDataBoolVar.Setters[0].Handler = $syncHash.Code.RemoveInputDataBoolVar
+	$syncHash.Controls.TiNewTemplate.Resources.TbInputDataNameBase.Setters[0].Handler = $syncHash.Code.ValidateInputDataName
+	$syncHash.Controls.TiNewTemplate.Resources.TbInputDataNameBase.Setters[1].Handler = $syncHash.Code.InputTextBoxLoaded
+	$syncHash.Controls.TiNewTemplate.Resources.TbInputDataBaseDesc.Setters[0].Handler = $syncHash.Code.VerifyDescriptionEntered
+	$syncHash.Controls.TiNewTemplate.Resources.TbDefaultListValue.Setters[0].Handler = $syncHash.Code.VerifyDefaultListValueExists
+	$syncHash.Controls.TiNewTemplate.Resources.TbOptionsList.Setters[0].Handler = $syncHash.Code.VerifyOptionListDefaultValueExists
+	( $syncHash.Controls.CmAddSetting.Resources.GetEnumerator() | Select-Object -First 1 ).Value.Setters[0].Handler = $syncHash.Code.CmSettingClick
+
+	# endregion
+
 }
 
-function ShowDiffWindow
+function Show-DiffWindow
 {
 	<#
 	.Synopsis
@@ -512,7 +885,7 @@ function ShowDiffWindow
 	#WriteLog -Text $syncHash.Data.msgTable.LogOpenDiffWindow -UserInput ( [string]( $LvItem.DevPath, $LvItem.ProdPath ) ) -Success $true
 }
 
-function TestLocalizations
+function Test-Localizations
 {
 	<#
 	.Synopsis
@@ -645,7 +1018,7 @@ function TestLocalizations
 	return $OrphandLocs, $InvalidLocs
 }
 
-function TestScript
+function Test-Script
 {
 	<#
 	.Synopsis
@@ -700,7 +1073,7 @@ function TestScript
 	# Test if there are any localizationvariables that are not used or are being used but does not exist
 	if ( $null -ne ( Get-ChildItem -Path $syncHash.Data.BaseDir -Filter "$( $File.DevFile.BaseName )*.psd1" -Recurse ) )
 	{
-		$Test.OrphandLocalizations, $Test.InvalidLocalizations = TestLocalizations $File
+		$Test.OrphandLocalizations, $Test.InvalidLocalizations = Test-Localizations $File
 	}
 
 	# Test if script contains necessary script information
@@ -715,16 +1088,19 @@ function TestScript
 	# Test if file contains any TODO notes
 	if ( $Script.Name -ne ( Get-Item $PSCommandPath ).Name )
 	{
-		$Script | Select-String -Pattern "#\s*\bTODO\b" | ForEach-Object { $Test.TODOs.Add( $_ ) | Out-Null }
+		$Script | Select-String -Pattern "\s*#\s*\bTODO\b" | ForEach-Object { $Test.TODOs.Add( [pscustomobject]@{ Line = $_.Line.Trim() ; LineNumber = $_.LineNumber } ) | Out-Null }
 	}
 
-	if ( $Test.ObsoleteFunctions.Count -ne 0 ) { $Test.FailedTestCount++ }
-	if ( -not $Test.WritesToLog ) { $Test.FailedTestCount++ }
-	if ( $Test.OrphandLocalizations.Count -ne 0 ) { $Test.FailedTestCount++ }
-	if ( $Test.InvalidLocalizations.Count -ne 0 ) { $Test.FailedTestCount++ }
-	if ( $null -eq $File.ScriptInfo ) { $Test.FailedTestCount++ }
-	if ( $Test.MissingScriptInfo.Count -gt 0 ) { $Test.FailedTestCount++ }
-	if ( $Test.TODOs.Count -ne 0 ) { $Test.FailedTestCount++ }
+	$Test.FailedTestCount = $Test.ObsoleteFunctions.Count + $Test.OrphandLocalizations.Count + $Test.InvalidLocalizations.Count + $Test.MissingScriptInfo.Count + $Test.TODOs.Count
+	if ( -not $Test.WritesToLog )
+	{
+		$Test.FailedTestCount = $Test.FailedTestCount + 1
+	}
+
+	if ( $null -eq $File.ScriptInfo )
+	{
+		$Test.FailedTestCount = $Test.FailedTestCount + 1
+	}
 
 	# Check if mandatory info passed tests
 	if ( ( $Test.ObsoleteFunctions.Count -ne 0 ) -or `
@@ -739,7 +1115,7 @@ function TestScript
 	return $Test
 }
 
-function UncheckOtherRollbackFilters
+function Unregister-OtherRollbackFilters
 {
 	param (
 		[string] $Checked
@@ -748,23 +1124,7 @@ function UncheckOtherRollbackFilters
 	$syncHash.GetEnumerator() | Where-Object { $_.Key -match "CbRollbackFilterType" -and $_.Key -notmatch ".*$Checked" } | ForEach-Object { $_.Value.IsChecked = $false }
 }
 
-function UnselectDatagrid
-{
-	<#
-	.Synopsis
-		If a click in a datagrid did not occur on a row, unselect selected row
-	.Parameter Click
-		UI-Object where the click occured
-	.Parameter DataGrid
-		What datagrid did the click occur in
-	#>
-
-	param ( $Click, $Datagrid )
-
-	if ( $Click.Name -ne "" ) { if ( $Datagrid.SelectedItems.Count -lt 1 ) { $Datagrid.SelectedIndex = -1 } }
-}
-
-function UpdateFiles
+function Update-Files
 {
 	<#
 	.Synopsis
@@ -780,14 +1140,20 @@ function UpdateFiles
 		{
 			if ( $file.DevFile.Extension -match "^\.(psm*d*1)|(xaml)$" )
 			{
-				$FileTest = TestScript $file
+				$FileTest = Test-Script $file
 				if ( $FileTest.FailedTestCount -eq 0 )
-				{ $FilesToUpdate += $file }
+				{
+					$FilesToUpdate += $file
+				}
 				else
-				{ $syncHash.Controls.Window.Resources['CvsDgFailedUpdates'].Source.Add( $FileTest ) }
+				{
+					$syncHash.Controls.Window.Resources['CvsDgFailedUpdates'].Source.Add( $FileTest )
+				}
 			}
 			else
-			{ $FilesToUpdate += $file }
+			{
+				$FilesToUpdate += $file
+			}
 		}
 	}
 	# Tab for failed updates have focus
@@ -925,14 +1291,159 @@ else
 
 $syncHash.Data.SuiteBaseName = "Fetchalon"
 
-[System.Windows.RoutedEventHandler] $syncHash.Code.OpenFailedUpdatedFile =
+# region Scriptblocks
+[System.Predicate[object]] $syncHash.Code.SuBmenuFilter =
 {
-	$syncHash.Data.Test = $args
-	OpenFile $args[0].DataContext.File.DevFile.FullName
+	$func = $syncHash.Controls.RbCodeTypeFunction.IsChecked -and $args[0].Object -eq $syncHash.Controls.CbFuncObjectClass.SelectedItem.ObjectOperation
+	$tool = $syncHash.Controls.RbCodeTypeTool.IsChecked -and $args[0].Object -eq $syncHash.Controls.CbToolObjectOperations.SelectedItem.ObjectOperation
+	$searchmatch = $syncHash.Controls.CbExistingSubMenus.Text -match $syncHash.Controls.CbExistingSubMenus.ItemsSource.SubList
+	( $func -or $tool ) -and ( $searchmatch -or $syncHash.Controls.CbExistingSubMenus.Text.Length -eq 0 )
 }
 
-PrepParsing
-SetLocalizations
+[System.Predicate[object]] $syncHash.Code.AddSettingFilter =
+{
+	( ( "Func" -eq $args[0].Type -and $syncHash.Controls.RbCodeTypeFunction.IsChecked ) -or `
+		( "Tool" -eq $args[0].Type -and $syncHash.Controls.RbCodeTypeTool.IsChecked ) -or `
+		( "All" -eq $args[0].Type ) ) -and `
+		( -not $args[0].Added )
+}
+
+[System.Windows.RoutedEventHandler] $syncHash.Code.CmSettingClick =
+{
+	#$syncHash.Test = $args[0].DataContext
+	$args[0].DataContext.Added = $true
+	$syncHash.Controls."Grid$( $args[0].DataContext.Setting )Setting".Visibility = [System.Windows.Visibility]::Visible
+	$syncHash.Controls."Grid$( $args[0].DataContext.Setting )Setting".BringIntoView()
+	$syncHash.Controls.TiNewTemplate.Resources.CvsSettingsCollection.View.Refresh()
+}
+
+[System.Windows.RoutedEventHandler] $syncHash.Code.OpenFailedUpdatedFile =
+{
+	Open-File $args[0].DataContext.File.DevFile.FullName
+}
+
+[System.Windows.RoutedEventHandler] $syncHash.Code.RemoveInputDataVar =
+{
+	param ( $SenderObject, $e )
+
+	$syncHash.Controls.TiNewTemplate.Resources.CvsInputData.Source.Remove( ( $SenderObject.DataContext ) )
+}
+
+[System.Windows.RoutedEventHandler] $syncHash.Code.RemoveInputDataListVar =
+{
+	param ( $SenderObject, $e )
+
+	$syncHash.Controls.TiNewTemplate.Resources.CvsInputDataList.Source.Remove( ( $SenderObject.DataContext ) )
+}
+
+[System.Windows.RoutedEventHandler] $syncHash.Code.RemoveInputDataBoolVar =
+{
+	param ( $SenderObject, $e )
+
+	$syncHash.Controls.TiNewTemplate.Resources.CvsInputDataBool.Source.Remove( ( $SenderObject.DataContext ) )
+}
+
+[System.Windows.Controls.TextChangedEventHandler] $syncHash.Code.ValidateInputDataName =
+{
+	param ( $SenderObject, $e )
+
+	if ( $SenderObject.Text -match "\W|\s" )
+	{
+		$SenderObject.DataContext.NameError = $syncHash.Data.msgTable.ErrNewCodeTemplateInputNameInvalidCharacter
+	}
+	elseif ( $SenderObject.Text.Length -gt 0 )
+	{
+		if ( ( $syncHash.Controls.TiNewTemplate.Resources.CvsInputData.Source.Where( { $_.Name -eq $SenderObject.Text } ) + `
+			$syncHash.Controls.TiNewTemplate.Resources.CvsInputDataList.Source.Where( { $_.Name -eq $SenderObject.Text } ) + `
+			$syncHash.Controls.TiNewTemplate.Resources.CvsInputDataBool.Source.Where( { $_.Name -eq $SenderObject.Text } ) ).Count -gt 1 )
+		{
+			$SenderObject.DataContext.NameError = $syncHash.Data.msgTable.ErrNewCodeTemplateInputNameExists
+		}
+		else
+		{
+			$SenderObject.DataContext.NameError = ""
+		}
+	}
+	elseif ( $SenderObject.Text -eq "" )
+	{
+		$SenderObject.DataContext.NameError = $syncHash.Data.msgTable.ErrNewCommandNoNameInput
+	}
+	else
+	{
+		$SenderObject.DataContext.NameError = ""
+	}
+
+	$SenderObject.DataContext.Valid = ( $SenderObject.DataContext.psobject.Properties.Where( { $_.Name -match "Error$" } ).Value -ne "" ).Count -eq 0
+	$SenderObject.Parent.Children[1].GetBindingExpression( [System.Windows.Controls.TextBlock]::TextProperty ).UpdateTarget()
+	$SenderObject.Parent.Parent.BringIntoView()
+	Confirm-NewCommandInput
+}
+
+[System.Windows.Controls.TextChangedEventHandler] $syncHash.Code.VerifyDefaultListValueExists =
+{
+	param ( $SenderObject, $e )
+
+	if ( $SenderObject.DataContext.Optionslist -notmatch "\b$( $SenderObject.Text )\b" )
+	{
+		$SenderObject.DataContext.DefaultValueError = $syncHash.Data.msgTable.ErrNewCodeTemplateDefaultValNotInOptionsList
+	}
+	else
+	{
+		$SenderObject.DataContext.DefaultValueError = ""
+	}
+	$SenderObject.DataContext.Valid = ( $SenderObject.DataContext.psobject.Properties.Where( { $_.Name -match "Error$" } ).Value -ne "" ).Count -eq 0
+	$SenderObject.Parent.Children[1].GetBindingExpression( [System.Windows.Controls.TextBlock]::TextProperty ).UpdateTarget()
+	$SenderObject.Parent.Parent.BringIntoView()
+	Confirm-NewCommandInput
+}
+
+[System.Windows.Controls.TextChangedEventHandler] $syncHash.Code.VerifyOptionListDefaultValueExists =
+{
+	param ( $SenderObject, $e )
+
+	if ( $SenderObject.DataContext.Optionslist -notmatch "\b$( $SenderObject.Parent.Children[7].Children[0].Text )\b" )
+	{
+		$SenderObject.DataContext.DefaultValueError = $syncHash.Data.msgTable.ErrNewCodeTemplateDefaultValNotInOptionsList
+	}
+	else
+	{
+		$SenderObject.DataContext.DefaultValueError = ""
+	}
+	$SenderObject.DataContext.Valid = ( $SenderObject.DataContext.psobject.Properties.Where( { $_.Name -match "Error$" } ).Value -ne "" ).Count -eq 0
+	$SenderObject.Parent.Children[1].GetBindingExpression( [System.Windows.Controls.TextBlock]::TextProperty ).UpdateTarget()
+	$SenderObject.Parent.Parent.BringIntoView()
+	Confirm-NewCommandInput
+}
+
+[System.Windows.Controls.TextChangedEventHandler] $syncHash.Code.VerifyDescriptionEntered =
+{
+	param ( $SenderObject, $e )
+
+	if ( $SenderObject.Text -eq "" )
+	{
+		$SenderObject.DataContext.DescriptionError = $syncHash.Data.msgTable.ErrNewCodeTemplateDescriptionNotGiven
+	}
+	else
+	{
+		$SenderObject.DataContext.DescriptionError = ""
+	}
+	$SenderObject.DataContext.Valid = ( $SenderObject.DataContext.psobject.Properties.Where( { $_.Name -match "Error$" } ).Value -ne "" ).Count -eq 0
+	$SenderObject.Parent.Children[1].GetBindingExpression( [System.Windows.Controls.TextBlock]::TextProperty ).UpdateTarget()
+	$SenderObject.Parent.Parent.BringIntoView()
+	Confirm-NewCommandInput
+}
+
+# TextBox for function input is loaded, check if it is the first one, if so, set focus
+[System.Windows.RoutedEventHandler] $syncHash.Code.InputTextBoxLoaded =
+{
+	param ( $SenderObject, $e )
+
+	$SenderObject.Focus()
+}
+# endregion Scriptblocks
+
+Initialize-Parsing
+Set-Localizations
 
 $syncHash.Data.ParsedLogs = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 $syncHash.Data.ParsedErrorLogs = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
@@ -951,87 +1462,8 @@ if ( Test-Path "C:\Program Files (x86)\Notepad++\notepad++.exe" ) { $syncHash.Da
 elseif ( Test-Path "C:\Program Files\Notepad++\notepad++.exe" ) { $syncHash.Data.Editor = "C:\Program Files\Notepad++\notepad++.exe" }
 else { $syncHash.Data.Editor = "notepad" }
 
-# Start a check for any updates
-$syncHash.Controls.BtnCheckForUpdates.Add_Click( { CheckForUpdates } )
 
-# Copy the information for the currently selected error
-$syncHash.Controls.BtnCopyErrorInfo.Add_Click( {
-	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
-	$syncHash.Controls.GridErrorInfo.DataContext | Clip
-} )
-
-# Copy log entry to clipboard
-$syncHash.Controls.BtnCopyLogInfo.Add_Click( {
-	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
-	$OFS = "`n"
-	$a = @"
-$( $syncHash.Data.msgTable.StrLogInfoCopyTitle ) '$( $syncHash.Controls.CbLogsScriptNames.SelectedItem.ScriptName )'
-
-$( $syncHash.Data.msgTable.StrLogInfoCopyDate ): $( $syncHash.Controls.DgLogs.SelectedItem.LogDate )
-$( $syncHash.Data.msgTable.StrLogInfoCopyOperator ): $( $syncHash.Controls.DgLogs.SelectedItem.Operator )
-$( $syncHash.Data.msgTable.StrLogInfoCopySuccess ): $( $syncHash.Controls.DgLogs.SelectedItem.Success )
-$( $syncHash.Data.msgTable.StrLogInfoCopyLogText ): $( $syncHash.Controls.DgLogs.SelectedItem.LogText )
-"@
-
-	if ( $syncHash.Controls.DgLogs.SelectedItem.ComputerName )
-	{
-		$a += "$( $syncHash.Data.msgTable.StrLogInfoCopyComputerName ): $( $syncHash.Controls.DgLogs.SelectedItem.ComputerName ) "
-	}
-
-	if ( $syncHash.Controls.DgLogs.SelectedItem.OutputFile.Count -gt 0 )
-	{
-		if ( $syncHash.Controls.CbCopyLogInfoIncludeOutputFiles.IsChecked )
-		{
-			$a += "$( $syncHash.Data.msgTable.StrLogInfoCopyOutputFile )`n"
-			$syncHash.Controls.DgLogs.SelectedItem.OutputFile | ForEach-Object { $a += "$( $syncHash.Data.msgTable.StrLogInfoCopyOutputFilePath ): $_`n$( Get-Content $_ )" }
-		}
-		else { $a += "$( $syncHash.Data.msgTable.StrLogInfoCopyOutputFile ): $( [string]$syncHash.Controls.DgLogs.SelectedItem.OutputFile ) " }
-	}
-
-	if ( $syncHash.Controls.DgLogs.SelectedItem.ErrorLogFile.Count -gt 0 )
-	{
-		if ( $syncHash.Controls.CbCopyLogInfoIncludeErrorLogs.IsChecked )
-		{
-			$a += "$( $syncHash.Data.msgTable.StrLogInfoCopyError )"
-			$syncHash.Controls.DgLogs.SelectedItem.ErrorLogFile | ForEach-Object { Get-Content $_ | ConvertFrom-Json | Out-String | ForEach-Object { $e += "$_`n" } }
-		}
-		else { $a += "$( $syncHash.Data.msgTable.StrLogInfoCopyErrorFilePath ): $( [string]$syncHash.Controls.DgLogs.SelectedItem.OutputFile ) " }
-	}
-
-	$a | Clip
-	$syncHash.Controls.PopupCopyLogInfo.IsOpen = $false
-} )
-
-# Copy the list of updates for the currently selected script/file
-$syncHash.Controls.BtnCopyRollbackInfo.Add_Click( {
-	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
-$a = @"
-$( $syncHash.Data.msgTable.StrRollbackInfoCopyTitle ) '$( $syncHash.Controls.LvRollbackFileNames.SelectedItem.FileName )'
-
-$( $syncHash.Data.msgTable.StrRollbackInfoCopyFileLogs ):
-$( $OFS = "`r`n"; $syncHash.Controls.LvRollbackFileNames.SelectedItem.FileLogs | ForEach-Object { "$( $_.File.Name )`n$( $syncHash.Data.msgTable.StrRollbackInfoCopyUpdated )`t$( ( Get-Date $_.Updated -Format "yyyy-mm-dd HH:mm:ss" ) )`n$( $syncHash.Data.msgTable.StrRollbackInfoCopyUpdater )`t$( try { ( Get-ADUser -Identity $_.UpdatedBy ).Name } catch { $syncHash.Data.msgTable.StrNoUpdaterSpecified } )`n" } )
-"@
-$a | Clip
-} )
-
-# Reset the controls for Errorlogs
-$syncHash.Controls.BtnClearErrorLogSearch.Add_Click( {
-	$syncHash.Controls.BtnClearErrorLogSearch.Visibility = [System.Windows.Visibility]::Collapsed
-	$syncHash.Controls.CbErrorLogSearchType.SelectedIndex = -1
-	$syncHash.Controls.TbErrorLogSearchText.Text = ""
-	$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Clear()
-	$syncHash.Data.ParsedErrorLogs | ForEach-Object { $syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Add( $_ ) }
-} )
-
-# Reset the controls for logs
-$syncHash.Controls.BtnClearLogSearch.Add_Click( {
-	$syncHash.Controls.BtnClearLogSearch.Visibility = [System.Windows.Visibility]::Collapsed
-	$syncHash.Controls.CbLogSearchType.SelectedIndex = -1
-	$syncHash.Controls.TbLogSearchText.Text = ""
-	$syncHash.Controls.Window.Resources['CvsLogsScriptNames'].Source.Clear()
-	$syncHash.Data.ParsedLogs | ForEach-Object { $syncHash.Controls.Window.Resources['CvsLogsScriptNames'].Source.Add( $_ ) }
-} )
-
+# region Kd summary
 # Creates a summary for all functions and tools, and outputs into HTML-code
 $syncHash.Controls.BtnCreateKdSummary.Add_Click( {
 	function ConvertTo-KbSummaryLine
@@ -1133,9 +1565,19 @@ $syncHash.Controls.BtnCreateKdSummary.Add_Click( {
 	Show-Splash -Text $syncHash.Data.msgTable.StrKbSummaryCopied -NoProgressBar -NoTitle
 } )
 
-# Close the window
-$syncHash.Controls.BtnDiffCancel.Add_Click( {
-	$syncHash.Controls.DiffWindow.Visibility = [System.Windows.Visibility]::Hidden
+# endregion Kd summary
+
+# region Rollbacks
+# Copy the list of updates for the currently selected script/file
+$syncHash.Controls.BtnCopyRollbackInfo.Add_Click( {
+	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
+$a = @"
+$( $syncHash.Data.msgTable.StrRollbackInfoCopyTitle ) '$( $syncHash.Controls.LvRollbackFileNames.SelectedItem.FileName )'
+
+$( $syncHash.Data.msgTable.StrRollbackInfoCopyFileLogs ):
+$( $OFS = "`r`n"; $syncHash.Controls.LvRollbackFileNames.SelectedItem.FileLogs | ForEach-Object { "$( $_.File.Name )`n$( $syncHash.Data.msgTable.StrRollbackInfoCopyUpdated )`t$( ( Get-Date $_.Updated -Format "yyyy-mm-dd HH:mm:ss" ) )`n$( $syncHash.Data.msgTable.StrRollbackInfoCopyUpdater )`t$( try { ( Get-ADUser -Identity $_.UpdatedBy ).Name } catch { $syncHash.Data.msgTable.StrNoUpdaterSpecified } )`n" } )
+"@
+$a | Clip
 } )
 
 # Rollback a file to selected version
@@ -1163,61 +1605,84 @@ $syncHash.Controls.BtnDoRollback.Add_Click( {
 	}
 } )
 
-# Search the errorlogs for entered data
-$syncHash.Controls.BtnErrorLogSearch.Add_Click( {
-	$syncHash.Controls.BtnClearErrorLogSearch.Visibility = [System.Windows.Visibility]::Visible
-	$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Clear()
-	$syncHash.Data.ParsedErrorLogs | Where-Object { $_.ScriptErrorLogs.( $syncHash.Controls.CbErrorLogSearchType.SelectedItem.Content ) -match $syncHash.Controls.TbErrorLogSearchText.Text } | ForEach-Object { $syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Add( $_ ) }
-} )
-
 # List rollbacks
-$syncHash.Controls.BtnListRollbacks.Add_Click( { ParseRollbacks } )
-
-# Search the logs for entered data
-$syncHash.Controls.BtnLogSearch.Add_Click( {
-	$syncHash.Controls.BtnClearLogSearch.Visibility = [System.Windows.Visibility]::Visible
-	$syncHash.Controls.Window.Resources['CvsLogsScriptNames'].Source.Clear()
-	$syncHash.Data.ParsedLogs | Where-Object { $_.ScriptLogs.( $syncHash.Controls.CbLogSearchType.SelectedItem.Content ) -match $syncHash.Controls.TbLogSearchText.Text } | ForEach-Object { $syncHash.Controls.Window.Resources['CvsLogsScriptNames'].Source.Add( $_ ) }
-} )
-
-# If errorlogs have been parsed, open the selected data in the errorlogs-tab
-$syncHash.Controls.BtnOpenErrorLog.Add_Click( {
-	if ( $syncHash.Controls.CbErrorLogsScriptNames.HasItems )
-	{
-		$syncHash.Controls.TbAdmin.SelectedIndex = 2
-		$syncHash.Controls.CbErrorLogsScriptNames.SelectedItem = $syncHash.Controls.CbErrorLogsScriptNames.Items.Where( { $_.ScriptName -eq $syncHash.Controls.CbLogsScriptNames.Text } )[0]
-		Start-Sleep 0.5
-		$syncHash.Controls.DgErrorLogs.SelectedIndex = $syncHash.Controls.DgErrorLogs.Items.IndexOf( ( $syncHash.Controls.DgErrorLogs.Items.Where( { $_.Logdate -eq $syncHash.Controls.CbLogErrorlog.SelectedValue } ) )[0] )
-	}
-	else { Show-MessageBox -Text $syncHash.Data.msgTable.StrErrorlogsNotLoaded }
-} )
-
-# Open the outputfile
-$syncHash.Controls.BtnOpenOutputFile.Add_Click( { OpenFile $syncHash.Controls.CbLogOutputFiles.SelectedItem } )
-
-# Open meny to include other data
-$syncHash.Controls.BtnOpenPopupCopyLogInfo.Add_Click( { $syncHash.Controls.PopupCopyLogInfo.IsOpen = -not $syncHash.Controls.PopupCopyLogInfo.IsOpen } )
+$syncHash.Controls.BtnListRollbacks.Add_Click( { Read-Rollbacks } )
 
 # Open the selected previous version
-$syncHash.Controls.BtnOpenRollbackFile.Add_Click( { OpenFile $syncHash.Controls.DgRollbacks.SelectedItem.File.FullName } )
+$syncHash.Controls.BtnOpenRollbackFile.Add_Click( { Open-File $syncHash.Controls.DgRollbacks.SelectedItem.File.FullName } )
 
-# Parse errorlogs and load the data
-$syncHash.Controls.BtnReadErrorLogs.Add_Click( { ParseErrorlogs } )
+$syncHash.Controls.CbRollbackFilterTypePs1.Add_Checked( { $syncHash.Controls.Window.Resources['RollbackRowPs1Visible'] = [System.Windows.Visibility]::Visible } )
+$syncHash.Controls.CbRollbackFilterTypePs1.Add_Unchecked( { $syncHash.Controls.Window.Resources['RollbackRowPs1Visible'] = [System.Windows.Visibility]::Collapsed } )
+$syncHash.Controls.CbRollbackFilterTypePs1.Add_MouseRightButtonDown( {
+	$this.IsChecked = $true
+	Unregister-OtherRollbackFilters $this.Content
+} )
+$syncHash.Controls.CbRollbackFilterTypePsd1.Add_Checked( { $syncHash.Controls.Window.Resources['RollbackRowPsd1Visible'] = [System.Windows.Visibility]::Visible } )
+$syncHash.Controls.CbRollbackFilterTypePsd1.Add_Unchecked( { $syncHash.Controls.Window.Resources['RollbackRowPsd1Visible'] = [System.Windows.Visibility]::Collapsed } )
+$syncHash.Controls.CbRollbackFilterTypePsd1.Add_MouseRightButtonDown( {
+	$this.IsChecked = $true
+	Unregister-OtherRollbackFilters $this.Content
+} )
+$syncHash.Controls.CbRollbackFilterTypePsm1.Add_Checked( { $syncHash.Controls.Window.Resources['RollbackRowPsm1Visible'] = [System.Windows.Visibility]::Visible } )
+$syncHash.Controls.CbRollbackFilterTypePsm1.Add_Unchecked( { $syncHash.Controls.Window.Resources['RollbackRowPsm1Visible'] = [System.Windows.Visibility]::Collapsed } )
+$syncHash.Controls.CbRollbackFilterTypePsm1.Add_MouseRightButtonDown( {
+	$this.IsChecked = $true
+	Unregister-OtherRollbackFilters $this.Content
+} )
 
-# Parse all logs and load the data
-$syncHash.Controls.BtnReadLogs.Add_Click( { ParseLogs } )
+$syncHash.Controls.CbRollbackFilterTypeTxt.Add_Checked( { $syncHash.Controls.Window.Resources['RollbackRowTxtVisible'] = [System.Windows.Visibility]::Visible } )
+$syncHash.Controls.CbRollbackFilterTypeTxt.Add_Unchecked( { $syncHash.Controls.Window.Resources['RollbackRowTxtVisible'] = [System.Windows.Visibility]::Collapsed } )
+$syncHash.Controls.CbRollbackFilterTypeTxt.Add_MouseRightButtonDown( {
+	$this.IsChecked = $true
+	Unregister-OtherRollbackFilters $this.Content
+} )
 
-$syncHash.Controls.BtnUpdatedInProdOpenDiffs.Add_Click( { ShowDiffWindow } )
-$syncHash.Controls.BtnUpdatedInProdOpenDevFile.Add_Click( { OpenFile $syncHash.Controls.DgUpdatedInProd.SelectedItem.DevPath } )
-$syncHash.Controls.BtnUpdatedInProdOpenProdFile.Add_Click( { OpenFile $syncHash.Controls.DgUpdatedInProd.SelectedItem.ProdPath } )
-$syncHash.Controls.BtnUpdatedInProdOpenBothFiles.Add_Click( { OpenFile ( $syncHash.Controls.DgUpdatedInProd.SelectedItem.psobject.Properties | Where-Object { $_.Name -match "^[^R].+Path$" } | Select-Object -ExpandProperty Value ) } )
-$syncHash.Controls.BtnUpdatesOpenDiff.Add_Click( { ShowDiffWindow } )
-$syncHash.Controls.BtnUpdatesOpenDevFile.Add_Click( { OpenFile $syncHash.Controls.DgUpdates.SelectedItem.DevFile.FullName } )
-$syncHash.Controls.BtnUpdatesOpenProdFile.Add_Click( { OpenFile $syncHash.Controls.DgUpdates.SelectedItem.ProdFile.FullName } )
-$syncHash.Controls.BtnUpdatesOpenBothFiles.Add_Click( { OpenFile ( "Dev", "Prod" | ForEach-Object { $syncHash.Controls.DgUpdates.SelectedItem."$( $_ )File".FullName } ) } )
+$syncHash.Controls.CbRollbackFilterTypeXaml.Add_Checked( { $syncHash.Controls.Window.Resources['RollbackRowXamlVisible'] = [System.Windows.Visibility]::Visible } )
+$syncHash.Controls.CbRollbackFilterTypeXaml.Add_Unchecked( { $syncHash.Controls.Window.Resources['RollbackRowXamlVisible'] = [System.Windows.Visibility]::Collapsed } )
+$syncHash.Controls.CbRollbackFilterTypeXaml.Add_MouseRightButtonDown( {
+	$this.IsChecked = $true
+	Unregister-OtherRollbackFilters $this.Content
+} )
+
+$syncHash.Controls.DgRollbacks.Add_MouseLeftButtonUp( { Remove-DatagridSelection $args[1].OriginalSource $this } )
+
+# Activate button to update files, if any item is selected
+$syncHash.Controls.DgRollbacks.Add_SelectionChanged( {
+	$syncHash.DC.BtnOpenRollbackFile[0] = $syncHash.DC.BtnDoRollback[0] = $this.SelectedItem -ne $null
+} )
+
+# When a script/file is selected, clear listed rollbacks and set filteroptions according to data for the selected file
+$syncHash.Controls.LvRollbackFileNames.Add_SelectionChanged( {
+	# Hide checkboxes for fileextensions not present in list
+	$syncHash.Controls.GetEnumerator() | `
+		Where-Object { $_.Key -match "CbRollbackFilterType" } | `
+		ForEach-Object {
+			$syncHash.Controls."$( $_.Key )".Visibility = [System.Windows.Visibility]::Collapsed
+		}
+	$syncHash.Controls.DgRollbacks.ItemsSource.Type | `
+		Select-Object -Unique | `
+		ForEach-Object {
+			$syncHash.Controls."CbRollbackFilterType$_".Visibility = [System.Windows.Visibility]::Visible
+			$syncHash.Controls."CbRollbackFilterType$_".IsChecked = $true
+		}
+} )
+# endregion Rollbacks
+
+# region Updates
+# Start a check for any updates
+$syncHash.Controls.BtnCheckForUpdates.Add_Click( { Get-Updates } )
+
+$syncHash.Controls.BtnUpdatedInProdOpenDiffs.Add_Click( { Show-DiffWindow } )
+$syncHash.Controls.BtnUpdatedInProdOpenDevFile.Add_Click( { Open-File $syncHash.Controls.DgUpdatedInProd.SelectedItem.DevPath } )
+$syncHash.Controls.BtnUpdatedInProdOpenProdFile.Add_Click( { Open-File $syncHash.Controls.DgUpdatedInProd.SelectedItem.ProdPath } )
+$syncHash.Controls.BtnUpdatedInProdOpenBothFiles.Add_Click( { Open-File ( $syncHash.Controls.DgUpdatedInProd.SelectedItem.psobject.Properties | Where-Object { $_.Name -match "^[^R].+Path$" } | Select-Object -ExpandProperty Value ) } )
+$syncHash.Controls.BtnUpdatesOpenDiff.Add_Click( { Show-DiffWindow } )
+$syncHash.Controls.BtnUpdatesOpenDevFile.Add_Click( { Open-File $syncHash.Controls.DgUpdates.SelectedItem.DevFile.FullName } )
+$syncHash.Controls.BtnUpdatesOpenProdFile.Add_Click( { Open-File $syncHash.Controls.DgUpdates.SelectedItem.ProdFile.FullName } )
+$syncHash.Controls.BtnUpdatesOpenBothFiles.Add_Click( { Open-File ( "Dev", "Prod" | ForEach-Object { $syncHash.Controls.DgUpdates.SelectedItem."$( $_ )File".FullName } ) } )
 
 # Update selected files
-$syncHash.Controls.BtnUpdateScripts.Add_Click( { UpdateFiles } )
+$syncHash.Controls.BtnUpdateScripts.Add_Click( { Update-Files } )
 
 # Update failed updates that have been checked
 $syncHash.Controls.BtnUpdateFailedScripts.Add_Click( {
@@ -1227,62 +1692,13 @@ $syncHash.Controls.BtnUpdateFailedScripts.Add_Click( {
 	}
 	else
 	{
-		UpdateFiles
+		Update-Files
 	}
 } )
 
 # These checkboxes sets datagridrows visible or collapsed
 $syncHash.Controls.CbShowDevFiles.Add_Checked( { $syncHash.Controls.Window.Resources['DevFilesVisible'] = [System.Windows.Visibility]::Visible } )
 $syncHash.Controls.CbShowDevFiles.Add_Unchecked( { $syncHash.Controls.Window.Resources['DevFilesVisible'] = [System.Windows.Visibility]::Collapsed } )
-$syncHash.Controls.CbRollbackFilterTypePs1.Add_Checked( { $syncHash.Controls.Window.Resources['RollbackRowPs1Visible'] = [System.Windows.Visibility]::Visible } )
-$syncHash.Controls.CbRollbackFilterTypePs1.Add_Unchecked( { $syncHash.Controls.Window.Resources['RollbackRowPs1Visible'] = [System.Windows.Visibility]::Collapsed } )
-$syncHash.Controls.CbRollbackFilterTypePs1.Add_MouseRightButtonDown( {
-	$this.IsChecked = $true
-	UncheckOtherRollbackFilters $this.Content
-} )
-$syncHash.Controls.CbRollbackFilterTypePsd1.Add_Checked( { $syncHash.Controls.Window.Resources['RollbackRowPsd1Visible'] = [System.Windows.Visibility]::Visible } )
-$syncHash.Controls.CbRollbackFilterTypePsd1.Add_Unchecked( { $syncHash.Controls.Window.Resources['RollbackRowPsd1Visible'] = [System.Windows.Visibility]::Collapsed } )
-$syncHash.Controls.CbRollbackFilterTypePsd1.Add_MouseRightButtonDown( {
-	$this.IsChecked = $true
-	UncheckOtherRollbackFilters $this.Content
-} )
-$syncHash.Controls.CbRollbackFilterTypePsm1.Add_Checked( { $syncHash.Controls.Window.Resources['RollbackRowPsm1Visible'] = [System.Windows.Visibility]::Visible } )
-$syncHash.Controls.CbRollbackFilterTypePsm1.Add_Unchecked( { $syncHash.Controls.Window.Resources['RollbackRowPsm1Visible'] = [System.Windows.Visibility]::Collapsed } )
-$syncHash.Controls.CbRollbackFilterTypePsm1.Add_MouseRightButtonDown( {
-	$this.IsChecked = $true
-	UncheckOtherRollbackFilters $this.Content
-} )
-$syncHash.Controls.CbRollbackFilterTypeTxt.Add_Checked( { $syncHash.Controls.Window.Resources['RollbackRowTxtVisible'] = [System.Windows.Visibility]::Visible } )
-$syncHash.Controls.CbRollbackFilterTypeTxt.Add_Unchecked( { $syncHash.Controls.Window.Resources['RollbackRowTxtVisible'] = [System.Windows.Visibility]::Collapsed } )
-$syncHash.Controls.CbRollbackFilterTypeTxt.Add_MouseRightButtonDown( {
-	$this.IsChecked = $true
-	UncheckOtherRollbackFilters $this.Content
-} )
-$syncHash.Controls.CbRollbackFilterTypeXaml.Add_Checked( { $syncHash.Controls.Window.Resources['RollbackRowXamlVisible'] = [System.Windows.Visibility]::Visible } )
-$syncHash.Controls.CbRollbackFilterTypeXaml.Add_Unchecked( { $syncHash.Controls.Window.Resources['RollbackRowXamlVisible'] = [System.Windows.Visibility]::Collapsed } )
-$syncHash.Controls.CbRollbackFilterTypeXaml.Add_MouseRightButtonDown( {
-	$this.IsChecked = $true
-	UncheckOtherRollbackFilters $this.Content
-} )
-$syncHash.Controls.CbLogsFilterSuccessFailed.Add_Checked( { $syncHash.Controls.Window.Resources['LogskRowFailedVisible'] = [System.Windows.Visibility]::Visible } )
-$syncHash.Controls.CbLogsFilterSuccessFailed.Add_Unchecked( { $syncHash.Controls.Window.Resources['LogskRowFailedVisible'] = [System.Windows.Visibility]::Collapsed } )
-$syncHash.Controls.CbLogsFilterSuccessSuccess.Add_Checked( { $syncHash.Controls.Window.Resources['LogskRowSuccessVisible'] = [System.Windows.Visibility]::Visible } )
-$syncHash.Controls.CbLogsFilterSuccessSuccess.Add_Unchecked( { $syncHash.Controls.Window.Resources['LogskRowSuccessVisible'] = [System.Windows.Visibility]::Collapsed } )
-
-$syncHash.Controls.CbLogsScriptNames.Add_SelectionChanged( {
-	$syncHash.Controls.Window.Resources['CvsDgLogs'].Source = $this.SelectedItem.ScriptLogs
-	$syncHash.Controls.RbLogsDisplayPeriodRecent.IsChecked = $true
-} )
-
-$syncHash.Controls.CbErrorLogsScriptNames.Add_SelectionChanged( {
-	$this.SelectedItem.ScriptErrorLogs | ForEach-Object { $syncHash.Controls.Window.Resources['CvsDgErrorLogs'].Source.Add( $_ ) }
-	$syncHash.Controls.RbErrorLogsDisplayPeriodRecent.IsChecked = $true
-} )
-
-# Click was made outside of rows and valid cells, unselect selected rows
-$syncHash.Controls.DgErrorLogs.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
-$syncHash.Controls.DgLogs.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
-$syncHash.Controls.DgRollbacks.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
 
 $syncHash.Controls.DgUpdates.Add_LoadingRow( {
 	if ( $args[1].Row.DataContext.DevFile.Extension -match "psm*1" )
@@ -1314,45 +1730,107 @@ $syncHash.Controls.DgUpdates.Add_LoadingRow( {
 	}
 } )
 
-$syncHash.Controls.DgUpdates.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
+$syncHash.Controls.DgUpdates.Add_MouseLeftButtonUp( { Remove-DatagridSelection $args[1].OriginalSource $this } )
 
 # If rightclick is used, open the file from dev and prod
 $syncHash.Controls.DgUpdates.Add_MouseRightButtonUp( {
 	if ( ( $args[1].OriginalSource.GetType() ).Name -eq "TextBlock" )
 	{
-		OpenFile ( $this.CurrentItem.psobject.Properties | Where-Object { $_.name -match "^[^R].+Path$" } | Select-Object -ExpandProperty Value )
+		Open-File ( $this.CurrentItem.psobject.Properties | Where-Object { $_.name -match "^[^R].+Path$" } | Select-Object -ExpandProperty Value )
 	}
 } )
 
-# Activate button to update files, if any item is selected
-$syncHash.Controls.DgRollbacks.Add_SelectionChanged( { $syncHash.DC.BtnOpenRollbackFile[0] = $syncHash.DC.BtnDoRollback[0] = $this.SelectedItem -ne $null } )
-
-$syncHash.Controls.DgUpdatedInProd.Add_MouseLeftButtonUp( { UnselectDatagrid $args[1].OriginalSource $this } )
+$syncHash.Controls.DgUpdatedInProd.Add_MouseLeftButtonUp( {
+	Remove-DatagridSelection $args[1].OriginalSource $this
+} )
 
 # If rightclick is used, open the file from dev and prod
 $syncHash.Controls.DgUpdatedInProd.Add_MouseRightButtonUp( {
-	ShowDiffWindow $this.CurrentItem
-} )
-
-# When a script/file is selected, clear listed rollbacks and set filteroptions according to data for the selected file
-$syncHash.Controls.LvRollbackFileNames.Add_SelectionChanged( {
-	# Hide checkboxes for fileextensions not present in list
-	$syncHash.Controls.GetEnumerator() | `
-		Where-Object { $_.Key -match "CbRollbackFilterType" } | `
-		ForEach-Object {
-			$syncHash.Controls."$( $_.Key )".Visibility = [System.Windows.Visibility]::Collapsed
-		}
-	$syncHash.Controls.DgRollbacks.ItemsSource.Type | `
-		Select-Object -Unique | `
-		ForEach-Object {
-			$syncHash.Controls."CbRollbackFilterType$_".Visibility = [System.Windows.Visibility]::Visible
-			$syncHash.Controls."CbRollbackFilterType$_".IsChecked = $true
-		}
+	Show-DiffWindow $this.CurrentItem
 } )
 
 # Update info text about parsing updated files
 $syncHash.Controls.PbParseUpdates.Add_ValueChanged( {
 	$syncHash.DC.TblUpdatesProgress[0] = "$( $syncHash.Data.msgTable.StrCheckingUpdatesCheckFiles ) $( [Math]::Round( ( $this.Value / $this.Maximum ) * 100 ) ) %"
+} )
+# endregion Updates
+
+# region Logs
+# Reset the controls for logs
+$syncHash.Controls.BtnClearLogSearch.Add_Click( {
+	$syncHash.Controls.BtnClearLogSearch.Visibility = [System.Windows.Visibility]::Collapsed
+	$syncHash.Controls.CbLogSearchType.SelectedIndex = -1
+	$syncHash.Controls.TbLogSearchText.Text = ""
+	$syncHash.Controls.Window.Resources['CvsLogsScriptNames'].Source.Clear()
+	$syncHash.Data.ParsedLogs | ForEach-Object { $syncHash.Controls.Window.Resources['CvsLogsScriptNames'].Source.Add( $_ ) }
+} )
+
+# Copy log entry to clipboard
+$syncHash.Controls.BtnCopyLogInfo.Add_Click( {
+	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
+	$OFS = "`n"
+	$a = @"
+$( $syncHash.Data.msgTable.StrLogInfoCopyTitle ) '$( $syncHash.Controls.CbLogsScriptNames.SelectedItem.ScriptName )'
+
+$( $syncHash.Data.msgTable.StrLogInfoCopyDate ): $( $syncHash.Controls.DgLogs.SelectedItem.LogDate )
+$( $syncHash.Data.msgTable.StrLogInfoCopyOperator ): $( $syncHash.Controls.DgLogs.SelectedItem.Operator )
+$( $syncHash.Data.msgTable.StrLogInfoCopySuccess ): $( $syncHash.Controls.DgLogs.SelectedItem.Success )
+$( $syncHash.Data.msgTable.StrLogInfoCopyLogText ): $( $syncHash.Controls.DgLogs.SelectedItem.LogText )
+"@
+
+	if ( $syncHash.Controls.DgLogs.SelectedItem.ComputerName )
+	{
+		$a += "$( $syncHash.Data.msgTable.StrLogInfoCopyComputerName ): $( $syncHash.Controls.DgLogs.SelectedItem.ComputerName ) "
+	}
+
+	if ( $syncHash.Controls.DgLogs.SelectedItem.OutputFile.Count -gt 0 )
+	{
+		if ( $syncHash.Controls.CbCopyLogInfoIncludeOutputFiles.IsChecked )
+		{
+			$a += "$( $syncHash.Data.msgTable.StrLogInfoCopyOutputFile )`n"
+			$syncHash.Controls.DgLogs.SelectedItem.OutputFile | ForEach-Object { $a += "$( $syncHash.Data.msgTable.StrLogInfoCopyOutputFilePath ): $_`n$( Get-Content $_ )" }
+		}
+		else { $a += "$( $syncHash.Data.msgTable.StrLogInfoCopyOutputFile ): $( [string]$syncHash.Controls.DgLogs.SelectedItem.OutputFile ) " }
+	}
+
+	if ( $syncHash.Controls.DgLogs.SelectedItem.ErrorLogFile.Count -gt 0 )
+	{
+		if ( $syncHash.Controls.CbCopyLogInfoIncludeErrorLogs.IsChecked )
+		{
+			$a += "$( $syncHash.Data.msgTable.StrLogInfoCopyError )"
+			$syncHash.Controls.DgLogs.SelectedItem.ErrorLogFile | ForEach-Object { Get-Content $_ | ConvertFrom-Json | Out-String | ForEach-Object { $e += "$_`n" } }
+		}
+		else { $a += "$( $syncHash.Data.msgTable.StrLogInfoCopyErrorFilePath ): $( [string]$syncHash.Controls.DgLogs.SelectedItem.OutputFile ) " }
+	}
+
+	$a | Clip
+	$syncHash.Controls.PopupCopyLogInfo.IsOpen = $false
+} )
+
+# Search the logs for entered data
+$syncHash.Controls.BtnLogSearch.Add_Click( {
+	$syncHash.Controls.BtnClearLogSearch.Visibility = [System.Windows.Visibility]::Visible
+	$syncHash.Controls.Window.Resources['CvsLogsScriptNames'].Source.Clear()
+	$syncHash.Data.ParsedLogs | Where-Object { $_.ScriptLogs.( $syncHash.Controls.CbLogSearchType.SelectedItem.Content ) -match $syncHash.Controls.TbLogSearchText.Text } | ForEach-Object { $syncHash.Controls.Window.Resources['CvsLogsScriptNames'].Source.Add( $_ ) }
+} )
+
+# Open the outputfile
+$syncHash.Controls.BtnOpenOutputFile.Add_Click( { Open-File $syncHash.Controls.CbLogOutputFiles.SelectedItem } )
+
+# Open meny to include other data
+$syncHash.Controls.BtnOpenPopupCopyLogInfo.Add_Click( { $syncHash.Controls.PopupCopyLogInfo.IsOpen = -not $syncHash.Controls.PopupCopyLogInfo.IsOpen } )
+
+# Parse all logs and load the data
+$syncHash.Controls.BtnReadLogs.Add_Click( { Read-Logs } )
+
+$syncHash.Controls.CbLogsFilterSuccessFailed.Add_Checked( { $syncHash.Controls.Window.Resources['LogskRowFailedVisible'] = [System.Windows.Visibility]::Visible } )
+$syncHash.Controls.CbLogsFilterSuccessFailed.Add_Unchecked( { $syncHash.Controls.Window.Resources['LogskRowFailedVisible'] = [System.Windows.Visibility]::Collapsed } )
+$syncHash.Controls.CbLogsFilterSuccessSuccess.Add_Checked( { $syncHash.Controls.Window.Resources['LogskRowSuccessVisible'] = [System.Windows.Visibility]::Visible } )
+$syncHash.Controls.CbLogsFilterSuccessSuccess.Add_Unchecked( { $syncHash.Controls.Window.Resources['LogskRowSuccessVisible'] = [System.Windows.Visibility]::Collapsed } )
+
+$syncHash.Controls.CbLogsScriptNames.Add_SelectionChanged( {
+	$syncHash.Controls.Window.Resources['CvsDgLogs'].Source = $this.SelectedItem.ScriptLogs
+	$syncHash.Controls.RbLogsDisplayPeriodRecent.IsChecked = $true
 } )
 
 # Set binding to all logs
@@ -1361,11 +1839,60 @@ $syncHash.Controls.RbLogsDisplayPeriodAll.Add_Checked( {
 	[void][System.Windows.Data.BindingOperations]::SetBinding( $syncHash.Controls.DgLogs, [System.Windows.Controls.DataGrid]::ItemsSourceProperty, $b )
 } )
 
+$syncHash.Controls.DgLogs.Add_MouseLeftButtonUp( { Remove-DatagridSelection $args[1].OriginalSource $this } )
+
 # Set binding to recent logs
 $syncHash.Controls.RbLogsDisplayPeriodRecent.Add_Checked( {
 	$b = [System.Windows.Data.Binding]@{ ElementName = "CbLogsScriptNames"; Path = "SelectedItem.ScriptLogsRecent" }
 	[void][System.Windows.Data.BindingOperations]::SetBinding( $syncHash.Controls.DgLogs, [System.Windows.Controls.DataGrid]::ItemsSourceProperty, $b )
 } )
+# endregion Logs
+
+# region Errorlogs
+# Reset the controls for Errorlogs
+$syncHash.Controls.BtnClearErrorLogSearch.Add_Click( {
+	$syncHash.Controls.BtnClearErrorLogSearch.Visibility = [System.Windows.Visibility]::Collapsed
+	$syncHash.Controls.CbErrorLogSearchType.SelectedIndex = -1
+	$syncHash.Controls.TbErrorLogSearchText.Text = ""
+	$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Clear()
+	$syncHash.Data.ParsedErrorLogs | ForEach-Object { $syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Add( $_ ) }
+} )
+
+# Copy the information for the currently selected error
+$syncHash.Controls.BtnCopyErrorInfo.Add_Click( {
+	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
+	$syncHash.Controls.GridErrorInfo.DataContext | Clip
+} )
+
+# Search the errorlogs for entered data
+$syncHash.Controls.BtnErrorLogSearch.Add_Click( {
+	$syncHash.Controls.BtnClearErrorLogSearch.Visibility = [System.Windows.Visibility]::Visible
+	$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Clear()
+	$syncHash.Data.ParsedErrorLogs | Where-Object { $_.ScriptErrorLogs.( $syncHash.Controls.CbErrorLogSearchType.SelectedItem.Content ) -match $syncHash.Controls.TbErrorLogSearchText.Text } | ForEach-Object { $syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Add( $_ ) }
+} )
+
+# If errorlogs have been parsed, open the selected data in the errorlogs-tab
+$syncHash.Controls.BtnOpenErrorLog.Add_Click( {
+	if ( $syncHash.Controls.CbErrorLogsScriptNames.HasItems )
+	{
+		$syncHash.Controls.TbAdmin.SelectedIndex = 2
+		$syncHash.Controls.CbErrorLogsScriptNames.SelectedItem = $syncHash.Controls.CbErrorLogsScriptNames.Items.Where( { $_.ScriptName -eq $syncHash.Controls.CbLogsScriptNames.Text } )[0]
+		Start-Sleep 0.5
+		$syncHash.Controls.DgErrorLogs.SelectedIndex = $syncHash.Controls.DgErrorLogs.Items.IndexOf( ( $syncHash.Controls.DgErrorLogs.Items.Where( { $_.Logdate -eq $syncHash.Controls.CbLogErrorlog.SelectedValue } ) )[0] )
+	}
+	else { Show-MessageBox -Text $syncHash.Data.msgTable.StrErrorlogsNotLoaded }
+} )
+
+# Parse errorlogs and load the data
+$syncHash.Controls.BtnReadErrorLogs.Add_Click( { Read-Errorlogs } )
+
+$syncHash.Controls.CbErrorLogsScriptNames.Add_SelectionChanged( {
+	$this.SelectedItem.ScriptErrorLogs | ForEach-Object { $syncHash.Controls.Window.Resources['CvsDgErrorLogs'].Source.Add( $_ ) }
+	$syncHash.Controls.RbErrorLogsDisplayPeriodRecent.IsChecked = $true
+} )
+
+# Click was made outside of rows and valid cells, unselect selected rows
+$syncHash.Controls.DgErrorLogs.Add_MouseLeftButtonUp( { Remove-DatagridSelection $args[1].OriginalSource $this } )
 
 # Set binding to all errorlogs
 $syncHash.Controls.RbErrorLogsDisplayPeriodAll.Add_Checked( {
@@ -1378,12 +1905,424 @@ $syncHash.Controls.RbErrorLogsDisplayPeriodRecent.Add_Checked( {
 	$b = [System.Windows.Data.Binding]@{ ElementName = "CbErrorLogsScriptNames"; Path = "SelectedItem.ScriptErrorLogsRecent" }
 	[void][System.Windows.Data.BindingOperations]::SetBinding( $syncHash.Controls.DgErrorLogs, [System.Windows.Controls.DataGrid]::ItemsSourceProperty, $b )
 } )
+# endregion Errorlogs
 
+# region New code template controls
+# 
+$syncHash.Controls.BtnAddInputVariable.Add_Click( {
+	$syncHash.Controls.TiNewTemplate.Resources.CvsInputData.Source.Add( ( [pscustomobject]@{ Name = "" ; NameError = $syncHash.Data.msgTable.ErrNewCommandNoNameInput ; Mandatory = $false ; Description = "" ; DescriptionError = $syncHash.Data.msgTable.ErrNewCodeTemplateDescriptionNotGiven ; Valid = $false } ) )
+	$syncHash.Controls.IcInputData.BringIntoView()
+} )
+
+# 
+$syncHash.Controls.BtnAddInputVariableBool.Add_Click( {
+	$syncHash.Controls.TiNewTemplate.Resources.CvsInputDataBool.Source.Add( ( [pscustomobject]@{ Name = "" ; NameError = $syncHash.Data.msgTable.ErrNewCommandNoNameInput ; Mandatory = $false ; Description = "" ; DescriptionError = $syncHash.Data.msgTable.ErrNewCodeTemplateDescriptionNotGiven ; Valid = $false } ) )
+	$syncHash.Controls.IcInputDataBool.BringIntoView()
+} )
+
+# 
+$syncHash.Controls.BtnAddInputVariableList.Add_Click( {
+	$syncHash.Controls.TiNewTemplate.Resources.CvsInputDataList.Source.Add( ( [pscustomobject]@{ Name = "" ; NameError = $syncHash.Data.msgTable.ErrNewCommandNoNameInput ; Mandatory = $false ; Description = "" ; DescriptionError = $syncHash.Data.msgTable.ErrNewCodeTemplateDescriptionNotGiven ; DefaultValue = "" ; DefaultValueError = "" ; Optionslist = "" ; Valid = $false } ) )
+	$syncHash.Controls.IcInputDataList.BringIntoView()
+} )
+
+#
+$syncHash.Controls.BtnAddSettingTitle.Add_Click( {
+	$this.ContextMenu.IsOpen = $true
+} )
+
+# ObjectClass was selected, update list of existing submenus for selected objecttype
+$syncHash.Controls.CbFuncObjectClass.Add_SelectionChanged( {
+	$syncHash.Controls.CbExistingSubMenus.ItemsSource.Refresh()
+} )
+
+# ObjectOperation was selected, update list of existing submenus for selected objecttype
+$syncHash.Controls.CbToolObjectOperations.Add_SelectionChanged( {
+	$syncHash.Controls.CbExistingSubMenus.ItemsSource.Refresh()
+} )
+# 
+$syncHash.Controls.BtnCreateCodeTemplate.Add_Click( {
+	if ( $null -eq $syncHash.Data.NewCodeTemplateInfo.Author )
+	{
+		$syncHash.Data.NewCodeTemplateInfo.Author = ( Get-ADUser ($env:USERNAME -replace $syncHash.Data.msgTable.StrAdmPrefix ) ).Name
+	}
+
+	if ( $syncHash.Controls.RbCodeTypeTool.IsChecked )
+	{
+		New-CodeTemplateTool
+	}
+	else
+	{
+		if ( $null -eq $syncHash.Data.NewCodeTemplateInfo.ObjectClass )
+		{
+			$syncHash.Data.NewCodeTemplateInfo.ObjectClass = "Other"
+		}
+
+		New-CodeTemplateFunc
+	}
+} )
+
+#
+$syncHash.Controls.BtnResetTemplateInfo.Add_Click( {
+	Reset-NewTemplateControls
+} )
+
+#
+$syncHash.Controls.CbExistingSubMenus.Add_KeyUp( {
+	if ( $this.Text -match "\W|\s" )
+	{
+		$syncHash.Controls.TblSubMenuError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateSubMenuInvalidCharacters
+	}
+	elseif ( $this.Text.Length -eq 0 )
+	{
+		$syncHash.Data.NewCodeTemplateInfo.Remove( "SubMenu" )
+	}
+	else
+	{
+		$syncHash.Controls.TblSubMenuError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.SubMenu = $this.Text
+	}
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.CbFuncSearchedItemRequest.Add_SelectionChanged( {
+	$syncHash.Data.NewCodeTemplateInfo.SearchedItemRequest = $this.SelectedValue
+} )
+
+#
+$syncHash.Controls.CbState.Add_SelectionChanged( {
+	if ( $this.SelectedIndex -eq -1 )
+	{
+		$syncHash.Controls.TblStateError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateStateMissing
+	}
+	else
+	{
+		$syncHash.Controls.TblStateError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.State = $this.SelectedValue
+	}
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.CbPsVerbs.Add_SelectionChanged( {
+	Confirm-NewCommandName
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.ChbToolSeparate.Add_Checked( {
+	$syncHash.Data.NewCodeTemplateInfo.Separate = $true
+} )
+
+#
+$syncHash.Controls.ChbToolSeparate.Add_Unchecked( {
+	$syncHash.Data.NewCodeTemplateInfo.Remove( "Separate" )
+} )
+
+#
+$syncHash.Controls.RbCodeTypeFunction.Add_Checked( { Get-NewTemplateTypeSelected } )
+$syncHash.Controls.RbCodeTypeFunction.Add_Unchecked( { Get-NewTemplateTypeSelected } )
+$syncHash.Controls.RbCodeTypeTool.Add_Checked( { Get-NewTemplateTypeSelected } )
+$syncHash.Controls.RbCodeTypeTool.Add_Unchecked( { Get-NewTemplateTypeSelected } )
+
+#
+$syncHash.Controls.TbAllowedUsers.Add_TextChanged( {
+	if ( $this.Text.Length -eq 0 )
+	{
+		$syncHash.Controls.TblAllowedUsersError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.Remove( "AllowedUsers" )
+	}
+	else
+	{
+		$this.Text -split "\W|\s" | `
+			ForEach-Object `
+			-Begin { $Errors = [System.Collections.ArrayList]::new() } `
+			-Process {
+				try
+				{
+					$Id = $_
+					Get-ADUser $Id -ErrorAction Stop | Out-Null
+				}
+				catch
+				{
+					$Errors.Add( $Id ) | Out-Null
+				}
+			}
+		if ( $Errors.Count -gt 0 )
+		{
+			$syncHash.Controls.TblAllowedUsersError.Text = "$( $syncHash.Data.msgTable.ErrNewCodeTemplateAllowedUsersNotFound ): $( $Errors -join ", " )"
+		}
+		else
+		{
+			$syncHash.Controls.TblAllowedUsersError.Text = ""
+			$syncHash.Data.NewCodeTemplateInfo.AllowedUsers = $this.Text
+		}
+	}
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.TbAuthor.Add_TextChanged( {
+	if ( $this.Text.Length -ge 4 )
+	{
+		try
+		{
+			$syncHash.Controls.TblAuthorFound.Text = $syncHash.Data.NewCodeTemplateInfo.Author = ( Get-ADUser $this.Text -ErrorAction Stop ).Name
+			$syncHash.Controls.TblAuthorError.Text = ""
+		}
+		catch
+		{
+			$syncHash.Controls.TblAuthorError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateAuthorNotFound
+			$syncHash.Controls.TblAuthorFound.Text = ""
+		}
+	}
+	elseif ( $this.Text.Length -gt 0 )
+	{
+		$syncHash.Controls.TblAuthorError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateNoIdentifyableId
+		$syncHash.Controls.TblAuthorFound.Text = ""
+	}
+	else
+	{
+		$syncHash.Controls.TblAuthorError.Text = ""
+		$syncHash.Controls.TblAuthorFound.Text = ""
+	}
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.TbDescription.Add_TextChanged( {
+	if ( $this.Text.Length -eq 0 )
+	{
+		$syncHash.Controls.TblDescriptionError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateDescriptionEmpty
+	}
+	else
+	{
+		$syncHash.Controls.TblDescriptionError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.Description = $this.Text
+	}
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.TbInvalidateDateTime.Add_TextChanged( {
+	if ( $this.Text.Length -eq 0 -or $this.Text -eq " " )
+	{
+		$syncHash.Controls.TblInvalidateDateTimeError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.Remove( "InvalidateDateTime" )
+	}
+	elseif ( $this.Text -match "\d{4}-\d{2}-\d{2}(\d{2}:\d{2}:\d{2})*" )
+	{
+		try
+		{
+			$syncHash.Data.NewCodeTemplateInfo.InvalidateDateTime = [datetime]::Parse( $this.Text )
+
+			if ( $syncHash.Data.NewCodeTemplateInfo.InvalidateDateTime -lt ( Get-Date ) )
+			{
+				$syncHash.Controls.TblInvalidateDateTimeError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateEndBeforeNow
+			}
+			elseif ( $null -ne $syncHash.Data.NewCodeTemplateInfo.ValidStartDateTime )
+			{
+				if ( $syncHash.Data.NewCodeTemplateInfo.ValidStartDateTime -gt $syncHash.Data.NewCodeTemplateInfo.InvalidateDateTime )
+				{
+					$syncHash.Controls.TblInvalidateDateTimeError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateEndBeforeStart
+				}
+				elseif ( $syncHash.Data.NewCodeTemplateInfo.ValidStartDateTime -eq $syncHash.Data.NewCodeTemplateInfo.InvalidateDateTime )
+				{
+					$syncHash.Controls.TblInvalidateDateTimeError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateStartEndSame
+				}
+				else
+				{
+					$syncHash.Controls.TblInvalidateDateTimeError.Text = ""
+				}
+			}
+			else
+			{
+				$syncHash.Controls.TblInvalidateDateTimeError.Text = ""
+			}
+		}
+		catch
+		{
+			$syncHash.Data.NewCodeTemplateInfo.Remove( "InvalidateDateTime" )
+			$syncHash.Controls.TblInvalidateDateTimeError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateEndParseError
+		}
+	}
+	else
+	{
+		$syncHash.Controls.TblInvalidateDateTimeError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.Remove( "InvalidateDateTime" )
+	}
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.TbMenuItem.Add_TextChanged( {
+	if ( $this.Text.Length -eq 0 )
+	{
+		$syncHash.Controls.TblMenuItemError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateMenuItemEmpty
+	}
+	elseif ( $this.Text -match "_" )
+	{
+		$syncHash.Controls.TblMenuItemError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateMenuItemUnderscore
+	}
+	elseif ( $this.Text -match "\W" )
+	{
+		$syncHash.Controls.TblMenuItemError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateMenuItemInvalidCharacters
+	}
+	elseif ( $this.Text -in $syncHash.Data.ExistingMenuItems )
+	{
+		$syncHash.Controls.TblMenuItemError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateMenuItemExists
+	}
+	else
+	{
+		$syncHash.Controls.TblMenuItemError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.MenuItem = $this.Text
+	}
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.TbName.Add_TextChanged( {
+	Confirm-NewCommandName
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.TbRequiredAdGroups.Add_TextChanged( {
+	if ( $this.Text.Length -eq 0 )
+	{
+		$syncHash.Controls.TblRequiredAdGroupsError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.Remove( "RequiredAdGroups" )
+	}
+	else
+	{
+		$this.Text -split "\W|\s" | `
+			ForEach-Object `
+			-Begin { $Errors = [System.Collections.ArrayList]::new() } `
+			-Process {
+				try
+				{
+					$Id = $_
+					Get-ADGroup $Id -ErrorAction Stop | Out-Null
+				}
+				catch
+				{
+					$Errors.Add( $Id ) | Out-Null
+				}
+			}
+		if ( $Errors.Count -gt 0 )
+		{
+			$syncHash.Controls.TblRequiredAdGroupsError.Text = "$( $syncHash.Data.msgTable.ErrNewCodeTemplateRequiredAdGroupsNotFound ): $( $Errors -join ", " )"
+		}
+		else
+		{
+			$syncHash.Controls.TblRequiredAdGroupsError.Text = ""
+			$syncHash.Data.NewCodeTemplateInfo.RequiredAdGroups = $this.Text
+		}
+	}
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.TbSynopsis.Add_TextChanged( {
+	if ( $this.Text -match "[_]" )
+	{
+		$syncHash.Controls.TblSynosisError.Text = $syncHash.Data.msgTable.ErrNewcodeTemplateSynopsisUnderscore
+	}
+	elseif ( $this.Text.Length -eq 0 )
+	{
+		$syncHash.Controls.TblSynopsisError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateSynopsisEmpty
+	}
+	else
+	{
+		$syncHash.Controls.TblSynopsisError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.Synopsis = $this.Text
+	}
+	Confirm-NewCommandInput
+} )
+
+#
+$syncHash.Controls.TbValidStartDateTime.Add_TextChanged( {
+	if ( $this.Text.Length -eq 0 -or $this.Text -eq " " )
+	{
+		$syncHash.Controls.TblValidStartDateTimeError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.Remove( "ValidStartDateTime" )
+	}
+	elseif ( $this.Text -match "\d{4}-\d{2}-\d{2}(\d{2}:\d{2}:\d{2})*" )
+	{
+		try
+		{
+			$syncHash.Data.NewCodeTemplateInfo.ValidStartDateTime = [datetime]::Parse( $this.Text )
+
+			if ( $null -ne $syncHash.Data.NewCodeTemplateInfo.InvalidateDateTime )
+			{
+				if ( $syncHash.Data.NewCodeTemplateInfo.ValidStartDateTime -gt $syncHash.Data.NewCodeTemplateInfo.InvalidateDateTime )
+				{
+					$syncHash.Controls.TblValidStartDateTimeError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateStartAfterEnd
+				}
+				elseif ( $syncHash.Data.NewCodeTemplateInfo.ValidStartDateTime -eq $syncHash.Data.NewCodeTemplateInfo.InvalidateDateTime )
+				{
+					$syncHash.Controls.TblValidStartDateTimeError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateStartEndSame
+				}
+				else
+				{
+					$syncHash.Controls.TblValidStartDateTimeError.Text = ""
+				}
+			}
+			else
+			{
+				$syncHash.Controls.TblValidStartDateTimeError.Text = ""
+			}
+		}
+		catch
+		{
+			$syncHash.Data.NewCodeTemplateInfo.Remove( "ValidStartDateTime" )
+			$syncHash.Controls.TblValidStartDateTimeError.Text = $syncHash.Data.msgTable.ErrNewCodeTemplateStartParseError
+		}
+	}
+	else
+	{
+		$syncHash.Controls.TblValidStartDateTimeError.Text = ""
+		$syncHash.Data.NewCodeTemplateInfo.Remove( "ValidStartDateTime" )
+	}
+	Confirm-NewCommandInput
+} )
+# endregion New code template controls
+
+# region Window settings
 # Window rendered, do some final preparations
 $syncHash.Controls.Window.Add_Loaded( {
 	$this.Resources['DiffWindow'].DataContext = [pscustomobject]@{
 		MsgTable = $syncHash.Data.msgTable
 	}
+
+	$syncHash.Controls.Window.Resources.MenuItemsHash.GetEnumerator() | `
+		ForEach-Object {
+			$SortOrder, $Object, $TopName = $_.Name -split "_"
+			$ObjectItems = [pscustomobject]@{
+				SortOrder = $SortOrder
+				Object = $Object
+				TopName = $TopName
+				Items = [System.Collections.ObjectModel.ObservableCollection[object]]$_.Value
+			}
+			$syncHash.Controls.TiKbSummary.Resources['CvsKdSummary'].Source.Add( $ObjectItems )
+		}
+
+	$syncHash.Controls.Window.Resources.SubMenus | `
+		ForEach-Object {
+			$_.Value.Source | `
+				ForEach-Object {
+					$t = $_
+					$syncHash.Controls.TiKbSummary.Resources['CvsKdSummary'].Source.Where( { ( $_.Object -eq $t.ObjectClass ) -or ( $_.Object -eq $t.ObjectOperations ) } )[0].Items.Add( $t )
+				}
+		}
+
+	$syncHash.Controls.TiNewTemplate.Resources.CvsSubMenus.View.Filter = $syncHash.Code.SuBmenuFilter
+	$syncHash.Controls.TiNewTemplate.Resources.CvsSettingsCollection.View.Filter = $syncHash.Code.AddSettingFilter
+
+	$syncHash.Data.NewCodeTemplateInfo = @{}
+	$syncHash.Data.ExistingCommandNames = ( $syncHash.Controls.Window.Resources.SubMenus.GetEnumerator() | ForEach-Object { $_.Value.Source.Name } ) + ( $syncHash.Controls.Window.Resources.MenuItemsHash.GetEnumerator() | ForEach-Object { $_.Value.Name } )
+	$syncHash.Data.ExistingMenuItems = ( $syncHash.Controls.Window.Resources.SubMenus.GetEnumerator() | ForEach-Object { $_.Value.Source.MenuItem } ) + ( $syncHash.Controls.Window.Resources.MenuItemsHash.GetEnumerator() | ForEach-Object { $_.Value.MenuItem } )
 
 	# Get a list of obsolete functions in modules
 	$syncHash.ObsoleteFunctions = ( Get-Module ).Where( { $_.Path.StartsWith( $BaseDir ) } ) | `
@@ -1392,29 +2331,17 @@ $syncHash.Controls.Window.Add_Loaded( {
 		Select-Object -Property `
 			@{ Name = "FunctionName"; Expression = { $_.Name } }, `
 			@{ Name = "HelpMessage"; Expression = { ( ( ( $_.Definition -split "`n" | Select-String -Pattern "\[Obsolete.+\]" ) -split "\(" )[1] -split "\)" )[0].Trim() } }
+
+	Initialize-NewTemplateControls
+	Reset-NewTemplateControls
 } )
 
-# Catch keypress
-$syncHash.Controls.Window.Add_KeyDown( {
-	$syncHash.TempKeyDown += $args
-	if ( $args[1].Key -eq "F1" )
-	{
-		switch ( $syncHash.Controls.TbAdmin.SelectedIndex )
-		{
-			0 { CheckForUpdates }
-			1 { ParseLogs }
-			2 { ParseErrorlogs }
-			3 { ParseRollbacks }
-		}
-	}
-	elseif ( ( -not $syncHash.Controls.TbLogSearchText.IsFocused ) -and ( -not $syncHash.Controls.TbErrorLogSearchText.IsFocused ) )
-	{
-		if     ( $args[1].Key -eq "D1" ) { $syncHash.Controls.TbAdmin.SelectedIndex = 0 }
-		elseif ( $args[1].Key -eq "D2" ) { $syncHash.Controls.TbAdmin.SelectedIndex = 1 }
-		elseif ( $args[1].Key -eq "D3" ) { $syncHash.Controls.TbAdmin.SelectedIndex = 2 }
-		elseif ( $args[1].Key -eq "D4" ) { $syncHash.Controls.TbAdmin.SelectedIndex = 3 }
-		elseif ( $args[1].Key -eq "D5" ) { $syncHash.Controls.TbAdmin.SelectedIndex = 4 }
-	}
+# endregion Window settings
+
+# region DiffWindow settings
+# Close the diff window
+$syncHash.Controls.BtnDiffCancel.Add_Click( {
+	$syncHash.Controls.DiffWindow.Visibility = [System.Windows.Visibility]::Hidden
 } )
 
 # Catch keypress
@@ -1449,3 +2376,4 @@ $syncHash.Controls.DiffWindow.Add_IsVisibleChanged( {
 		$syncHash.Controls.DgDiffList.ItemsSource.Clear()
 	}
 } )
+# endregion DiffWindow settings
