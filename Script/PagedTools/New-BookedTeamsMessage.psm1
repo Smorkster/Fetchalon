@@ -96,6 +96,11 @@ $syncHash.Controls.BtnPreview.Add_Click( {
 	$syncHash.Controls.Window.Resources.WindowPreview.Visibility = [System.Windows.Visibility]::Visible
 } )
 
+# Delete all entered data
+$syncHash.Controls.BtnReset.Add_Click( {
+	Reset
+} )
+
 # Send booking to bot calendar
 $syncHash.Controls.BtnSendBooking.Add_Click( {
 

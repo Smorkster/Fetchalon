@@ -1,14 +1,15 @@
 ConvertFrom-StringData @'
 ContentBtnPreview = Preview
+ContentBtnReset = Reset
 ContentBtnSendBooking = Send booking
 ContentGbHttpResponse = Response from server
 ContentInfoTt = The text needs to be formatted with HTML tags, click on 'Preview' to see how it will look.
 ContentTblChannelTitle = Channel
 ContentTblDateTimeTitle = Date and time
-ContentTblDateTitle = Date
-ContentTblHourTitle = Hour
+ContentLblDateTitle = Date
+ContentLblHourTitle = Hour
 ContentTblMessageTitle = Message
-ContentTblMinuteTitle = Minute
+ContentLblMinuteTitle = Minute
 ContentTblOrganizerTitle = Booked by (can be left empty)
 ContentTblSubjectTitle = Title
 ContentTblTeamTitle = Team
