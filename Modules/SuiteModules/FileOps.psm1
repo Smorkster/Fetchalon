@@ -393,12 +393,13 @@ function GetScriptInfo
 					}
 					elseif ( "InputDataBool" -eq $InfoType )
 					{
-						$Name, $Desc = $Rest -split ",", 2
+						$Name, $Mandatory, $Desc = $Rest -split ",", 3
 						$ListInputData.Add( (
 							[pscustomobject]@{
 								Name = $Name.Trim()
 								InputType = "Bool"
 								InputDescription = $Desc.Trim()
+								Mandatory = "True" -eq $Mandatory.Trim()
 								EnteredValue = $false
 							}
 						) ) | Out-Null
