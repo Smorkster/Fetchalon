@@ -186,7 +186,6 @@ function Add-MenuItem
 			$syncHash.Data.QuickAccessWordList."$( $MiObject.EnableQuickAccess )" = ( $MiObject | Select-Object * )
 		}
 	}
-	Remove-Variable -Name ValidDateNote -ErrorAction SilentlyContinue
 }
 
 function Check-O365Connection
@@ -2295,6 +2294,7 @@ $(
 									Separate = $_.Separate
 									State = $_.State
 									RequiredAdGroups = $_.RequiredAdGroups
+									Name = $_.Name
 								}
 							}
 					} | Group-Object -AsHashTable -Property N
@@ -2797,6 +2797,14 @@ $syncHash.MiShowHideOutputView.Add_Click( {
 # Get extra info from SysMan
 $syncHash.MiGetSysManInfo.Add_Click( {
 	Get-ExtraInfoFromSysMan
+} )
+
+# Show popup when text box gets focus
+$syncHash.PopupMenu.Add_LostKeyboardFocus( {
+	if ( -not $syncHash.TbSearch.IsFocused )
+	{
+	#	$syncHash.PopupMenu.IsOpen = $false
+	}
 } )
 
 # Show popup when text box gets focus

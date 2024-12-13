@@ -1541,12 +1541,11 @@
                                 <TextBlock Name="TblUnfinishedInputCountTitle"
                                            Margin="{StaticResource StdMargin}" />
                                 <TextBlock Name="TblUnfinishedInputCount"
+                                           FontWeight="Bold"
                                            Grid.Column="1"
                                            Margin="{StaticResource StdMargin}">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
-                                            <Setter Property="FontWeight"
-                                                    Value="Bold" />
                                             <Setter Property="Foreground"
                                                     Value="Red" />
                                             <Style.Triggers>
@@ -1629,16 +1628,13 @@
                                                 <Label Content="*"
                                                        Focusable="False"
                                                        FontSize="25"
+                                                       Foreground="Red"
                                                        Grid.Column="2"
-                                                       IsTabStop="False">
+                                                       IsTabStop="False"
+                                                       Padding="0"
+                                                       VerticalContentAlignment="Center">
                                                     <Label.Style>
                                                         <Style TargetType="Label">
-                                                            <Setter Property="Foreground"
-                                                                    Value="Red" />
-                                                            <Setter Property="Padding"
-                                                                    Value="0" />
-                                                            <Setter Property="VerticalContentAlignment"
-                                                                    Value="Center" />
                                                             <Setter Property="Visibility"
                                                                     Value="Visible" />
                                                             <Style.Triggers>
@@ -3481,12 +3477,11 @@
                                                         <Setter Property="Template">
                                                             <Setter.Value>
                                                                 <ControlTemplate>
-                                                                    <TextBox Grid.Column="1">
+                                                                    <TextBox Grid.Column="1"
+                                                                             Text="{Binding Path=Value, Mode=OneWay}">
                                                                         <TextBox.Style>
                                                                             <Style TargetType="TextBox"
                                                                                    BasedOn="{StaticResource TbListValueBaseStyle}">
-                                                                                <Setter Property="Text"
-                                                                                        Value="{Binding Path=Value, Mode=OneWay}" />
                                                                                 <Style.Triggers>
                                                                                     <DataTrigger Binding="{Binding Path=Value}"
                                                                                                  Value="NULL">
