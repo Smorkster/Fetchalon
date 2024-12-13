@@ -1,14 +1,15 @@
 ConvertFrom-StringData @'
 ContentBtnPreview = Förhandsvisning
+ContentBtnReset = Återställ
 ContentBtnSendBooking = Skicka bokning
 ContentGbHttpResponse = Svar från server
 ContentInfoTt = Texten behöver formateras med HTML tags, klicka på 'Förhandsvisning' för att se hur det kommer se ut.
 ContentTblChannelTitle = Kanal
 ContentTblDateTimeTitle = Datum och tid
-ContentTblDateTitle = Datum
-ContentTblHourTitle = Timme
+ContentLblDateTitle = Datum
+ContentLblHourTitle = Timme
 ContentTblMessageTitle = Meddelande
-ContentTblMinuteTitle = Minut
+ContentLblMinuteTitle = Minut
 ContentTblOrganizerTitle = Bokad av (kan lämnas tom)
 ContentTblSubjectTitle = Titel
 ContentTblTeamTitle = Team
