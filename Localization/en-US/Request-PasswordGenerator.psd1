@@ -7,6 +7,7 @@ App4Info = Boring App,10,16
 App5Info = Important App,8,14
 Chars = 0,1,2,3,4,5,6,7,8,9,!,#,%,&,/,(,),?,+,{,[,],}
 ContentBtnGenerate = Generate
+ContentLblSpellingWordCollectionTitle = Select word collection
 ContentTblBtnInfo = Click a button to copy the password
 ContentTblSpelledPasswordTitle = Spellinghelp
 LogGenerated = Generated password
