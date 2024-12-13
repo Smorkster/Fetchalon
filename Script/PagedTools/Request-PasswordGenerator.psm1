@@ -16,25 +16,29 @@ $syncHash = $args[0]
 
 function SpellPassword
 {
-	param (
-		[string] $Password
-	)
-	$t = $null
-	$syncHash.Controls.TblSpelledPassword.Text = ( $Password.GetEnumerator() | `
-		ForEach-Object {
-			if ( [System.Int32]::TryParse( "$_" , [ref] $t ) )
-			{
-				$syncHash.Data.SpellingHashNumbers."$_"
+	if ( $null -ne $syncHash.Data.WordToSpell )
+	{
+		$syncHash.Controls.Window.Resources.CvsSpelledPassword.Source.Clear()
+		$t = $null
+		$syncHash.Data.WordToSpell.GetEnumerator() | `
+			ForEach-Object {
+				if ( [System.Int32]::TryParse( "$_" , [ref] $t ) )
+				{
+					$syncHash.Data.SpellingHashNumbers."$_"
+				}
+				elseif ( $syncHash.Data.msgTable.SpellingCharacters.Contains( $_ ) )
+				{
+					$syncHash.Data.SpellingHashCharacters."$_"
+				}
+				else
+				{
+					$syncHash.Data.SpellingHashWords."$_"
+				}
+			} | `
+			ForEach-Object {
+				$syncHash.Controls.Window.Resources.CvsSpelledPassword.Source.Add( $_ )
 			}
-			elseif ( $syncHash.Data.msgTable.SpellingCharacters.Contains( $_ ) )
-			{
-				$syncHash.Data.SpellingHashCharacters."$_"
-			}
-			else
-			{
-				$syncHash.Data.SpellingHashWords."$_"
-			}
-		} ) -join " "
+	}
 }
 
 ######################### Script start
@@ -47,6 +51,7 @@ $syncHash.Data.SpellingHashCharacters = @{}
 
 $syncHash.Controls.Window.Resources['CvsPasswords'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 $syncHash.Controls.Window.Resources['CvsSpellingCollections'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+$syncHash.Controls.Window.Resources['CvsSpelledPassword'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
 $syncHash.Data.msgTable.Keys | `
 	Where-Object { $_ -match "^SpellingWords" } | `
@@ -67,14 +72,11 @@ $syncHash.Data.msgTable.GetEnumerator() | `
 		[void] $syncHash.Controls.Window.Resources['CvsPasswords'].Source.Add( $app )
 	}
 
-$syncHash.Data.msgTable.SpellingWordsMat -split "," | `
-	ForEach-Object {
-		$syncHash.Data.SpellingHashWords."$( $_[0] )" = $_
-	}
 0..9 | `
 	ForEach-Object {
 		$syncHash.Data.SpellingHashNumbers."$( $_ )" = ( $syncHash.Data.msgTable.SpellingNumbers -split "," )[$_]
 	}
+
 $syncHash.Data.msgTable.SpellingCharacters -split "," | `
 	ForEach-Object `
 	-Begin { $i = 0 } `
@@ -85,13 +87,10 @@ $syncHash.Data.msgTable.SpellingCharacters -split "," | `
 
 # Generate passwords
 $syncHash.Controls.BtnGenerate.Add_Click( {
-	if ( $syncHash.Controls.Window.Resources['CvsPasswords'].Source[0].List.Count -gt 20 )
-	{
-		$syncHash.Controls.Window.Resources['CvsPasswords'].Source | `
-			ForEach-Object {
-				$_.List.Clear()
-			}
-	}
+	$syncHash.Controls.Window.Resources['CvsPasswords'].Source | `
+		ForEach-Object {
+			$_.List.Clear()
+		}
 
 	$syncHash.Controls.Window.Resources['CvsPasswords'].Source | `
 		ForEach-Object {
@@ -109,7 +108,8 @@ $syncHash.Controls.BtnGenerate.Add_Click( {
 					$b = [System.Windows.Controls.Button]@{ DataContext = $sb.ToString() }
 					$b.Add_Click( {
 						Set-Clipboard -Value $this.DataContext
-						SpellPassword $this.DataContext
+						$syncHash.Data.WordToSpell = $this.DataContext
+						SpellPassword
 					} )
 					[void] $App.List.Add( $b )
 				}
@@ -119,9 +119,14 @@ $syncHash.Controls.BtnGenerate.Add_Click( {
 } )
 
 $syncHash.Controls.CmdSpellingWordCollection.Add_SelectionChanged( {
-	$syncHash.Data.msgTable."SpellingWords$( $this.SelectedText )" -split "," | `
+	$syncHash.Data.SpellingHashWords.Clear()
+	$syncHash.Data.msgTable."SpellingWords$( $this.SelectedValue )" -split "," | `
 		ForEach-Object {
 			$syncHash.Data.SpellingHashWords."$( $_[0] )" = $_
 		}
+	SpellPassword
+} )
 
+$syncHash.Controls.Window.Add_Loaded( {
+	$syncHash.Controls.CmdSpellingWordCollection.SelectedIndex = 0
 } )
