@@ -93,4 +93,11 @@ $( $syncHash.Controls.TbText.Text -replace "`n", "<br>" )<br>
 	}
 } )
 
-
+$syncHash.Controls.Window.Add_Loaded( {
+	$this.Resources.CvsHierarchicalFunctions.Source | `
+		ForEach-Object {
+			Add-Member -InputObject $_ -MemberType NoteProperty -Name "SortOrder" -Value 0
+		}
+	$this.Resources.CvsHierarchicalFunctions.Source.Add( ( [pscustomobject]@{ MenuItem = "" ; Description = "" ; SortOrder = 1 } ) )
+	$this.Resources.CvsHierarchicalFunctions.Source.Add( ( [pscustomobject]@{ MenuItem = $syncHash.Data.msgTable.StrNewSuggestion ; Description = $syncHash.Data.msgTable.StrNewSuggestionDescription ; SortOrder = 1 } ) )
+} )
