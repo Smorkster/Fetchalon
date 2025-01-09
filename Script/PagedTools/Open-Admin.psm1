@@ -7,8 +7,6 @@
 	Performs administration of updates, logs, reports, etc.
 .State
 	Prod
-.RequiredAdGroups
-	Rol_Servicedesk_Backoffice
 .AllowedUsers
 	smorkster
 .Author
@@ -1289,8 +1287,6 @@ else
 	$syncHash.Controls.SpUpdateControls.Children.Remove( $syncHash.Controls.ChbPublishFiles )
 }
 
-$syncHash.Data.SuiteBaseName = "Fetchalon"
-
 # region Scriptblocks
 [System.Predicate[object]] $syncHash.Code.SuBmenuFilter =
 {
@@ -1461,7 +1457,6 @@ $syncHash.Data.FilesUpdatedInProd = New-Object System.Collections.ArrayList
 if ( Test-Path "C:\Program Files (x86)\Notepad++\notepad++.exe" ) { $syncHash.Data.Editor = "C:\Program Files (x86)\Notepad++\notepad++.exe" }
 elseif ( Test-Path "C:\Program Files\Notepad++\notepad++.exe" ) { $syncHash.Data.Editor = "C:\Program Files\Notepad++\notepad++.exe" }
 else { $syncHash.Data.Editor = "notepad" }
-
 
 # region Kd summary
 # Creates a summary for all functions and tools, and outputs into HTML-code
