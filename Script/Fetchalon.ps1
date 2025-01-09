@@ -73,7 +73,6 @@ if ( $BaseDir -notmatch "Development" )
 						$a = $null
 						[Win32Init]::GetWindowThreadProcessId( $hwnd, [ref] $a )
 
-						$Global:Temp.Add( ( Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = '$a'" ) ) | Out-Null
 						if ( ( Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = '$a'" ).CommandLine -match "Fetchalon.*$( ( Get-Item $PSCommandPath ).Name )" )
 						{
 							Show-Splash -Duration 1 -NoProgressBar -Text $msgTable.StrOpenMainWindowFound
@@ -585,6 +584,7 @@ function Read-SettingsFile
 		WindowLeft = 0
 		WindowWidth = 0
 		WindowTop = 0
+		RunsAtLogin = $false
 	}
 
 	$ReadSettings = Get-Content $syncHash.Data.SettingsPath | ConvertFrom-Json
@@ -1360,7 +1360,6 @@ $syncHash.Code.ListItem =
 
 				if ( $syncHash.Data.SearchedItem."$( $syncHash.Data.msgTable.StrOrgDnPropName )" -ne $null )
 				{
-
 					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "OrgDn" -Value @()
 				}
 				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "HasWritePermission" -Value "?"
@@ -2255,6 +2254,8 @@ $(
 			}
 			elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
 			{
+				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Data.SuiteBaseName = ( Get-Item $PSCommandPath ).BaseName
+				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Data.SuiteSettings = $syncHash.Data.UserSettings
 				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
 				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsQuickAccessWordList'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 				$syncHash.Data.QuickAccessWordList.GetEnumerator() | `
@@ -2303,6 +2304,7 @@ $(
 					Where-Object { $_.Name -match "^CvsMi.*FunctionsSub.*$" }
 				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['MenuItemsHash'] = $MenuItemsHash
 				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['SubMenus'] = $SubMenus
+				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Data.SuiteBaseName = ( Get-Item $PSCommandPath ).BaseName
 			}
 		}
 		catch
@@ -3006,6 +3008,7 @@ $syncHash.Window.Add_Closed( {
 			} | `
 			ForEach-Object {
 				$_.PageObject.EventSubscribers | `
+					Where-Object { $_ } | `
 					ForEach-Object {
 						Unregister-Event -SourceIdentifier $_
 					}
