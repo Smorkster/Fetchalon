@@ -69,7 +69,10 @@ $syncHash.Controls.BtnKillProcess.Add_Click( {
 	$syncHash.Controls.TblMessages.Text = ""
 	try
 	{
-		Stop-Process -InputObject $syncHash.Controls.DgProcesses.SelectedItem.Process -ErrorAction Stop
+		Invoke-Command -ComputerName $syncHash.Data.FoundComputer.Name -Scriptblock {
+			param ( $Process )
+			Stop-Process -InputObject $Process -ErrorAction Stop
+		} -ArgumentList $syncHash.Controls.DgProcesses.SelectedItem.Process
 	}
 	catch
 	{
