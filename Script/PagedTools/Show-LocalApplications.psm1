@@ -18,6 +18,29 @@
 Add-Type -AssemblyName PresentationFramework
 $syncHash = $args[0]
 
+function Check-ButtonsReady
+{
+	$syncHash.Controls.BtnUninstall.IsEnabled = $syncHash.Controls.BtnStartApplication.IsEnabled = $false
+
+	switch ( $syncHash.Controls.TcAppLists.SelectedIndex )
+	{
+		0 {
+			$syncHash.Controls.BtnUninstall.IsEnabled = $syncHash.Controls.DgAppListLocal.SelectedItems.Count -gt 0
+		}
+		1 {
+			$syncHash.Controls.BtnStartApplication.IsEnabled = $syncHash.Controls.DgAppListLocalForStart.SelectedItems.Count -gt 0
+		}
+		2 {
+			$syncHash.Controls.BtnUninstall.IsEnabled = $syncHash.Controls.DgAppListWrappers.SelectedItems.Count -gt 0
+		}
+		3 {
+			$syncHash.Controls.BtnUninstall.IsEnabled = $syncHash.Controls.DgAppListSysMan.SelectedItems.Count -gt 0
+		}
+		4 {
+		}
+	}
+}
+
 function Reset
 {
 	<#
@@ -34,7 +57,7 @@ function Reset
 		$syncHash.Jobs.PFetchSysMan.EndInvoke( $syncHash.Jobs.HFetchSysMan ) | Out-Null
 	}
 
-	"CvsAppsCore","CvsAppsLocal","CvsAppsSysMan","CvsAppsWrappers" | `
+	"CvsAppsCore","CvsAppsLocal","CvsAppsLocalForStart","CvsAppsSysMan","CvsAppsWrappers" | `
 		ForEach-Object {
 			$MaxRot = 10
 			$Cvs = $_
@@ -59,7 +82,6 @@ function Reset
 			}
 			while ( -not $Refreshed -and $MaxRot -gt 0 )
 		}
-	$syncHash.DC.BtnGetAppList[0] = $false
 	$syncHash.DC.PComputerNotFoundInAdAlert[0] = [System.Windows.Visibility]::Hidden
 	$syncHash.DC.PComputerNotFoundInSysManAlert[0] = [System.Windows.Visibility]::Hidden
 	$syncHash.Controls.Window.Resources.CvsLogMessages.Source.Clear()
@@ -70,6 +92,7 @@ function Set-Localizations
 {
 	$syncHash.Controls.Window.Resources['CvsAppsCore'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Controls.Window.Resources['CvsAppsLocal'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$syncHash.Controls.Window.Resources['CvsAppsLocalForStart'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Controls.Window.Resources['CvsAppsSysMan'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Controls.Window.Resources['CvsAppsWrappers'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 	$syncHash.Controls.Window.Resources['CvsLogMessages'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
@@ -82,6 +105,8 @@ function Set-Localizations
 	$syncHash.Controls.DgAppListLocal.Columns[0].Header = $syncHash.Data.msgTable.ContentDgLocalNameCol
 	$syncHash.Controls.DgAppListLocal.Columns[1].Header = $syncHash.Data.msgTable.ContentDgLocalInstCol
 	$syncHash.Controls.DgAppListLocal.Columns[2].Header = $syncHash.Data.msgTable.ContentDgLocalUserCol
+
+	$syncHash.Controls.DgAppListLocalForStart.Columns[0].Header = $syncHash.Data.msgTable.ContentDgLocalStartName
 
 	$syncHash.Controls.DgAppListWrappers.Columns[0].Header = $syncHash.Data.msgTable.ContentDgWrappersAppNameCol
 	$syncHash.Controls.DgAppListWrappers.Columns[1].Header = $syncHash.Data.msgTable.ContentDgWrappersInstallDateCol
@@ -165,7 +190,7 @@ function Uninstall-Local
 	} ) | Out-Null
 	$syncHash.Jobs.PUninstall.AddArgument( $syncHash ) | Out-Null
 	$syncHash.Jobs.PUninstall.AddArgument( ( Get-Module ) ) | Out-Null
-	$syncHash.Jobs.PUninstall.AddArgument( ( $syncHash.Data.SelectedAppForUninstall | Select-Object * ) ) | Out-Null
+	$syncHash.Jobs.PUninstall.AddArgument( ( $syncHash.Data.SelectedApp | Select-Object * ) ) | Out-Null
 	$syncHash.Jobs.HUninstall = $syncHash.Jobs.PUninstall.BeginInvoke()
 }
 
@@ -179,7 +204,7 @@ function Uninstall-SysMan
 	$syncHash.DC.PbProgressSysMan[0] = [System.Windows.Visibility]::Visible
 	$UninstallJsonBody = "{
 		""targets"": [ $( $syncHash.Data.ComputerSysMan.id ) ],
-		""systems"": [ $( $syncHash.Data.SelectedAppForUninstall.id ) ],
+		""systems"": [ $( $syncHash.Data.SelectedApp.id ) ],
 		""applications"": [],
 		""executeDate"": $( ( ( Get-Date ).AddSeconds( 15 ).GetDateTimeFormats() )[30] ),
 		""useDirectMembership"": true,
@@ -190,7 +215,7 @@ function Uninstall-SysMan
 	{
 		Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.CodeSysManUri )api/application/Uninstall" -Body $UninstallJsonBody -Method Post -UseDefaultCredentials -ContentType "application/json"
 
-		Write-OpLog -Message "$( $syncHash.Data.SelectedAppForUninstall.Name ) $( $syncHash.Data.msgTable.StrUninstalledWithSysMan )" -LogMessageType "Success"
+		Write-OpLog -Message "$( $syncHash.Data.SelectedApp.Name ) $( $syncHash.Data.msgTable.StrUninstalledWithSysMan )" -LogMessageType "Success"
 		Invoke-Command $syncHash.Code.GetSysManApps -ArgumentList $syncHash, ( Get-Module ), $syncHash.Data.Computer.Name
 	}
 	catch
@@ -545,13 +570,36 @@ $syncHash.Code.GetLocalApps = {
 	$MemberOf = ( Get-ADComputer $Name -Properties MemberOf ).MemberOf
 	$syncHash.DC.PbProgressLocal[0] = [System.Windows.Visibility]::Visible
 
+
+	try
+	{
+		[System.Collections.ObjectModel.ObservableCollection[object]] $StartApps = Invoke-Command -ComputerName $Name -ScriptBlock {
+			Get-StartApps
+		}
+
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] { # Startapps
+			$syncHash.Controls.Window.Resources['CvsAppsLocalForStart'].Source = $StartApps
+			$syncHash.Controls.Window.Resources['CvsAppsLocalForStart'].View.Refresh()
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $syncHash.Data.msgTable.StrLogAppsForStartInfoFetched ; LogTime = ( Get-Date ) ; LogType = "Success" } ) )
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+		} )
+	}
+	catch
+	{
+		$syncHash.Errors.Add( $_ ) | Out-Null
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] { # Startapps error
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $syncHash.Data.msgTable.ErrLogAppsForStartInfoFetched ; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
+			$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
+		} )
+	}
+
 	try
 	{
 		Get-InstalledApplication -ComputerName $Name
 		[System.Collections.ObjectModel.ObservableCollection[object]] $Wrappers = Invoke-Command -ComputerName $Name -ScriptBlock $syncHash.Code.GetWrappers -ArgumentList $syncHash.Data.msgTable.CodeWrapperHKey -ErrorAction Stop | `
 			Where-Object { $_ -isnot [string] }
 
-		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] { # Wrappers
 			$syncHash.Controls.Window.Resources['CvsAppsWrappers'].Source = $Wrappers
 			$syncHash.Controls.Window.Resources['CvsAppsWrappers'].View.Refresh()
 			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $syncHash.Data.msgTable.StrLogAppInfoFetched ; LogTime = ( Get-Date ) ; LogType = "Success" } ) )
@@ -561,7 +609,7 @@ $syncHash.Code.GetLocalApps = {
 	catch [System.Management.Automation.Remoting.PSRemotingTransportException]
 	{
 		$syncHash.Errors.Add( $_ ) | Out-Null
-		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] { # Wrappers error
 			$syncHash.Controls.Window.Resources['CvsLogMessages'].Source.Insert( 0, ( [pscustomobject]@{ LogMessage = $syncHash.Data.msgTable.ErrComputerNotReachable ; LogTime = ( Get-Date ) ; LogType = "Error" } ) )
 			$syncHash.Controls.Window.Resources['CvsLogMessages'].View.Refresh()
 		} )
@@ -689,20 +737,38 @@ $syncHash.Controls.BtnGetAppList.Add_Click( {
 	}
 	catch
 	{
-		Write-OpLog -Message "$( $syncHash.Data.msgTable.ErrComputerNotFound )`n$( $_ )" -LogMessageType "Error"
+		$syncHash.Errors.Add( $_ ) | Out-Null
+		Write-OpLog -Message "$( $syncHash.Data.msgTable.ErrComputerNotFound )`n$( $_.Exception.Message )" -LogMessageType "Error"
 	}
 } )
 
 # Remove all info and reset controls
 $syncHash.Controls.BtnReset.Add_Click( {
 	Reset
+	Check-ButtonsReady
 	$syncHash.Data.Computer = $null
 	$syncHash.Controls.TbComputerName.Text = ""
 } )
 
+#
+$syncHash.Controls.BtnStartApplication.Add_Click( {
+	try
+	{
+		Invoke-Command -ComputerName $syncHash.Data.Computer.Name -ScriptBlock {
+			Start-Process $Using:Program
+		} -ArgumentList $syncHash.Data.SelectedApp
+
+		Write-OpLog -Message "$( $syncHash.Data.msgTable.StrAppStarted ) ($( $syncHash.Data.SelectedApp ))"
+	}
+	catch
+	{
+		Write-OpLog -Message "$( $syncHash.Data.msgTable.StrAppStartError ) ($( $syncHash.Data.SelectedApp ))`n$( $_.Exception.Message )" -LogMessageType "Error"
+	}
+} )
+
 # Uninstall the selected application
 $syncHash.Controls.BtnUninstall.Add_Click( {
-	$summary = "`n`n$( $syncHash.Data.SelectedAppForUninstall.Name )"
+	$summary = "`n`n$( $syncHash.Data.SelectedApp.Name )"
 	if ( [System.Windows.MessageBox]::Show( "$( $syncHash.Data.msgTable.QUninstall ) $summary", "", [System.Windows.MessageBoxButton]::YesNo ) -eq "Yes" )
 	{
 		if ( $syncHash.Controls.TcAppLists.SelectedIndex -eq 0 )
@@ -719,23 +785,25 @@ $syncHash.Controls.BtnUninstall.Add_Click( {
 $syncHash.Controls.DgAppListLocal.Add_SelectionChanged( {
 	if ( $this.SelectedIndex -eq -1 )
 	{
-		$syncHash.Data.SelectedAppForUninstall = $null
+		$syncHash.Data.SelectedApp = $null
 	}
 	else
 	{
-		$syncHash.Data.SelectedAppForUninstall = $this.SelectedItem
+		$syncHash.Data.SelectedApp = $this.SelectedItem
 	}
+	Check-ButtonsReady
 } )
 
 $syncHash.Controls.DgAppListSysMan.Add_SelectionChanged( {
 	if ( $this.SelectedIndex -eq -1 )
 	{
-		$syncHash.Data.SelectedAppForUninstall = $null
+		$syncHash.Data.SelectedApp = $null
 	}
 	else
 	{
-		$syncHash.Data.SelectedAppForUninstall = $this.SelectedItem
+		$syncHash.Data.SelectedApp = $this.SelectedItem
 	}
+	Check-ButtonsReady
 } )
 
 # Verify that input is a valid and existing computername
@@ -766,6 +834,12 @@ $syncHash.Controls.TbComputerName.Add_TextChanged( {
 			$syncHash.DC.PComputerNotFoundInSysManAlert[0] = [System.Windows.Visibility]::Visible
 		}
 	}
+	Check-ButtonsReady
+} )
+
+#
+$syncHash.Controls.TcAppLists.Add_SelectionChanged( {
+	Check-ButtonsReady
 } )
 
 # When the GUI is visible, check if computername should be entered to the textbox or if applist is to be fetched
@@ -798,3 +872,5 @@ $syncHash.Controls.Window.Add_Loaded( {
 	}
 	catch {}
 } )
+
+Export-ModuleMember
