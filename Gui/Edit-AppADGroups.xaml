@@ -1,8 +1,8 @@
 <Page Name="Window"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
       xmlns:sys="clr-namespace:System;assembly=mscorlib"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:componentmodel="clr-namespace:System.ComponentModel;assembly=WindowsBase"
       Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Page.Resources>
         <CollectionViewSource x:Key="CvsAppGrps">
@@ -27,23 +27,24 @@
         <sys:String x:Key="StrRemovedUsersTitle">x</sys:String>
 
         <Brush x:Key="DefaultFontColor">#FF444444</Brush>
-        <GridLength x:Key="LabelHeight">40</GridLength>
+        <sys:Double x:Key="ControlHeight">40</sys:Double>
         <Thickness x:Key="StdMargin">5</Thickness>
 
         <Style TargetType="Button"
                x:Key="BtnBaseStyle">
             <Setter Property="Foreground"
                     Value="{StaticResource DefaultFontColor}" />
-        </Style>
-        <Style TargetType="Grid"
-               x:Key="GridBaseStyle">
+            <Setter Property="Height"
+                    Value="{StaticResource ControlHeight}" />
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="10,5" />
         </Style>
         <Style TargetType="ItemsControl"
                x:Key="IcBaseStyle">
             <Setter Property="Margin"
-                    Value="20,10" />
+                    Value="{StaticResource StdMargin}" />
             <Setter Property="Visibility"
                     Value="Visible" />
             <Style.Triggers>
@@ -57,7 +58,9 @@
         <Style TargetType="ListBox"
                x:Key="LbBaseStyle">
             <Setter Property="Margin"
-                    Value="0" />
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
         </Style>
         <Style TargetType="ListBoxItem">
             <Setter Property="Margin"
@@ -87,24 +90,24 @@
             <Setter Property="AcceptsReturn"
                     Value="True" />
             <Setter Property="Margin"
-                    Value="0" />
+                    Value="{StaticResource StdMargin}" />
             <Setter Property="TextWrapping"
                     Value="Wrap" />
         </Style>
     </Page.Resources>
-    <Grid Style="{StaticResource GridBaseStyle}">
+    <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
             <ColumnDefinition />
             <ColumnDefinition />
         </Grid.ColumnDefinitions>
-        <Grid Style="{StaticResource GridBaseStyle}">
+        <Grid Margin="{StaticResource StdMargin}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="{StaticResource LabelHeight}" />
-                <RowDefinition Height="{StaticResource LabelHeight}" />
-                <RowDefinition Height="{StaticResource LabelHeight}" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition />
-                <RowDefinition Height="{StaticResource LabelHeight}" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="120" />
             </Grid.RowDefinitions>
             <TextBlock Name="TblApp"
@@ -118,7 +121,7 @@
                 <ComboBox Name="CbApp"
                           DisplayMemberPath="Text"
                           ItemsSource="{Binding Source={StaticResource CvsAppList}}"
-                          Margin="0"
+                          Margin="{StaticResource StdMargin}"
                           SelectedIndex="-1"
                           VerticalContentAlignment="Center">
                     <ComboBox.Style>
@@ -136,8 +139,7 @@
                 <Button Name="BtnRefetchGroups"
                         Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnRefetchGroups}"
                         Grid.Column="1"
-                        IsEnabled="True"
-                        Margin="5,0,0,0">
+                        IsEnabled="True">
                     <Button.Style>
                         <Style TargetType="Button"
                                BasedOn="{StaticResource BtnBaseStyle}">
@@ -182,15 +184,15 @@
                      Style="{StaticResource LbBaseStyle}" />
         </Grid>
         <Grid Grid.Column="1"
-              Style="{StaticResource GridBaseStyle}">
+              Margin="{StaticResource StdMargin}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="{StaticResource LabelHeight}" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition />
                 <RowDefinition>
                     <RowDefinition.Style>
                         <Style TargetType="RowDefinition">
                             <Setter Property="Height"
-                                    Value="{StaticResource LabelHeight}" />
+                                    Value="Auto" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ElementName=TbComputer, Path=Visibility}"
                                              Value="Collapsed">
@@ -205,7 +207,7 @@
                     <RowDefinition.Style>
                         <Style TargetType="RowDefinition">
                             <Setter Property="Height"
-                                    Value="{StaticResource LabelHeight}" />
+                                    Value="Auto" />
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding ElementName=TbComputer, Path=Visibility}"
                                              Value="Collapsed">
@@ -216,7 +218,7 @@
                         </Style>
                     </RowDefinition.Style>
                 </RowDefinition>
-                <RowDefinition Height="{StaticResource LabelHeight}" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -233,9 +235,12 @@
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblComputerTitle}"
                        Visibility="{Binding ElementName=TbComputer, Path=Visibility}" />
             <TextBox Name="TbComputer"
+                     AcceptsReturn="False"
                      FontSize="14"
                      Grid.Row="3"
-                     VerticalContentAlignment="Center">
+                     Height="{StaticResource ControlHeight}"
+                     VerticalContentAlignment="Center"
+                     TextWrapping="NoWrap">
                 <TextBox.Style>
                     <Style TargetType="TextBox"
                            BasedOn="{StaticResource TbBaseStyle}">
@@ -262,24 +267,23 @@
                     Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnPerform}"
                     Grid.Row="6"
                     IsEnabled="False"
-                    Margin="{StaticResource StdMargin}"
                     Style="{StaticResource BtnBaseStyle}" />
             <Button Name="BtnUndo"
                     Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnUndo}"
                     Grid.Row="7"
-                    Margin="{StaticResource StdMargin}"
                     Style="{StaticResource BtnBaseStyle}" />
         </Grid>
         <Grid Grid.Column="2"
-              Style="{StaticResource GridBaseStyle}">
+              Margin="{StaticResource StdMargin}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="{StaticResource LabelHeight}" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition />
             </Grid.RowDefinitions>
             <TextBlock Name="TblLog"
                        Style="{StaticResource TblTitleStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblLog}" />
             <ScrollViewer Grid.Row="2"
+                          Margin="{StaticResource StdMargin}"
                           VerticalScrollBarVisibility="Auto">
                 <ItemsControl Name="IcLog"
                               Background="White"
@@ -322,7 +326,7 @@
                                         </Style.Triggers>
                                     </Style>
                                 </Border.Style>
-                                <Grid Style="{StaticResource GridBaseStyle}">
+                                <Grid>
                                     <Grid.RowDefinitions>
                                         <RowDefinition />
                                         <RowDefinition />
