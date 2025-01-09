@@ -11,6 +11,50 @@
 
 param ( $culture = "sv-SE" )
 
+function Clear-CcmExec
+{
+	<#
+	.Synopsis
+		Fixes 'Waiting for user login'
+	.Description
+		Clears the CCMEXEC task list. This should resolve the "Waiting for user login" error message.
+	.MenuItem
+		Clear CcmExec
+	.InputData
+		Computername, True, Computername
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $InputData )
+	try
+	{
+		if ( $null -ne ( $CITask = Get-WmiObject -Query "SELECT * FROM CCM_CITask WHERE TaskState != ' PendingSoftReboot' AND TaskState != 'PendingHardReboot' AND TaskState != 'InProgress'" -Namespace root\ccm\CITasks -ComputerName $InputData.Computername ) )
+		{
+			$CITask | Remove-WmiObject
+		}
+
+		Start-Sleep -Seconds 10
+		try
+		{
+			Get-Service -Name CcmExec -ComputerName $InputData.Computername -ErrorAction Stop | Restart-Service -Force -ErrorAction Stop
+			return $IntMsgTable.ClearCcmExecDone
+		}
+		catch
+		{
+			throw "$( $IntMsgTable.ClearCcmExecErrService ):`n$( $_.Exception.Message )"
+		}
+	}
+	catch
+	{
+		throw "$( $IntMsgTable.ClearCcmExecErr):`n$( $_.Exception.Message )"
+	}
+}
+
 function Clear-DNSCache
 {
 	<#
@@ -252,7 +296,7 @@ function Get-LastBootUpTime
 			$CName = $_.ToUpper()
 			try
 			{
-				$C = Get-CimInstance Win32_OperatingSystem -ComputerName $CName -ErrorAction Stop | `
+				$C = Get-CimInstance Win32_Operatingsystem -ComputerName $CName -ErrorAction Stop | `
 					Select-Object PSComputerName, LastBootUpTime
 			}
 			catch
@@ -683,6 +727,70 @@ function Open-SysManUninstall
 	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Application/UninstallForClients#targetName=$( $Item.Name )" )
 }
 
+function Open-WebPage
+{
+	<#
+	.Synopsis
+		Open web page on remote computer
+	.Description
+		Opens a browser with the specified web page on the specified computer
+	.MenuItem
+		Open web page on remote computer
+	.InputData
+		Computername, True, Computername
+	.InputData
+		Address, True, Address to open
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $InputData )
+
+	try
+	{
+		Invoke-Command -ComputerName $InputData.Computername -ScriptBlock {
+			param ( $Address )
+			
+			Start-Process $Address
+		} -ArgumentList $InputData.Address -ErrorAction Stop
+		return $IntMsgTable.OpenWebPageStrDone
+	}
+	catch
+	{
+		throw "$( $IntMsgTable.OpenWebPageErr )`n$( $_.Exception.Message )"
+	}
+
+}
+
+function Repair-CmAgent
+{
+	<#
+	.Synopsis
+		Repair the CM agent
+	.Description
+		Repair the CM agent on the specified computer.
+	.MenuItem
+		Repair the CM agent
+	.InputData
+		Computername, True, Computername
+	.OutputType
+		String
+	.SubMenu
+		Återställ
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $InputData )
+	Invoke-WmiMethod -ComputerName $InputData.Computername -Namespace root\ccm -Class sms_client -Name RepairClient
+
+	return $IntMsgTable.RepairCmAgentStrDone
+}
+
 function Repair-CitrixIca
 {
 	<#
@@ -913,6 +1021,33 @@ function Reset-SoftwareCenter
 	Get-CimInstance -ComputerName $Item.Name -Namespace root\ccm\CITasks -Query "Select * From CCM_CITask Where TaskState != ' PendingSoftReboot' AND TaskState != 'PendingHardReboot' AND TaskState != 'InProgress'" | Remove-CimInstance
 }
 
+function Restart-SMSCMAgent
+{
+	<#
+	.Synopsis
+		Restart SMS
+	.Description
+		Restarts the SSM and CM service agents on the specified computer.
+	.Menuitem
+		Restart SMS
+	.InputData
+		Computername, True, Computername
+	.OutputType
+		String
+	.SubMenu
+		Reset
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	Invoke-Command -ComputerName $InputData.Computername -Scriptblock { Restart-Service -Name 'CcmExec' }
+	Invoke-Command -ComputerName $InputData.Computername -Scriptblock { Restart-Service -Name 'CmRcService' }
+
+	return $IntMsgTable.RestartSMSCMAgentStrDone
+}
+
 function Send-ForceLogout
 {
 	<#
@@ -1075,6 +1210,127 @@ function Send-Toast
 	catch
 	{
 		throw $_
+	}
+}
+
+function Start-CMAllMeasures
+{
+	<#
+	.Synopsis
+		Start all actions in the CM agent
+	.Description
+		Start all tasks in the CM agent for the specified computer
+	.MenuItem
+		Run everything in the CM agent
+	.InputData
+		Computername, True, Computername
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $InputData )
+
+	$SchedulingErrors = @()
+	'{00000000-0000-0000-0000-000000000001}', '{00000000-0000-0000-0000-000000000002}', '{00000000-0000-0000-0000-000000000003}', '{00000000-0000-0000-0000-000000000010}', '{00000000-0000-0000-0000-000000000021}', '{00000000-0000-0000-0000-000000000022}', '{00000000-0000-0000-0000-000000000023}', '{00000000-0000-0000-0000-000000000024}', '{00000000-0000-0000-0000-000000000025}', '{00000000-0000-0000-0000-000000000031}', '{00000000-0000-0000-0000-000000000032}', '{00000000-0000-0000-0000-000000000040}', '{00000000-0000-0000-0000-000000000042}', '{00000000-0000-0000-0000-000000000051}', '{00000000-0000-0000-0000-000000000108}', '{00000000-0000-0000-0000-000000000111}', '{00000000-0000-0000-0000-000000000112}', '{00000000-0000-0000-0000-000000000113}', '{00000000-0000-0000-0000-000000000114}', '{00000000-0000-0000-0000-000000000116}', '{00000000-0000-0000-0000-000000000120}', '{00000000-0000-0000-0000-000000000121}', '{00000000-0000-0000-0000-000000000131}' | `
+		ForEach-Object {
+			try
+			{
+				$schedule = $_
+				Invoke-WmiMethod -ComputerName $InputData.Computername -Namespace root\ccm -Class sms_client -Name TriggerSchedule $schedule
+			}
+			catch
+			{
+				$SchedulingErrors += "$( $SchedulingErrors )`n`t$( $_.Exception.Message )"
+			}
+		}
+
+	if ( $SchedulingErrors.Count -gt 0 )
+	{
+		thrown "$( $IntMsgTable.StartCMAllMeasuresErrScheduling )`n$( $SchedulingErrors -join "`n" )"
+	}
+	else
+	{
+		return $IntMsgTable.StartCMAllMeasuresDone
+	}
+}
+
+function Start-CMAppRefresh
+{
+	<#
+	.Synopsis
+		Updates and checks the status of deployed applications
+	.Description
+		Starts searching for updates and deployed applications with the CM agent on the specified computer
+	.MenuItem
+		Check deployed applications
+	.InputData
+		Computername, True, Computername
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $InputData )
+
+	$SchedulingErrors = @()
+	'{00000000-0000-0000-0000-000000000003}', '{00000000-0000-0000-0000-000000000108}', '{00000000-0000-0000-0000-000000000113}', '{00000000-0000-0000-0000-000000000114}', '{00000000-0000-0000-0000-000000000121}' | `
+		ForEach-Object {
+			try
+			{
+				$schedule = $_
+				Invoke-WmiMethod -ComputerName $InputData.Computername -Namespace root\ccm -Class sms_client -Name TriggerSchedule $schedule
+			}
+			catch
+			{
+				$SchedulingErrors += "$( $SchedulingErrors )`n`t$( $_.Exception.Message )"
+			}
+		}
+
+	if ( $SchedulingErrors.Count -gt 0 )
+	{
+		thrown "$( $IntMsgTable.StartCMAppRefreshErrScheduling )`n$( $SchedulingErrors -join "`n" )"
+	}
+	else
+	{
+		return $IntMsgTable.StartCMAppRefreshDone
+	}
+}
+
+function Start-CMNewApplications
+{
+	<#
+	.Synopsis
+		Searching for new deployed applications
+	.Description
+		Starts the SMS client to search for installations deployed to the computer.
+	.MenuItem
+		Check newly deployed applications
+	.InputData
+		Computername, True, Computername
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $InputData )
+	try
+	{
+		Invoke-WmiMethod -ComputerName $ComputerName -Namespace root\ccm -Class sms_client -Name TriggerSchedule '{00000000-0000-0000-0000-000000000022}'
+		return $IntMsgTable.StartCMNewApplicationsDone
+	}
+	catch
+	{
+		thrown "$( $IntMsgTable.StartCMNewApplicationsErr )`n$( $_.Exception.Message )"
 	}
 }
 
