@@ -118,6 +118,7 @@
         <c:ADUserConverter x:Key="UserConverter" />
         <c:ADGrpDistNameConverter x:Key="GroupConverter" />
         <c:ADUserOtherTelephoneFormater x:Key="PhonenumberFormater" />
+        <c:IsHyperlink x:Key="IsHyperlink" />
         <c:StringDateToDate x:Key="StringDateToDateTimeConverter" />
         <c:WidthLessThan x:Key="WidthLessThan" />
         <!--#endregion-->
@@ -160,6 +161,8 @@
         <sys:String x:Key="StrDateFormat">x</sys:String>
         <sys:String x:Key="StrFullDateTimeFormat">x</sys:String>
         <sys:String x:Key="StrOpensSeparateWindow">x</sys:String>
+        <sys:String x:Key="StrPropHandlerDescriptionTitle">x</sys:String>
+        <sys:String x:Key="StrPropHasPropHandler">x</sys:String>
         <sys:String x:Key="StrRealPropName">x</sys:String>
         <sys:String x:Key="StrTimeFormat">x</sys:String>
         <x:Array x:Key="ContentNoMembersOfList"
@@ -873,6 +876,15 @@
                     <Setter Property="Background"
                             Value="#e1e1e1" />
                 </Trigger>
+                <Trigger Property="IsSelected"
+                         Value="True">
+                    <Setter Property="Background"
+                            Value="Blue" />
+                    <Setter Property="BorderBrush"
+                            Value="Black" />
+                    <Setter Property="BorderThickness"
+                            Value="3,0,3,1" />
+                </Trigger>
             </Style.Triggers>
         </Style>
 
@@ -984,21 +996,34 @@
                     Value="Bottom" />
         </Style>
         <Style TargetType="TextBlock"
-               x:Key="TblHlStyle">
-            <EventSetter Event="MouseDown" />
+               x:Key="TblFuncOutputBaseStyle">
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
-            <Setter Property="Padding"
-                    Value="{StaticResource StdPadding}" />
-            <Setter Property="Foreground"
-                    Value="Blue" />
             <Setter Property="TextDecorations"
                     Value="None" />
             <Style.Triggers>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}"
+                             Value="True">
+                    <Setter Property="Background"
+                            Value="Blue" />
+                    <Setter Property="FontWeight"
+                            Value="Bold" />
+                    <Setter Property="Foreground"
+                            Value="White" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="TextBlock"
+               x:Key="TblFuncOutputHlStyle"
+               BasedOn="{StaticResource TblFuncOutputBaseStyle}">
+            <EventSetter Event="MouseDown" />
+            <Setter Property="Foreground"
+                    Value="Blue" />
+            <Setter Property="TextDecorations"
+                    Value="Underline" />
+            <Style.Triggers>
                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
                              Value="True">
-                    <Setter Property="TextDecorations"
-                            Value="Underline" />
                     <Setter Property="Background">
                         <Setter.Value>
                             <LinearGradientBrush>
@@ -1900,13 +1925,45 @@
                                                                                   IsReadOnly="True"
                                                                                   ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=DataContext.Data}">
                                                                             <DataGrid.CellStyle>
-                                                                                <Style TargetType="{x:Type DataGridCell}">
-                                                                                    <Setter Property="Padding"
-                                                                                            Value="5" />
+                                                                                <Style TargetType="DataGridCell">
+                                                                                    <Setter Property="Template">
+                                                                                        <Setter.Value>
+                                                                                            <ControlTemplate>
+                                                                                                <TextBlock Margin="{StaticResource StdMargin}"
+                                                                                                           Style="{StaticResource TblFuncOutputBaseStyle}"
+                                                                                                           Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Content.Text}" />
+                                                                                            </ControlTemplate>
+                                                                                        </Setter.Value>
+                                                                                    </Setter>
+                                                                                    <Setter Property="VerticalContentAlignment"
+                                                                                            Value="Center" />
+                                                                                    <Style.Triggers>
+                                                                                        <Trigger Property="IsSelected"
+                                                                                                 Value="True">
+                                                                                            <Setter Property="BorderBrush"
+                                                                                                    Value="Blue" />
+                                                                                        </Trigger>
+                                                                                        <MultiDataTrigger>
+                                                                                            <MultiDataTrigger.Conditions>
+                                                                                                <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Item.Type}"
+                                                                                                           Value="Hyperlink" />
+                                                                                                <Condition Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Content.Text, Converter={StaticResource IsHyperlink}}"
+                                                                                                           Value="True" />
+                                                                                            </MultiDataTrigger.Conditions>
+                                                                                            <Setter Property="Template">
+                                                                                                <Setter.Value>
+                                                                                                    <ControlTemplate>
+                                                                                                        <TextBlock Style="{StaticResource TblFuncOutputHlStyle}"
+                                                                                                                   Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=Content.Text}" />
+                                                                                                    </ControlTemplate>
+                                                                                                </Setter.Value>
+                                                                                            </Setter>
+                                                                                        </MultiDataTrigger>
+                                                                                    </Style.Triggers>
                                                                                 </Style>
                                                                             </DataGrid.CellStyle>
                                                                             <DataGrid.RowStyle>
-                                                                                <Style TargetType="{x:Type DataGridRow}"
+                                                                                <Style TargetType="DataGridRow"
                                                                                        BasedOn="{StaticResource DgrFuncOutputStyle}" />
                                                                             </DataGrid.RowStyle>
                                                                         </DataGrid>
@@ -1929,7 +1986,7 @@
                                                                                             <Setter Property="Template">
                                                                                                 <Setter.Value>
                                                                                                     <ControlTemplate>
-                                                                                                        <TextBlock Style="{StaticResource TblHlStyle}"
+                                                                                                        <TextBlock Style="{StaticResource TblFuncOutputHlStyle}"
                                                                                                                    Text="{Binding Path=Text}" />
                                                                                                     </ControlTemplate>
                                                                                                 </Setter.Value>
@@ -3327,38 +3384,111 @@
                                    Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblVisiblePropsTitle}"
                                    Visibility="{Binding ElementName=IcObjectDetailed, Path=Visibility}" />
                     </Grid>
-                    <StackPanel Grid.Column="1"
-                                Grid.Row="1"
-                                Visibility="{Binding ElementName=IcObjectDetailed, Path=Visibility}">
-                        <TextBlock FontSize="13"
-                                   FontWeight="Bold"
-                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblSourceFilterTitle}" />
-                        <ItemsControl Name="IcSourceFilter"
-                                      ItemsSource="{Binding Source={StaticResource CvsPropSourceFilters}}">
-                            <ItemsControl.Resources>
-                                <Style TargetType="CheckBox"
-                                       x:Key="ChbFilterStyle">
-                                    <EventSetter Event="Checked" />
-                                    <EventSetter Event="Unchecked" />
-                                </Style>
-                            </ItemsControl.Resources>
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <WrapPanel />
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <CheckBox Content="{Binding Path=Name}"
-                                              IsChecked="{Binding Path=Checked, Mode=TwoWay}"
-                                              Margin="{StaticResource StdMargin}"
-                                              Style="{StaticResource ChbFilterStyle}"
-                                              VerticalAlignment="Center"
-                                              VerticalContentAlignment="Center" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </StackPanel>
+                    <ScrollViewer Name="SvPropFilters"
+                                  Grid.Column="1"
+                                  Grid.Row="1"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  VerticalScrollBarVisibility="Disabled">
+                        <ScrollViewer.Template>
+                            <ControlTemplate TargetType="ScrollViewer">
+                                <Grid Background="Transparent">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+
+                                    <ScrollContentPresenter />
+
+                                    <ScrollBar Name="PART_VerticalScrollBar"
+                                               Grid.Column="1"
+                                               Maximum="{TemplateBinding ScrollableHeight}"
+                                               Value="{TemplateBinding VerticalOffset}"
+                                               ViewportSize="{TemplateBinding ViewportHeight}"
+                                               Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+                                    <ScrollBar Name="PART_HorizontalScrollBar"
+                                               Grid.Column="0"
+                                               Grid.ColumnSpan="2"
+                                               Grid.Row="1"
+                                               Height="7"
+                                               Maximum="{TemplateBinding ScrollableWidth}"
+                                               Orientation="Horizontal"
+                                               Value="{TemplateBinding HorizontalOffset}"
+                                               ViewportSize="{TemplateBinding ViewportWidth}"
+                                               Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" />
+                                </Grid>
+                            </ControlTemplate>
+                        </ScrollViewer.Template>
+                        <Grid Name="GridPropFilters"
+                              Visibility="{Binding ElementName=IcObjectDetailed, Path=Visibility}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Margin="{StaticResource StdMargin}">
+                                <TextBlock FontSize="13"
+                                           FontWeight="Bold"
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblSourceFilterTitle}" />
+                                <ItemsControl Name="IcSourceFilter"
+                                              ItemsSource="{Binding Source={StaticResource CvsPropSourceFilters}}"
+                                              MaxWidth="300">
+                                    <ItemsControl.Resources>
+                                        <Style TargetType="CheckBox"
+                                               x:Key="ChbFilterStyle">
+                                            <EventSetter Event="Checked" />
+                                            <EventSetter Event="Unchecked" />
+                                        </Style>
+                                    </ItemsControl.Resources>
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <CheckBox Content="{Binding Path=Name}"
+                                                      IsChecked="{Binding Path=Checked, Mode=TwoWay}"
+                                                      Margin="{StaticResource StdMargin}"
+                                                      Style="{StaticResource ChbFilterStyle}"
+                                                      VerticalAlignment="Center"
+                                                      VerticalContentAlignment="Center" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                            <Grid Grid.Column="1"
+                                  Margin="{StaticResource StdMargin}">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+                                <TextBlock FontSize="13"
+                                           FontWeight="Bold"
+                                           Grid.ColumnSpan="2"
+                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblCheckedForVisibleFilterTitle}" />
+                                <CheckBox Name="ChbPropFilterVisible"
+                                          Grid.Row="1"
+                                          Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentChbPropFilterVisible}"
+                                          Margin="{StaticResource StdMargin}"
+                                          VerticalAlignment="Center"
+                                          VerticalContentAlignment="Center" />
+                                <CheckBox Name="ChbPropFilterNotVisible"
+                                          Grid.Column="1"
+                                          Grid.Row="1"
+                                          Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentChbPropFilterNotVisible}"
+                                          Margin="{StaticResource StdMargin}"
+                                          VerticalAlignment="Center"
+                                          VerticalContentAlignment="Center" />
+                            </Grid>
+                        </Grid>
+                    </ScrollViewer>
                     <ScrollViewer Name="ScObjInfo"
                                   DataContext="{Binding ElementName=Window, Path=DataContext.SearchedObject}"
                                   Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
@@ -3396,10 +3526,8 @@
                                                Value="{TemplateBinding HorizontalOffset}"
                                                ViewportSize="{TemplateBinding ViewportWidth}"
                                                Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" />
-
                                 </Grid>
                             </ControlTemplate>
-
                         </ScrollViewer.Template>
                         <Grid Name="GridObjInfo">
                             <Grid.RowDefinitions>
@@ -3414,13 +3542,16 @@
                                 </ItemsControl.Resources>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid>
+                                        <!-- This Grid displays one property from SearchedItem -->
+                                        <Grid Margin="0,0,0,5">
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition Width="{StaticResource GridDetailedColWidth}" />
+                                                <ColumnDefinition Width="Auto" />
                                                 <ColumnDefinition />
                                             </Grid.ColumnDefinitions>
                                             <Grid.RowDefinitions>
+                                                <RowDefinition />
                                                 <RowDefinition />
                                                 <RowDefinition />
                                             </Grid.RowDefinitions>
@@ -3437,23 +3568,33 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Grid.Style>
-                                            <CheckBox IsChecked="{Binding Path=CheckedForVisible}"
+                                            <!-- This checkbox is used to indicate if the property is to displayed in default view -->
+                                            <CheckBox IsChecked="{Binding Path=CheckedForVisible, Mode=TwoWay}"
+                                                      IsEnabled="{Binding ElementName=TBtnObjectDetailed, Path=IsChecked}"
                                                       IsThreeState="False"
-                                                      VerticalAlignment="Center">
+                                                      Margin="{StaticResource StdMargin}"
+                                                      VerticalAlignment="Center"
+                                                      VerticalContentAlignment="Center">
                                                 <CheckBox.Style>
                                                     <Style TargetType="CheckBox">
                                                         <Setter Property="Visibility"
-                                                                Value="Hidden" />
+                                                                Value="Visible" />
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding ElementName=TBtnObjectDetailed, Path=IsChecked}"
-                                                                         Value="True">
+                                                            <MultiDataTrigger>
+                                                                <MultiDataTrigger.Conditions>
+                                                                    <Condition Binding="{Binding ElementName=TBtnObjectDetailed, Path=IsChecked}"
+                                                                               Value="False" />
+                                                                    <Condition Binding="{Binding Path=CheckedForVisible}"
+                                                                               Value="False" />
+                                                                </MultiDataTrigger.Conditions>
                                                                 <Setter Property="Visibility"
-                                                                        Value="Visible" />
-                                                            </DataTrigger>
+                                                                        Value="Hidden" />
+                                                            </MultiDataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
                                                 </CheckBox.Style>
                                             </CheckBox>
+                                            <!-- Display the name of the property -->
                                             <TextBlock FontWeight="Bold"
                                                        Grid.Column="1"
                                                        Margin="{StaticResource StdMargin}"
@@ -3469,16 +3610,61 @@
                                                     </Grid>
                                                 </TextBlock.ToolTip>
                                             </TextBlock>
-                                            <ContentControl>
+                                            <TextBlock FontStyle="Italic"
+                                                       Grid.Column="1"
+                                                       Grid.ColumnSpan="2"
+                                                       Grid.Row="1"
+                                                       HorizontalAlignment="Right"
+                                                       Margin="{StaticResource StdMargin}"
+                                                       Text="{DynamicResource StrPropHandlerDescriptionTitle}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Visibility"
+                                                                Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Path=Handler}"
+                                                                         Value="{x:Null}">
+                                                                <Setter Property="Visibility"
+                                                                        Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <!-- Indicate there is an PropHandler for this property -->
+                                            <Grid Grid.Column="2"
+                                                  Margin="{StaticResource StdMargin}"
+                                                  ToolTip="{DynamicResource StrPropHasPropHandler}">
+                                                <Grid.Style>
+                                                    <Style TargetType="Grid">
+                                                        <Setter Property="Visibility"
+                                                                Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Path=Handler}"
+                                                                         Value="{x:Null}">
+                                                                <Setter Property="Visibility"
+                                                                        Value="Hidden" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Grid.Style>
+                                                <Ellipse Fill="White"
+                                                         Height="22"
+                                                         Width="22" />
+                                                <Path Fill="LightBlue"
+                                                      Data="M11 7V9H13V7H11M14 17V15H13V11H10V13H11V15H10V17H14M22 12C22 17.5 17.5 22 12 22C6.5 22 2 17.5 2 12C2 6.5 6.5 2 12 2C17.5 2 22 6.5 22 12M20 12C20 7.58 16.42 4 12 4C7.58 4 4 7.58 4 12C4 16.42 7.58 20 12 20C16.42 20 20 16.42 20 12Z"
+                                                      Height="22"
+                                                      VerticalAlignment="Center"
+                                                      Width="22" />
+                                            </Grid>
+                                            <!-- Display the value of the property, depending on the type of value -->
+                                            <ContentControl Grid.Column="3">
                                                 <ContentControl.Style>
                                                     <Style TargetType="ContentControl">
-                                                        <Setter Property="Grid.Column"
-                                                                Value="2" />
                                                         <Setter Property="Template">
                                                             <Setter.Value>
                                                                 <ControlTemplate>
-                                                                    <TextBox Grid.Column="1"
-                                                                             Text="{Binding Path=Value, Mode=OneWay}">
+                                                                    <TextBox Text="{Binding Path=Value, Mode=OneWay}">
                                                                         <TextBox.Style>
                                                                             <Style TargetType="TextBox"
                                                                                    BasedOn="{StaticResource TbListValueBaseStyle}">
@@ -3573,62 +3759,28 @@
                                                 </ContentControl.Style>
                                             </ContentControl>
                                             <!-- Information about prop handler -->
-                                            <Grid Grid.Column="2"
-                                                  Grid.ColumnSpan="2"
-                                                  Grid.Row="1">
-                                                <Grid.Style>
-                                                    <Style TargetType="Grid">
+                                            <TextBox Grid.Column="3"
+                                                     Grid.Row="1"
+                                                     HorizontalScrollBarVisibility="Hidden"
+                                                     IsEnabled="False"
+                                                     MaxHeight="60"
+                                                     Text="{Binding Path=Handler.Description, Mode=OneWay}"
+                                                     VerticalContentAlignment="Center"
+                                                     VerticalScrollBarVisibility="Auto">
+                                                <TextBox.Style>
+                                                    <Style TargetType="TextBox">
                                                         <Setter Property="Visibility"
-                                                                Value="Collapsed" />
+                                                                Value="Visible" />
                                                         <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding Path=CheckedForVisible}"
-                                                                         Value="True">
+                                                            <DataTrigger Binding="{Binding Path=Handler}"
+                                                                         Value="{x:Null}">
                                                                 <Setter Property="Visibility"
-                                                                        Value="Visible" />
+                                                                        Value="Collapsed" />
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
-                                                </Grid.Style>
-                                                <Grid.RowDefinitions>
-                                                    <RowDefinition Height="Auto" />
-                                                    <RowDefinition Height="Auto" />
-                                                </Grid.RowDefinitions>
-                                                <TextBlock FontWeight="Bold">
-                                                    <TextBlock.Style>
-                                                        <Style TargetType="TextBlock">
-                                                            <Setter Property="Text"
-                                                                    Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPropHandlerTitle}" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding Path=Handler}"
-                                                                             Value="{x:Null}">
-                                                                    <Setter Property="Text"
-                                                                            Value="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPropHandlerTitleEmpty}" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                                <TextBox Grid.Row="1"
-                                                         HorizontalScrollBarVisibility="Hidden"
-                                                         IsEnabled="False"
-                                                         MaxHeight="60"
-                                                         Text="{Binding Path=Handler.Description, Mode=OneWay}"
-                                                         VerticalScrollBarVisibility="Auto">
-                                                    <TextBox.Style>
-                                                        <Style TargetType="TextBox">
-                                                            <Setter Property="Visibility"
-                                                                    Value="Visible" />
-                                                            <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding Path=Handler}"
-                                                                             Value="{x:Null}">
-                                                                    <Setter Property="Visibility"
-                                                                            Value="Collapsed" />
-                                                                </DataTrigger>
-                                                            </Style.Triggers>
-                                                        </Style>
-                                                    </TextBox.Style>
-                                                </TextBox>
-                                            </Grid>
+                                                </TextBox.Style>
+                                            </TextBox>
                                         </Grid>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
@@ -4019,7 +4171,7 @@
                         </Grid>
                     </ScrollViewer>
                 </Grid>
-                <Grid x:Name="GridFailedSearch"
+                <Grid Name="GridFailedSearch"
                       Visibility="Collapsed">
                     <Grid.Resources>
                         <sys:Double x:Key="IconSize">100</sys:Double>
