@@ -548,13 +548,48 @@ function Show-Splash
 	$SplashRunspace.SessionStateProxy.SetVariable( "ProgressBarVisibility", $ProgressBarVisibility )
 	$SplashRunspace.SessionStateProxy.SetVariable( "ProgressIndeterminate", $ProgressIndeterminate )
 	$SplashRunspace.SessionStateProxy.SetVariable( "ProgressMax", [double] $ProgressMax )
+
+	if ( $BorderColor -in ( ( [System.Drawing.Color] | Get-Member -Static -MemberType Properties ).Name ) )
+	{
+		try
+		{
+			$CheckedBorderColor = [System.Drawing.Color]::FromName( $BorderColor )
+		}
+		catch
+		{
+		}
+	}
+	else
+	{
+		if ( $BorderColor -notmatch "^#" )
+		{
+			$BorderColor = "#$( $BorderColor )"
+		}
+		try
+		{
+			$CheckedBorderColor = [System.Drawing.Color]::FromArgb( $BorderColor )
+		}
+		catch
+		{
+		}
+	}
+	if ( $CheckedBorderColor )
+	{
+		$RGBCode = "#{0:X2}{1:X2}{2:X2}" -f $CheckedBorderColor.R, $CheckedBorderColor.G, $CheckedBorderColor.B
+		$SplashRunspace.SessionStateProxy.SetVariable( "BorderColor", $RGBCode )
+	}
+	else
+	{
+		$SplashRunspace.SessionStateProxy.SetVariable( "BorderColor", "" )
+	}
+
 	$SplashRunspace.SessionStateProxy.SetVariable( "xml", ( [xml] ( Get-Content "$( ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName )\GUI\Show-Splash.xaml" -Raw ) ) )
 	$Script:SplashShell = [PowerShell]::Create()
 	$Script:SplashShell.AddScript( {
 		Add-Type -AssemblyName PresentationFramework
 
-		$reader = New-Object System.Xml.XmlNodeReader $xml
-		$hash.Window = [Windows.Markup.XamlReader]::Load( $reader )
+		$Reader = New-Object System.Xml.XmlNodeReader $xml
+		$hash.Window = [Windows.Markup.XamlReader]::Load( $Reader )
 		$hash.LoadingLabel = $hash.Window.FindName( "LoadingLabel" )
 		$hash.Header = $hash.Window.FindName( "Header" )
 		$hash.Progress = $hash.Window.FindName( "Progress" )
@@ -563,11 +598,16 @@ function Show-Splash
 		$hash.Progress.Visibility = $ProgressBarVisibility
 		$hash.Progress.Maximum = $ProgressMax
 		$hash.Header.Content = $Title
+		if ( -not [string]::IsNullOrEmpty( $BorderColor ) )
+		{
+			$hash.Header.Background = [System.Windows.Media.BrushConverter]::new().ConvertFromString( $BorderColor )
+		}
 		$hash.LoadingLabel.Content = $LabelText
 
 		$hash.Window.ShowDialog()
 	} ) | Out-Null
 	# Open splash screen
+
 	Start-SplashScreen
 
 	if ( -not $SelfAdmin )
@@ -575,7 +615,7 @@ function Show-Splash
 		Start-Sleep -Seconds $Duration
 		Close-SplashScreen
 	}
-	$Script:SplashHash.Shell = $script:SplashShell
+	$Script:SplashHash.Shell = $Script:SplashShell
 }
 
 function Start-SplashScreen
@@ -827,6 +867,20 @@ namespace FetchalonConverters
 			string formated = ( ( string.Join( " ", outFormat ) ).Trim() ).Insert( 4, "0" );
 
 			return ( object ) formated;
+		}
+
+		public object ConvertBack ( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	public class IsHyperlink : IValueConverter
+	{
+		/// <summary>Verify that text (value) is a proper Uri-address</summary>
+		public object Convert ( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			return Uri.IsWellFormedUriString( (string) value, UriKind.Absolute );
 		}
 
 		public object ConvertBack ( object value, Type targetType, object parameter, CultureInfo culture )
