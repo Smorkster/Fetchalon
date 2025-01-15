@@ -9,6 +9,7 @@ ConsoleWinTitlePrefix = Skript
 CreateWindowErrReadingXaml = Ett fel uppstod vid läsning av XAML-filen.
 CreateWindowErrReadingXamlExit = Tryck Enter för att avsluta
 ErrMsgInvalidXaml = Det finns fel i XAML-filen. Koden kan inte läsas.
+ShowSplashBorderColorError = Angiven färg kan inte tolkas. Korrigera och försök igen.
 ShowCustomMessageBoxDefaultTitle = Fråga från
 ShowSplashStrDefaultMainTitle = Fetchalon
 '@

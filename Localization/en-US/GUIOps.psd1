@@ -8,7 +8,8 @@ CodeConverterADDomainName = domain.test.com
 ConsoleWinTitlePrefix = Script
 CreateWindowErrReadingXaml = An error occurred while reading the XAML file.
 CreateWindowErrReadingXamlExit = Press Enter to exit
-ErrMsgInvalidXaml = Det finns fel i XAML-filen. Koden kan inte läsas.
+ErrMsgInvalidXaml = There are errors in the XAML file. The code cannot be read.
+ShowSplashBorderColorError = Specified color cannot be interpreted. Correct and try again.
 ShowCustomMessageBoxDefaultTitle = Question from
 ShowSplashStrDefaultMainTitle = Fetchalon
 '@
