@@ -741,6 +741,8 @@ function Set-Localizations
 	$syncHash.IcObjectDetailed.Resources['ContentTblPropNameTT'] = $msgTable.ContentTblPropNameTT
 	$syncHash.Window.Resources['ContentNoMembersOfList'] = @( $msgTable.ContentNoMembersOfList )
 	$syncHash.Window.Resources['StrOpensSeparateWindow'] = $msgTable.StrOpensSeparateWindow
+	$syncHash.Window.Resources['StrPropHandlerDescriptionTitle'] = $msgTable.StrPropHandlerDescriptionTitle
+	$syncHash.Window.Resources['StrPropHasPropHandler'] = $msgTable.StrPropHasPropHandler
 	$syncHash.Window.Resources['StrRealPropName'] = $msgTable.StrRealPropName
 	$syncHash.Window.Resources['MainOutput'].Resources['StrBtnNoteWarningUnderstood'] = $msgTable.ContentBtnNoteWarningUnderstood
 	$syncHash.Window.Resources['MainOutput'].Resources['StrGbFunctionInputTitle'] = $syncHash.Data.msgTable.ContentGbFunctionInputTitle
@@ -768,9 +770,9 @@ function Set-Localizations
 	$syncHash.Window.Resources['DgrFuncOutputStyle'].Setters.Where( { $_.Event.Name -match "RequestBringIntoView" } )[0].Handler = $syncHash.Code.DataGridRowDisableBringIntoView
 	$syncHash.Window.Resources['MiSubLevelFunctionsStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
 	$syncHash.Window.Resources['MiSubLevelToolStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
+	$syncHash.Window.Resources['TblFuncOutputHlStyle'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.HyperLinkClick
 	$syncHash.Window.Resources['TbInputStyle'].Setters.Where( { $_.Event.Name -match "Loaded" } )[0].Handler = $syncHash.Code.InputTextBoxLoaded
 	$syncHash.Window.Resources['TbInputStyle'].Setters.Where( { $_.Event.Name -match "TextChanged" } )[0].Handler = $syncHash.Code.MandatoryFuncTextboxInputVerification
-	$syncHash.Window.Resources['TblHlStyle'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.HyperLinkClick
 
 	$syncHash.IcSourceFilter.Resources['ChbFilterStyle'].Setters.Where( { $_.Event.Name -match "Checked" } )[0].Handler = $syncHash.Code.SourceFilterChecked
 	$syncHash.IcSourceFilter.Resources['ChbFilterStyle'].Setters.Where( { $_.Event.Name -match "Unchecked" } )[0].Handler = $syncHash.Code.SourceFilterChecked
@@ -1884,6 +1886,8 @@ $syncHash.Code.ListProperties =
 		ForEach-Object {
 			$syncHash.Window.Resources['CvsPropSourceFilters'].Source.Add( ( [pscustomobject]@{ Name = $_ ; Checked = $true } ) )
 		}
+	$syncHash.ChbPropFilterVisible.IsChecked = $true
+	$syncHash.ChbPropFilterNotVisible.IsChecked = $true
 	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
 }
 
@@ -2041,8 +2045,6 @@ $syncHash.Code.SBlockExecuteFunction = {
 {
 	param ( $SenderObject, $e )
 
-	WriteLog -Text "$( $syncHash.Data.msgTable.LogStrPropHandlerRun ): $( $syncHash.Data.SearchedItem.ObjectClass )::$( $SenderObject.DataContext.Name )::$( $SenderObject.DataContext.Source )" -Success $true
-
 	$PropLocalization = @{}
 	$syncHash.Code.PropLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )".GetEnumerator() | `
 		Where-Object { $_.Name -match "PL$( $syncHash.Data.SearchedItem.ObjectClass )$( $SenderObject.DataContext.Source )$( $SenderObject.DataContext.Name )" } | `
@@ -2080,6 +2082,8 @@ $syncHash.Code.SBlockExecuteFunction = {
 	$p.Runspace = $syncHash.Jobs.SearchRunspace
 	$JobName = "$( $syncHash.Data.SearchedItem.ObjectClass )$( $SenderObject.DataContext.Source )$( $SenderObject.DataContext.Name )"
 	$syncHash.Jobs.$JobName = [pscustomobject]@{ P = $p ; H = $p.BeginInvoke() }
+
+	WriteLog -Text "$( $syncHash.Data.msgTable.LogStrPropHandlerRun ): $( $syncHash.Data.SearchedItem.ObjectClass )::$( $SenderObject.DataContext.Name )::$( $SenderObject.DataContext.Source )" -Success $true
 }
 
 # Eventhandler to copy function output
@@ -2161,7 +2165,9 @@ $(
 [System.Predicate[object]] $syncHash.Code.FilterSource =
 {
 	$syncHash.TBtnObjectDetailed.IsChecked -or `
-	$syncHash.Window.Resources['CvsPropSourceFilters'].Source.Where( { $_.Checked } ).Name -contains $args[0].Source
+	$syncHash.Window.Resources['CvsPropSourceFilters'].Source.Where( { $_.Checked } ).Name -contains $args[0].Source -and `
+	( ( $true -eq $syncHash.ChbPropFilterVisible.IsChecked -and $true -eq $args[0].CheckedForVisible ) -or `
+		( $true -eq $syncHash.ChbPropFilterNotVisible.IsChecked -and $true -ne $args[0].CheckedForVisible ) )
 }
 
 # Open a hyperlink
@@ -2473,7 +2479,7 @@ $(
 	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
 }
 
-# Verify that all mandatory input values are entered
+# Verify that all mandatory input values for the function are entered
 [System.Windows.Controls.SelectionChangedEventHandler] $syncHash.Code.MandatoryFuncComboboxInputVerification =
 {
 	param ( $SenderObject, $e )
@@ -2653,6 +2659,20 @@ $syncHash.BtnNoteWarningUnderstood.Add_Click( {
 $syncHash.BtnSearch.Add_Click( {
 	$syncHash.DC.BrdAsterixWarning[0] = [System.Windows.Visibility]::Collapsed
 	Start-Search
+} )
+
+# Handles checkboxes for filtering properties on visible in default view or not
+$syncHash.ChbPropFilterVisible.Add_Checked( {
+	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
+} )
+$syncHash.ChbPropFilterVisible.Add_UnChecked( {
+	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
+} )
+$syncHash.ChbPropFilterNotVisible.Add_Checked( {
+	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
+} )
+$syncHash.ChbPropFilterNotVisible.Add_UnChecked( {
+	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
 } )
 
 # Set control focus depending on key pressed
