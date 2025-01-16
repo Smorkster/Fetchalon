@@ -258,7 +258,7 @@ function Get-TemaDagar
 	.SearchedItemRequest
 		None
 	.OutputType
-		List
+		ObjectList
 	.State
 		Prod
 	.Author
@@ -302,6 +302,31 @@ function Test-Error
 	#>
 
 	throw "An error"
+}
+
+function Test-HyperlinkObjectList
+{
+	<#
+	.Synopsis
+		Show list with hyperlinks
+	.MenuItem
+		Show list with hyperlinks
+	.SearchedItemRequest
+		None
+	.OutputType
+		ObjectList
+	.Description
+		Show list with hyperlinks
+	.State
+		Dev
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	$List = [System.Collections.ArrayList]::new()
+	$List.Add( ( [pscustomobject]@{ Text = "Ecosia" ; Address = "https://www.ecosia.org" ; Type = "Hyperlink" } ) ) | Out-Null
+	$List.Add( ( [pscustomobject]@{ Text = "Power Automate" ; Address = "https://make.powerautomate.com/" ; Type = "Hyperlink" } ) ) | Out-Null
+	return $List
 }
 
 function Test-WriteError
