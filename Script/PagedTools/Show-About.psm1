@@ -88,7 +88,19 @@ $syncHash.Controls.TblPSVersionTable.Text = $PSVersionTable.PSVersion.ToString()
 $syncHash.Controls.ChbRunOnLogin.Add_Checked( {
 	try
 	{
-		New-Item -Path "$( $env:APPDATA )\Microsoft\Windows\Start Menu\Programs\Startup" -Name $syncHash.Data.msgTable.StrStartOnLoginBatFileName -ItemType File -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -WindowStyle Hidden -File ""$( $syncHash.Root )\Script\$( $syncHash.Data.SuiteBaseName ).ps1"" sv-SE 1"
+		$SuiteScript = Get-Item "$( $syncHash.Root )\Script\$( $syncHash.Data.SuiteBaseName ).ps1"
+		$Drive = Get-PSDrive | Where-Object { $SuiteScript.Directory.Root.Name -match $_.Name }
+		if ( -not [string]::IsNullOrEmpty( $Drive.DisplayRoot ) )
+		{
+			$Root = $Drive.DisplayRoot
+		}
+		else
+		{
+			$Root = $Drive.Root
+		}
+		$SuiteScriptPath = Join-Path $Root -ChildPath ( $SuiteScript.FullName.Replace( $SuiteScript.Directory.Root.Name , "" ) )
+
+		New-Item -Path "$( $env:APPDATA )\Microsoft\Windows\Start Menu\Programs\Startup" -Name $syncHash.Data.msgTable.StrStartOnLoginBatFileName -ItemType File -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -WindowStyle Hidden -File ""$( $SuiteScriptPath )"" sv-SE 1" -ErrorAction Stop
 	}
 	catch
 	{
