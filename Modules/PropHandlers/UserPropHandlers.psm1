@@ -16,6 +16,75 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
 # Handler to open a users homedirectory in explorer
+$PHUserAdEnabled = [pscustomobject]@{
+	Code = '
+	$NewPropValue = $SearchedItem.Enabled
+
+	if ( $SearchedItem.DistinguishedName -match $PropLocalization.PLUserAdEnabledCodeOrgMatch )
+	{
+		if ( $NewPropValue )
+		{
+			Show-Splash -Text $PropLocalization.PLUserAdEnabledStrAlreadyActive -NoProgressBar -NoTitle
+		}
+		elseif ( $SearchedItem.Name -match $PropLocalization.PLUserAdEnabledCodeSharedAcc )
+		{
+			if ( $SearchedItem.Enabled -eq $false )
+			{
+				Show-MessageBox -Text $PropLocalization.PLUserAdEnabledStrAlreadyActive -NoProgressBar -NoTitle
+			}
+			elseif ( $SearchedItem.LockedOut )
+			{
+				Unlock-ADAccount -Identity $SearchedItem.DistinguishedName -Confirm:$false
+			}
+		}
+		else
+		{
+			if ( $SearchedItem.info -match "$( $PropLocalization.PLUserAdEnabledStrDoNotActivate )" )
+			{
+				Show-Splash -Text $PropLocalization.PLUserAdEnabledStrAlreadyActive -NoProgressBar -Title $PropLocalization.PLUserAdEnabledMsgDoNotActivateTitle -Duration 3
+			}
+			elseif ( $SearchedItem.accountExpires -ne $null )
+			{
+				try
+				{
+					$Expires = ( Get-ADUser $SearchedItem -Properties accountExpires ).accountExpires
+					if ( [DateTime]::FromFileTime( $Expires ) -lt ( Get-Date ) )
+					{
+						Show-Splash -Text $PropLocalization.PLUserAdEnabledStrAccountValidityExpired -NoProgressBar -Title $PropLocalization.PLUserAdEnabledStrAccountValidityExpiredTitle -Duration 3
+					}
+					else
+					{
+						if ( $SearchedItem.LockedOut )
+						{
+							Unlock-ADAccount -Identity $SearchedItem.DistinguishedName -Confirm:$false
+							$NewPropValue = $true
+						}
+						elseif ( $SearchedItem.Enabled -eq $false )
+						{
+							Unlock-ADAccount -Identity $SearchedItem.DistinguishedName -Confirm:$false
+							$NewPropValue = $true
+						}
+					}
+				}
+				catch
+				{
+					Show-MessageBox -Text "$( $PropLocalization.PLUserAdEnabledErrUnlocking )`n$( $_.Exception.Message )" | Out-Null
+				}
+			}
+		}
+	}
+	else
+	{
+		Show-MessageBox -Text $PropLocalization.PLUserAdEnabledErrOrgMisMatch -Icon "Error" | Out-Null
+	}
+	'
+	Title = $IntMsgTable.HTUserAdEnabled
+	Description = $IntMsgTable.HDescUserAdEnabled
+	Progress = 0
+	MandatorySource = "AD"
+}
+
+# Handler to open a users homedirectory in explorer
 $PHUserAdHomeDirectory = [pscustomobject]@{
 	Code = 'explorer $SenderObject.DataContext.Value'
 	Title = $IntMsgTable.HTUserAdOpenHomeDirectory
@@ -89,4 +158,4 @@ $PHUserOtherAccountStatus = [pscustomobject]@{
 }
 
 Export-ModuleMember -Variable IntMsgTable
-Export-ModuleMember -Variable PHUserAdHomeDirectory, PHUserAdMemberOf, PHUserOtherAccountStatus
+Export-ModuleMember -Variable PHUserAdEnabled, PHUserAdHomeDirectory, PHUserAdMemberOf, PHUserOtherAccountStatus
