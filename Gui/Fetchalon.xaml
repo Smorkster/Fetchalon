@@ -119,6 +119,7 @@
         <c:ADGrpDistNameConverter x:Key="GroupConverter" />
         <c:ADUserOtherTelephoneFormater x:Key="PhonenumberFormater" />
         <c:IsHyperlink x:Key="IsHyperlink" />
+        <c:PropHandlerDateTimeValidity x:Key="PropHandlerDateTimeValidity" />
         <c:StringDateToDate x:Key="StringDateToDateTimeConverter" />
         <c:WidthLessThan x:Key="WidthLessThan" />
         <!--#endregion-->
@@ -164,6 +165,8 @@
         <sys:String x:Key="StrPropHandlerDescriptionTitle">x</sys:String>
         <sys:String x:Key="StrPropHasPropHandler">x</sys:String>
         <sys:String x:Key="StrRealPropName">x</sys:String>
+        <sys:String x:Key="StrEndTimeHasPassed">x</sys:String>
+        <sys:String x:Key="StrStartTimeNotOccured">x</sys:String>
         <sys:String x:Key="StrTimeFormat">x</sys:String>
         <x:Array x:Key="ContentNoMembersOfList"
                  Type="sys:String" />
@@ -304,6 +307,8 @@
         </Style>
         <Style TargetType="Border"
                x:Key="PropBorder">
+            <Setter Property="Background"
+                    Value="#00FEFEFE" />
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
             <Setter Property="MaxHeight"
@@ -2152,20 +2157,27 @@
                 </DataGrid.Style>
                 <DataGrid.Columns>
                     <DataGridTextColumn Binding="{Binding Path=Name}">
-                        <DataGridTextColumn.Header>
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Name="DgSearchResultsColRunTitle"
-                                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgSearchResultsColNameTitle}" />
-                                <TextBlock Name="DgSearchResultsColRunCount" />
-                                <TextBlock Name="DgSearchResultsColRunEnd">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Name="DgSearchResultsColRunCount">
+                                    <Run Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgSearchResultsColNameTitle, Mode=OneWay}" />
+                                    <Run Text=" (" />
+                                    <Run FontWeight="Bold"
+                                         Text="{Binding ElementName=DgSearchResults, Path=ItemsSource.Count, Mode=OneWay}" />
                                     <Run Text=" " />
-                                    <Run Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgSearchResultsColNameTitle}" />
+                                    <Run Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgSearchResultsColMatchCountTitle, Mode=OneWay}" />
+                                    <Run Text=")" />
                                 </TextBlock>
-                            </StackPanel>
-                        </DataGridTextColumn.Header>
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
                     </DataGridTextColumn>
-                    <DataGridTextColumn Binding="{Binding Path=ObjectClass}"
-                                        Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgSearchResultsColObjClass}" />
+                    <DataGridTextColumn Binding="{Binding Path=ObjectClass}">
+                        <DataGridTextColumn.HeaderTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentDgSearchResultsColObjClass}" />
+                            </DataTemplate>
+                        </DataGridTextColumn.HeaderTemplate>
+                    </DataGridTextColumn>
                 </DataGrid.Columns>
             </DataGrid>
         </Popup>
@@ -2276,7 +2288,7 @@
                         <TextBlock Name="TblObjName"
                                    FontSize="13"
                                    Grid.Row="1"
-                                   Text="{Binding Path=SearchedItem.Name}"
+                                   Text="{Binding Path=SearchedItem.AD.Name}"
                                    TextWrapping="Wrap">
                             <TextBlock.Style>
                                 <Style TargetType="TextBlock"
@@ -3605,7 +3617,7 @@
                                                             <Run Text="{DynamicResource ContentTblPropNameTT}"
                                                                  FontWeight="Bold" />
                                                             <Run Text=": " />
-                                                            <Run Text="{Binding Path=Source}" />
+                                                            <Run Text="{Binding Path=PropDataSource}" />
                                                         </TextBlock>
                                                     </Grid>
                                                 </TextBlock.ToolTip>
@@ -3968,10 +3980,40 @@
                                                 <Button Content="{Binding Path=Handler.Title}"
                                                         Grid.Column="6"
                                                         Padding="5,0"
-                                                        ToolTip="{Binding Path=Handler.Description}">
+                                                        ToolTipService.ShowOnDisabled="True">
+                                                    <Button.ToolTip>
+                                                        <Grid>
+                                                            <Grid.RowDefinitions>
+                                                                <RowDefinition />
+                                                                <RowDefinition Height="Auto" />
+                                                            </Grid.RowDefinitions>
+                                                            <TextBlock Text="{Binding Path=Handler.Description}" />
+                                                            <TextBlock Grid.Row="1"
+                                                                       Margin="0,5,0,0"
+                                                                       Text="{Binding Path=Handler.ExtraTooltipPropHandlerTimeValidity}">
+                                                                <TextBlock.Style>
+                                                                    <Style TargetType="TextBlock">
+                                                                        <Setter Property="Text"
+                                                                                Value="Red" />
+                                                                        <Setter Property="Visibility"
+                                                                                Value="Visible" />
+                                                                        <Style.Triggers>
+                                                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text.Length}"
+                                                                                         Value="0">
+                                                                                <Setter Property="Visibility"
+                                                                                        Value="Collapsed" />
+                                                                            </DataTrigger>
+                                                                        </Style.Triggers>
+                                                                    </Style>
+                                                                </TextBlock.Style>
+                                                            </TextBlock>
+                                                        </Grid>
+                                                    </Button.ToolTip>
                                                     <Button.Style>
                                                         <Style TargetType="Button"
                                                                BasedOn="{StaticResource BtnRunPropStyle}">
+                                                            <Setter Property="IsEnabled"
+                                                                    Value="False" />
                                                             <Setter Property="Visibility"
                                                                     Value="Visible" />
                                                             <Style.Triggers>
@@ -3979,6 +4021,11 @@
                                                                              Value="{x:Null}">
                                                                     <Setter Property="Visibility"
                                                                             Value="Hidden" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding Path=Handler.ExtraTooltipPropHandlerTimeValidity}"
+                                                                             Value="">
+                                                                    <Setter Property="IsEnabled"
+                                                                            Value="True" />
                                                                 </DataTrigger>
                                                             </Style.Triggers>
                                                         </Style>

@@ -246,7 +246,12 @@ function Connect-O365
 
 	"AzureAD", "ExchangeOnlineManagement" | `
 		ForEach-Object {
-			Import-Module -Name $_ -Force -ErrorAction Stop
+			try
+			{
+				Import-Module -Name $_ -Force -ErrorAction Stop
+			}
+			catch
+			{}
 		}
 	try
 	{
@@ -299,50 +304,50 @@ function Get-ExtraInfoFromSysMan
 
 	if ( "User" -eq $syncHash.Data.SearchedItem.ObjectClass )
 	{
-		$syncHash.Data.SearchedItem.ExtraInfo.SysManBase = ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )User?name=$( $syncHash.Data.SearchedItem.SamAccountName )&take=1&skip=0" -UseDefaultCredentials -ContentType "application/json" -Method Get ).result[0]
-		$syncHash.Data.SearchedItem.ExtraInfo.SysManReport = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )reporting/User?userName=$( $syncHash.Data.SearchedItem.SamAccountName )" -UseDefaultCredentials -ContentType "application/json" -Method Get
+		Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "Base" -Value ( ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )User?name=$( $syncHash.Data.SearchedItem.AD.SamAccountName )&take=1&skip=0" -UseDefaultCredentials -ContentType "application/json" -Method Get ).result[0] | Select-Object * )
+		Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "Report" -Value ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )reporting/User?userName=$( $syncHash.Data.SearchedItem.AD.SamAccountName )" -UseDefaultCredentials -ContentType "application/json" -Method Get | Select-Object * )
 
-		Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "AzureMemberships" -Value ( $syncHash.Data.SearchedItem.ExtraInfo.SysManReport.azure.memberships.Name | Sort-Object ) -Force
-		Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "AzureDevices" -Value ( [System.Collections.ArrayList]::new() ) -Force
-		$syncHash.Data.SearchedItem.ExtraInfo.SysManReport.azure.devices | Sort-Object name | ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.Other.AzureDevices.Add( $_ ) | Out-Null }
+		Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "AzureMemberships" -Value ( $syncHash.Data.SearchedItem.SysMan.Report.azure.memberships.Name | Sort-Object ) -Force
+		Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "AzureDevices" -Value ( [System.Collections.ArrayList]::new() ) -Force
+		$syncHash.Data.SearchedItem.SysMan.Report.azure.devices | Sort-Object name | ForEach-Object { $syncHash.Data.SearchedItem.Other.AzureDevices.Add( $_ ) | Out-Null }
 	}
 	elseif ( "Computer" -eq $syncHash.Data.SearchedItem.ObjectClass )
 	{
-		$syncHash.Data.SearchedItem.ExtraInfo.SysManBase = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
-		$syncHash.Data.SearchedItem.ExtraInfo.Manufacturer = Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.StrSysManApi )HardwareModel/$( $syncHash.Data.SearchedItem.ExtraInfo.Base.hardwareModelId )" -Method Get -UseDefaultCredentials -ContentType "application/json"
-		$syncHash.Data.SearchedItem.ExtraInfo.Sccm = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/SccmInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
+		Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "Base" -Value ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get | Select-Object * )
+		Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "Manufacturer" -Value ( Invoke-RestMethod -Uri "$( $syncHash.Data.msgTable.StrSysManApi )HardwareModel/$( $syncHash.Data.SearchedItem.SysMan.Base.hardwareModelId )" -Method Get -UseDefaultCredentials -ContentType "application/json" | Select-Object * )
+		Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "Sccm" -Value ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/SccmInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get | Select-Object * )
 
-		Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "activeDirectoryOperatingSystemNameVersion" -Value $null -Force
-		Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ManufacturerModel" -Value $null -Force
-		$syncHash.Data.SearchedItem.ExtraInfo.Wmi = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/WmiInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop
-		$syncHash.Data.SearchedItem.ExtraInfo.Other.activeDirectoryOperatingSystemNameVersion = "$( $syncHash.Data.SearchedItem.ExtraInfo.Base.activeDirectoryOperatingSystemName ) - $( $syncHash.Data.msgTable.StrCompOperatingSystemVersion ) $( $syncHash.Data.SearchedItem.ExtraInfo.Base.activeDirectoryOperatingSystemVersion )"
+		Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "activeDirectoryOperatingSystemNameVersion" -Value $null -Force
+		Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "ManufacturerModel" -Value $null -Force
+		Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "Wmi" -Value ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/WmiInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop | Select-Object * )
+		$syncHash.Data.SearchedItem.Other.activeDirectoryOperatingSystemNameVersion = "$( $syncHash.Data.SearchedItem.SysMan.Base.activeDirectoryOperatingSystemName ) - $( $syncHash.Data.msgTable.StrCompOperatingSystemVersion ) $( $syncHash.Data.SearchedItem.SysMan.Base.activeDirectoryOperatingSystemVersion )"
 
-		$syncHash.Data.SearchedItem.ExtraInfo.Sccm = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/SccmInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
+		$syncHash.Data.SearchedItem.SysMan.Sccm = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/SccmInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get
 
-		$syncHash.Data.SearchedItem.ExtraInfo.Other.ManufacturerModel = "$( $syncHash.Data.SearchedItem.ExtraInfo.Manufacturer.Manufacturer ) - $( $syncHash.Data.SearchedItem.ExtraInfo.Manufacturer.Name )"
+		$syncHash.Data.SearchedItem.Other.ManufacturerModel = "$( $syncHash.Data.SearchedItem.SysMan.Manufacturer.Manufacturer ) - $( $syncHash.Data.SearchedItem.SysMan.Manufacturer.Name )"
 
 		try
 		{
-			$syncHash.Data.SearchedItem.ExtraInfo.Local = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/LocalInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop
-			$syncHash.Data.SearchedItem.ExtraInfo.Wmi = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/WmiInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop
-			$syncHash.Data.SearchedItem.ExtraInfo.Other.IsOnline = "Online"
+			Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "Local" -Value ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/LocalInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop | Select-Object * )
+			$syncHash.Data.SearchedItem.SysMan.Wmi = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/WmiInformation?name=$( $name )" -UseDefaultCredentials -ContentType "application/json" -Method Get -ErrorAction Stop
+			$syncHash.Data.SearchedItem.Other.IsOnline = "Online"
 		}
 		catch
 		{
-			$syncHash.Data.SearchedItem.ExtraInfo.Other.IsOnline = "Offline"
+			$syncHash.Data.SearchedItem.Other.IsOnline = "Offline"
 		}
-		$syncHash.Data.SearchedItem.ExtraInfo.Health = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/Health?targetName=$( $name )&onlyLatest=$true" -UseDefaultCredentials -ContentType "application/json" -Method Get
+		Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "Health" -Value ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )client/Health?targetName=$( $name )&onlyLatest=$true" -UseDefaultCredentials -ContentType "application/json" -Method Get | Select-Object * )
 	}
 	elseif ( "PrintQueue" -eq $syncHash.Data.SearchedItem.ObjectClass )
 	{
-		$syncHash.Data.SearchedItem.ExtraInfo.Base = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )Printer?name=$( $syncHash.Data.SearchedItem.Name )&take=1&skip=0" -UseDefaultCredentials -ContentType "application/json" -Method Get | Select-Object -ExpandProperty result
-		$syncHash.Data.SearchedItem.ExtraInfo.Extended = Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )Printer/$( $syncHash.Data.SearchedItem.ExtraInfo.Base.id )" -UseDefaultCredentials -ContentType "application/json" -Method Get
+		Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "Base" -Value ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )Printer?name=$( $syncHash.Data.SearchedItem.AD.Name )&take=1&skip=0" -UseDefaultCredentials -ContentType "application/json" -Method Get | Select-Object -ExpandProperty result | Select-Object * )
+		Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "Extended" -Value ( Invoke-RestMethod "$( $syncHash.Data.msgTable.StrSysManApi )Printer/$( $syncHash.Data.SearchedItem.SysMan.Base.id )" -UseDefaultCredentials -ContentType "application/json" -Method Get | Select-Object * )
 
 		try
 		{
-			$a = Get-Printer -Name $syncHash.Data.SearchedItem.ExtraInfo.Base.name.Trim() -ComputerName $syncHash.Data.SearchedItem.ExtraInfo.Base.server -ErrorAction Stop
-			$syncHash.Data.SearchedItem.ExtraInfo.PrintConf = @{}
-			$a | Get-Member -MemberType Property | ForEach-Object { $syncHash.Data.SearchedItem.ExtraInfo.PrintConf."$( $_.Name )" = $a."$( $_.Name )" }
+			$a = Get-Printer -Name $syncHash.Data.SearchedItem.SysMan.Base.name.Trim() -ComputerName $syncHash.Data.SearchedItem.SysMan.Base.server -ErrorAction Stop
+			Add-Member -InputObject $syncHash.Data.SearchedItem.SysMan -MemberType NoteProperty -Name "PrintConf" -Value @{}
+			$a | Get-Member -MemberType Property | ForEach-Object { $syncHash.Data.SearchedItem.SysMan.PrintConf."$( $_.Name )" = $a."$( $_.Name )" }
 		}
 		catch
 		{}
@@ -375,41 +380,47 @@ function Get-PropHandlers
 			$syncHash.Code.PropNameLocalizations."$( $Module )" = @{}
 			( Import-Module $_.FullName -PassThru ).ExportedVariables.GetEnumerator() | `
 				ForEach-Object {
-					if ( $null -ne $_.Value.Value.Code )
+					if ( ( $null -eq $_.Value.Value.ValidStartDateTime ) -or `
+						( ( Get-Date ).Date -ge ( [datetime]::Parse( $_.Value.Value.ValidStartDateTime ) ).Date )
+					)
 					{
-						$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )" = $_.Value.Value
-
-						# Check if PropertyHandler-description is specified
-						if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description ) )
+						if ( $null -ne $_.Value.Value.Code )
 						{
-							$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description = $syncHash.Data.msgTable.StrDefaultHandlerDescription
+							$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )" = $_.Value.Value
+							Add-Member -InputObject $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )" -MemberType NoteProperty -Name ExtraTooltipPropHandlerTimeValidity -Value ""
+
+							# Check if PropertyHandler-description is specified
+							if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description ) )
+							{
+								$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description = $syncHash.Data.msgTable.StrDefaultPropHandlerDescription
+							}
+
+							# Check if PropertyHandler-title is specified
+							if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title ) )
+							{
+								$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title = $syncHash.Data.msgTable.StrDefaultPropHandlerTitle
+							}
 						}
 
-						# Check if PropertyHandler-title is specified
-						if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title ) )
+						# Check for any PropertyHandler localization
+						if ( $_.Key -eq "IntMsgTable" )
 						{
-							$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title = $syncHash.Data.msgTable.StrRunHandler
+							$_.Value.Value.GetEnumerator() | `
+								Where-Object { $_.Name -match "^PL" } | `
+								ForEach-Object {
+									$syncHash.Code.PropLocalizations."$( $Module )"."$( $_.Name )" = $_.Value
+								}
+							$_.Value.Value.GetEnumerator() | `
+								Where-Object { $_.Name -match "^PD" } | `
+								ForEach-Object {
+									$syncHash.Code.PropDescriptions."$( $Module )"."$( $_.Name )" = $_.Value
+								}
+							$_.Value.Value.GetEnumerator() | `
+								Where-Object { $_.Name -match "^PNL" } | `
+								ForEach-Object {
+									$syncHash.Code.PropNameLocalizations."$( $Module )"."$( $_.Name )" = $_.Value
+								}
 						}
-					}
-
-					# Check for any PropertyHandler localization
-					if ( $_.Key -eq "IntMsgTable" )
-					{
-						$_.Value.Value.GetEnumerator() | `
-							Where-Object { $_.Name -match "^PL" } | `
-							ForEach-Object {
-								$syncHash.Code.PropLocalizations."$( $Module )"."$( $_.Name )" = $_.Value
-							}
-						$_.Value.Value.GetEnumerator() | `
-							Where-Object { $_.Name -match "^PD" } | `
-							ForEach-Object {
-								$syncHash.Code.PropDescriptions."$( $Module )"."$( $_.Name )" = $_.Value
-							}
-						$_.Value.Value.GetEnumerator() | `
-							Where-Object { $_.Name -match "^PNL" } | `
-							ForEach-Object {
-								$syncHash.Code.PropNameLocalizations."$( $Module )"."$( $_.Name )" = $_.Value
-							}
 					}
 				}
 		}
@@ -501,10 +512,10 @@ function Prepare-ToRunScript
 			{
 				$ItemToSend = @{}
 
-				$syncHash.Data.SearchedItem | `
+				$syncHash.Data.SearchedItem.AD | `
 					Get-Member -MemberType NoteProperty | `
 					ForEach-Object {
-						$ItemToSend."$( $_.Name )" = $syncHash.Data.SearchedItem."$( $_.Name )"
+						$ItemToSend."$( $_.Name )" = $syncHash.Data.SearchedItem.AD."$( $_.Name )"
 					}
 
 				$syncHash.Jobs.ExecuteFunction.P.AddParameter( "SearchedItem", $ItemToSend ) | Out-Null
@@ -547,11 +558,11 @@ function Prepare-ToRunScript
 		{
 			if ( "printQueue" -eq $syncHash.Data.SearchedItem.ObjectClass )
 			{
-				$syncHash.GridFunctionOp.DataContext.InputData[0].EnteredValue = $syncHash.Data.SearchedItem.Name
+				$syncHash.GridFunctionOp.DataContext.InputData[0].EnteredValue = $syncHash.Data.SearchedItem.AD.Name
 			}
 			else
 			{
-				$syncHash.GridFunctionOp.DataContext.InputData[0].EnteredValue = $syncHash.Data.SearchedItem.SamAccountName
+				$syncHash.GridFunctionOp.DataContext.InputData[0].EnteredValue = $syncHash.Data.SearchedItem.AD.SamAccountName
 			}
 		}
 	}
@@ -743,6 +754,8 @@ function Set-Localizations
 	$syncHash.Window.Resources['StrOpensSeparateWindow'] = $msgTable.StrOpensSeparateWindow
 	$syncHash.Window.Resources['StrPropHandlerDescriptionTitle'] = $msgTable.StrPropHandlerDescriptionTitle
 	$syncHash.Window.Resources['StrPropHasPropHandler'] = $msgTable.StrPropHasPropHandler
+	$syncHash.Window.Resources['StrEndTimeHasPassed'] = $msgTable.StrEndTimeHasPassed
+	$syncHash.Window.Resources['StrStartTimeNotOccured'] = $msgTable.StrStartTimeNotOccured
 	$syncHash.Window.Resources['StrRealPropName'] = $msgTable.StrRealPropName
 	$syncHash.Window.Resources['MainOutput'].Resources['StrBtnNoteWarningUnderstood'] = $msgTable.ContentBtnNoteWarningUnderstood
 	$syncHash.Window.Resources['MainOutput'].Resources['StrGbFunctionInputTitle'] = $syncHash.Data.msgTable.ContentGbFunctionInputTitle
@@ -780,7 +793,7 @@ function Set-Localizations
 	$syncHash.MiOutputHistory.ItemContainerStyle.Setters[0].Handler = $syncHash.Code.ShowOutputItem
 
 	# Initialize collections
-	'CvsDetailedProps', 'CvsPropsList', 'CvsPropSourceFilters' | `
+	"CvsDetailedProps", "CvsPropsList", "CvsPropSourceFilters" | `
 		ForEach-Object {
 			$syncHash.Window.Resources[$_].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 		}
@@ -796,7 +809,7 @@ function Set-Localizations
 			}
 
 	# Enabled collection synchronization over threads
-	"DgSearchResults", "IcObjectDetailed", "IcPropsList", "MiOutputHistory" | `
+	"IcObjectDetailed", "IcPropsList", "MiOutputHistory" | `
 		ForEach-Object {
 			[System.Windows.Data.BindingOperations]::EnableCollectionSynchronization( $syncHash."$( $_ )".ItemsSource, $syncHash."$( $_ )" )
 		}
@@ -1085,7 +1098,7 @@ function Start-Search
 					$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsComputer
 					$LDAPSearches.Add( "(&(ObjectClass=computer)(Name=$Id))" ) | Out-Null
 				}
-				elseif ( $Id -match "(?i)^($( $syncHash.Data.msgTable.StrAdmPrefix ))*[a-z0-9]{4}$" )
+				elseif ( $Id -match "(?i)^($( $syncHash.Data.msgTable.StrAdmPrefix ))*[a-z0-9]{4}$" -and $Id -notmatch "[aeiouy]")
 				{
 					$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsID
 					$LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null
@@ -1149,6 +1162,8 @@ function Start-Search
 
 					# PrintQueue
 					$LDAPSearches.Add( "(&(ObjectClass=printQueue)(Name=$Id*))" ) | Out-Null
+
+					$LDAPSearches.Add( "(Name=$Id)" )
 				}
 
 				$LDAPSearches | `
@@ -1156,6 +1171,7 @@ function Start-Search
 						Get-ADObject -LDAPFilter $_ -Properties *
 					} |`
 					Sort-Object -Property ObjectClass, Name | `
+					Select-Object -Unique | `
 					ForEach-Object {
 						$syncHash.DC.DgSearchResults[0].Add( $_ )
 					}
@@ -1164,10 +1180,7 @@ function Start-Search
 			$syncHash.Window.Dispatcher.Invoke( [action] {
 				$syncHash.DgSearchResults.SelectedIndex = 0
 				$syncHash.DC.GridSearchProgress[0] = [System.Windows.Visibility]::Collapsed
-				$syncHash.DgSearchResultsColRunCount.Text = $syncHash.DC.DgSearchResults[0].Count
-			}, [System.Windows.Threading.DispatcherPriority]::Send )
 
-			$syncHash.Window.Dispatcher.Invoke( [action] {
 				if ( 0 -eq $syncHash.DC.DgSearchResults[0].Count )
 				{
 					$syncHash.GridFailedSearch.Visibility = [System.Windows.Visibility]::Visible
@@ -1333,13 +1346,16 @@ $syncHash.Code.ListItem =
 		{
 			"Computer"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = Get-ADComputer $Object.ObjectGUID -Properties * | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					AD = Get-ADComputer $Object.ObjectGUID -Properties * | Select-Object *
+					Other = [pscustomobject]@{}
+					SysMan = [pscustomobject]@{}
+				}
 
-				if ( $syncHash.Data.SearchedItem.adminDescription -ne $null )
+				if ( $syncHash.Data.SearchedItem.AD.adminDescription -ne $null )
 				{
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "adminDescriptionList" -Value ( $syncHash.Data.SearchedItem.adminDescription -split ";" | `
+					Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "adminDescriptionList" -Value ( $syncHash.Data.SearchedItem.AD.adminDescription -split ";" | `
 						Where-Object { $_ } | `
 						Sort-Object -Descending | `
 						ForEach-Object {
@@ -1347,121 +1363,136 @@ $syncHash.Code.ListItem =
 						} )
 				}
 
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "IsOnline" -Value "Unknown"
-				$syncHash.Data.SearchedItem.MemberOf.Where( { $_ -match $syncHash.Data.msgTable.CodeOrgGrpNamePrefix } )[0] -match $syncHash.Data.msgTable.CodeOrgGrpCaptureRegex | Out-Null
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "PCRoll" -Value $Matches.role
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Organisation" -Value $Matches.org
+				Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "IsOnline" -Value "Unknown"
+				$syncHash.Data.SearchedItem.AD.MemberOf.Where( { $_ -match $syncHash.Data.msgTable.CodeOrgGrpNamePrefix } )[0] -match $syncHash.Data.msgTable.CodeOrgGrpCaptureRegex | Out-Null
+				Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "PCRoll" -Value $Matches.role
+				Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "Organisation" -Value $Matches.org
 
 				break
 			}
 			"Group"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = Get-ADGroup $Object.ObjectGUID -Properties * | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
-
-				if ( $syncHash.Data.SearchedItem."$( $syncHash.Data.msgTable.StrOrgDnPropName )" -ne $null )
-				{
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "OrgDn" -Value @()
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					AD = Get-ADGroup $Object.ObjectGUID -Properties * | Select-Object *
+					Other = [pscustomobject]@{}
+					SysMan = [pscustomobject]@{}
 				}
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "HasWritePermission" -Value "?"
+
+				if ( $syncHash.Data.SearchedItem.AD."$( $syncHash.Data.msgTable.StrOrgDnPropName )" -ne $null )
+				{
+					Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "OrgDn" -Value @()
+				}
+				Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "HasWritePermission" -Value "?"
 
 				break
 			}
 			"PrintQueue"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					AD = $Object | Select-Object *
+					Other = [pscustomobject]@{}
+					SysMan = [pscustomobject]@{}
+				}
 
-				if ( $syncHash.Data.SearchedItem.portName -ne $null )
+				if ( $syncHash.Data.SearchedItem.AD.portName -ne $null )
 				{
-					$syncHash.Data.SearchedItem.portName = ( $syncHash.Data.SearchedItem.portName | Select-Object -First 1 | Sort-Object ).Trim()
+					$syncHash.Data.SearchedItem.AD.portName = ( $syncHash.Data.SearchedItem.AD.portName | Select-Object -First 1 | Sort-Object ).Trim()
 				}
 
 				break
 			}
 			"User"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = Get-ADUser $Object.ObjectGUID -Properties * | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					AD = Get-ADUser $Object.ObjectGUID -Properties * | Select-Object *
+					Other = [pscustomobject]@{}
+					SysMan = [pscustomobject]@{}
+				}
 
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "NeedPasswordChange" -Value ( $syncHash.Data.SearchedItem.PasswordLastSet -lt ( Get-Date "2022-04-29" ) )
-				if ( $syncHash.Data.SearchedItem.Enabled -eq $true )
+				Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "NeedPasswordChange" -Value ( $syncHash.Data.SearchedItem.AD.PasswordLastSet -lt ( Get-Date "2022-04-29" ) )
+				if ( $syncHash.Data.SearchedItem.AD.Enabled -eq $true )
 				{
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "AccountStatus" -Value $syncHash.Data.msgTable.StrAccountStatusOk
+					Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "AccountStatus" -Value $syncHash.Data.msgTable.StrAccountStatusOk
 				}
 				else
 				{
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "AccountStatus" -Value "?"
+					Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "AccountStatus" -Value "?"
 				}
 
-				if ( $syncHash.Data.SearchedItem.otherTelephone -ne $null )
+				if ( $syncHash.Data.SearchedItem.AD.otherTelephone -ne $null )
 				{
-					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.otherTelephone = $syncHash.Data.SearchedItem.otherTelephone
+					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.AD.otherTelephone = $syncHash.Data.SearchedItem.AD.otherTelephone
 				}
 
-				if ( $syncHash.Data.SearchedItem.proxyAddresses -ne $null )
+				if ( $syncHash.Data.SearchedItem.AD.proxyAddresses -ne $null )
 				{
-					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.proxyAddresses = $syncHash.Data.SearchedItem.proxyAddresses | Sort-Object
+					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.AD.proxyAddresses = $syncHash.Data.SearchedItem.AD.proxyAddresses | Sort-Object
 				}
 
-				if ( $syncHash.Data.SearchedItem.LogonWorkstations -ne $null )
+				if ( $syncHash.Data.SearchedItem.AD.LogonWorkstations -ne $null )
 				{
-					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.LogonWorkstations = @( $syncHash.Data.SearchedItem.LogonWorkstations -split "," | Sort-Object )
+					[System.Collections.ArrayList] $syncHash.Data.SearchedItem.AD.LogonWorkstations = @( $syncHash.Data.SearchedItem.AD.LogonWorkstations -split "," | Sort-Object )
 				}
 
 				break
 			}
 			"DirectoryInfo"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = Get-Item $Object | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ObjectClass" -Value ( $Object.ObjectClass )
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					FileSystem = Get-Item $Object | Select-Object *
+					Other = [pscustomobject]@{}
+					SysMan = [pscustomobject]@{}
+				}
 
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "DirectoryInventory" -Value ( [System.Collections.ArrayList]::new( @( [pscustomobject]@{ $syncHash.Data.msgTable.StrPropDataNotFetched = $syncHash.Data.msgTable.StrPropDataNotFetched } ) ) ) -Force
+				Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "DirectoryInventory" -Value ( [System.Collections.ArrayList]::new( @( [pscustomobject]@{ $syncHash.Data.msgTable.StrPropDataNotFetched = $syncHash.Data.msgTable.StrPropDataNotFetched } ) ) ) -Force
+
 				try
 				{
-					$Grp = ( ( ( Get-Acl $syncHash.Data.SearchedItem.FullName ).Access | `
+					$Grp = ( ( ( Get-Acl $syncHash.Data.SearchedItem.FileSystem.FullName ).Access | `
 						Where-Object { $_.IdentityReference -match $syncHash.Data.msgTable.CodeRegExAclIdentity } ).IdentityReference.Value -split "\\" )[1]
 					$Owner = ( Get-ADUser -Identity ( Get-ADGroup -Identity ( $Grp.Insert( $Grp.Length - 1 , "User_" ) ) -Properties ManagedBy ).ManagedBy ).Name
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value $Owner -Force
+					Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "ADOwner" -Value $Owner -Force
 				}
 				catch
 				{
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "ADOwner" -Value $syncHash.Data.msgTable.StrNoOwner
+					Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "ADOwner" -Value $syncHash.Data.msgTable.StrNoOwner
 				}
 
 				break
 			}
 			"FileInfo"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = Get-Item $Object | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ObjectClass" -Value ( $Object.ObjectClass )
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					FileSystem = Get-Item $Object | Select-Object *
+					Other = [pscustomobject]@{}
+				}
 
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "DataStreams" -Value ( [System.Collections.ArrayList]::new() )
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "FileSize" -Value ""
+				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ObjectClass" -Value ( $Object.ObjectClass )
+
+				Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "DataStreams" -Value ( [System.Collections.ArrayList]::new() )
+				Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "FileSize" -Value ""
 
 				try
 				{
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Extension" -Value "$( $Object.Extension ) ($( ( Get-ItemProperty "Registry::HKEY_Classes_root\$( ( Get-ItemProperty "Registry::HKEY_Classes_root\$( $Object.Extension )" -ErrorAction Stop )."(default)" )")."(default)" ))"
+					Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "Extension" -Value "$( $Object.Extension ) ($( ( Get-ItemProperty "Registry::HKEY_Classes_root\$( ( Get-ItemProperty "Registry::HKEY_Classes_root\$( $Object.Extension )" -ErrorAction Stop )."(default)" )")."(default)" ))"
 				}
 				catch
 				{
-					Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "Extension" -Value "$( $Object.Extension )"
+					Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "Extension" -Value "$( $Object.Extension )"
 				}
-				Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "FileVersionInfo" -Value ( [System.Collections.ArrayList]::new() )
+				Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "FileVersionInfo" -Value ( [System.Collections.ArrayList]::new() )
 
-				$syncHash.Data.SearchedItem.ExtraInfo.Other.FileSize = if ( $Object.Length -lt 1kB ) { "$( $Object.Length ) B" }
+				$syncHash.Data.SearchedItem.Other.FileSize = if ( $Object.Length -lt 1kB ) { "$( $Object.Length ) B" }
 					elseif ( $Object.Length -gt 1kB -and $Object.Length -lt 1MB ) { "$( [math]::Round( ( $Object.Length / 1kB ), 2 ) ) kB" }
 					elseif ( $Object.Length -gt 1MB -and $Object.Length -lt 1GB ) { "$( [math]::Round( ( $Object.Length / 1MB ), 2 ) ) MB" }
 					elseif ( $Object.Length -gt 1GB -and $Object.Length -lt 1TB ) { "$( [math]::Round( ( $Object.Length / 1GB ), 2 ) ) GB" }
 
-				Get-Item $syncHash.Data.SearchedItem.FullName -Stream * | `
+				Get-Item $syncHash.Data.SearchedItem.FileSystem.FullName -Stream * | `
 					ForEach-Object {
 						[pscustomobject]@{
 							Name = $_.Stream
@@ -1471,77 +1502,95 @@ $syncHash.Code.ListItem =
 								elseif ( $_.Length -gt 1GB -and $_.Length -lt 1TB ) { "$( [math]::Round( ( $_.Length / 1GB ), 2 ) ) GB" } }
 					} | `
 					ForEach-Object {
-						$syncHash.Data.SearchedItem.ExtraInfo.Other.DataStreams.Add( $_ ) | Out-Null
+						$syncHash.Data.SearchedItem.Other.DataStreams.Add( $_ ) | Out-Null
 					}
 
-				$syncHash.Data.SearchedItem.VersionInfo | `
+				$syncHash.Data.SearchedItem.FileSystem.VersionInfo | `
 					Get-Member -MemberType Property | `
 					ForEach-Object {
 						$FviAttribute = [pscustomobject]@{
 							"Name" = $_.Name
-							"Value" = $syncHash.Data.SearchedItem.VersionInfo."$( $_.Name )"
+							"Value" = $syncHash.Data.SearchedItem.FileSystem.VersionInfo."$( $_.Name )"
 						}
-						$syncHash.Data.SearchedItem.ExtraInfo.Other.FileVersionInfo.Add( $FviAttribute ) | Out-Null
+						$syncHash.Data.SearchedItem.Other.FileVersionInfo.Add( $FviAttribute ) | Out-Null
 					}
 
 				break
 			}
 			"O365User"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
-				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					Exchange = $Object | Select-Object *
+					Other = [pscustomobject]@{}
+					SysMan = [pscustomobject]@{}
+				}
+				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.Exchange.EmailAddresses = $syncHash.Data.SearchedItem.Exchange.EmailAddresses
 
 				break
 			}
 			"O365SharedMailbox"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
-				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					Exchange = $Object | Select-Object *
+					Other = [pscustomobject]@{}
+					SysMan = [pscustomobject]@{}
+				}
+				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.Exchange.EmailAddresses = $syncHash.Data.SearchedItem.Exchange.EmailAddresses
 
 				break
 			}
 			"O365Resource"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
-				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					Exchange = $Object | Select-Object *
+					Other = [pscustomobject]@{}
+					SysMan = [pscustomobject]@{}
+				}
+				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.Exchange.EmailAddresses = $syncHash.Data.SearchedItem.Exchange.EmailAddresses
 
 				break
 			}
 			"O365Room"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
-				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					Exchange = $Object | Select-Object *
+					Other = [pscustomobject]@{}
+					SysMan = [pscustomobject]@{}
+				}
+				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.Exchange.EmailAddresses = $syncHash.Data.SearchedItem.Exchange.EmailAddresses
 
 				break
 			}
 			"O365Distributionlist"
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = $Object | Select-Object *
-				Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name "ExtraInfo" -Value ( @{} )
-				$syncHash.Data.SearchedItem.ExtraInfo.Other = [pscustomobject]@{}
-				$syncHash.Data.SearchedItem.ExtraInfo.DistGroup = Get-DistributionGroup $Object.PrimarySmtpAddress | Select-Object *
-				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.EmailAddresses = $syncHash.Data.SearchedItem.EmailAddresses
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $Object.ObjectClass
+					Exchange = $Object | Select-Object *
+					Other = [pscustomobject]@{}
+					SysMan = [pscustomobject]@{}
+				}
+				$syncHash.Data.SearchedItem.Other.DistGroup = Get-DistributionGroup $Object.PrimarySmtpAddress | Select-Object *
+				[System.Collections.ArrayList]$syncHash.Data.SearchedItem.Exchange.EmailAddresses = $syncHash.Data.SearchedItem.Exchange.EmailAddresses
 
 				break
 			}
 			default
 			{
-				[pscustomobject] $syncHash.Data.SearchedItem = $syncHash.DgSearchResults.SelectedItem | Select-Object *
+				$syncHash.Data.SearchedItem = [pscustomobject]@{
+					ObjectClass = $null
+					AD = $syncHash.DgSearchResults.SelectedItem | Select-Object *
+				}
 			}
 		}
 
-		if ( $syncHash.Data.SearchedItem.MemberOf -match $syncHash.Data.msgTable.StrGrpNameSharedCompName )
+		if ( $syncHash.Data.SearchedItem.AD.MemberOf -match $syncHash.Data.msgTable.StrGrpNameSharedCompName )
 		{
-			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "SharedAccount" -Value "?"
-			Add-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.Other -MemberType NoteProperty -Name "SharedAccountAvailable" -Value $true
+			Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "SharedAccount" -Value "?"
+			Add-Member -InputObject $syncHash.Data.SearchedItem.Other -MemberType NoteProperty -Name "SharedAccountAvailable" -Value $true
 		}
 
 		if ( "Computer", "PrintQueue", "User" -contains $syncHash.Data.SearchedItem.ObjectClass )
@@ -1554,9 +1603,9 @@ $syncHash.Code.ListItem =
 			$syncHash.MiGetSysManInfo.Visibility = [System.Windows.Visibility]::Collapsed
 		}
 
-		if ( $syncHash.Data.SearchedItem."$( $syncHash.Data.msgTable.StrIdPropName )" -ne $null )
+		if ( $syncHash.Data.SearchedItem.AD."$( $syncHash.Data.msgTable.StrIdPropName )" -ne $null )
 		{
-			Add-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty -Name Identity -Value $syncHash.Data.SearchedItem."$( $syncHash.Data.msgTable.StrIdPropName )" -Force
+			Add-Member -InputObject $syncHash.Data.SearchedItem.AD -MemberType NoteProperty -Name Identity -Value $syncHash.Data.SearchedItem.AD."$( $syncHash.Data.msgTable.StrIdPropName )" -Force
 		}
 
 		Invoke-Command $syncHash.Code.ListProperties -ArgumentList $false
@@ -1565,7 +1614,7 @@ $syncHash.Code.ListItem =
 		$syncHash.MenuObject.IsEnabled = $true
 		$syncHash.TblObjName.GetBindingExpression( [System.Windows.Controls.TextBlock]::TextProperty ).UpdateTarget()
 
-		$syncHash.TblObjName.Background = switch ( $syncHash.Data.SearchedItem.Enabled )
+		$syncHash.TblObjName.Background = switch ( $syncHash.Data.SearchedItem.AD.Enabled )
 		{
 			"$true" { "LightGreen" }
 			"$false" { "Coral" }
@@ -1606,62 +1655,6 @@ $syncHash.Code.ListItem =
 		$syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add( $Info )
 	}
 	$syncHash.PopupMenu.IsOpen = $false
-}
-
-# Display extra info that was fetched
-$syncHash.Code.ListExtraInfo =
-{
-	param ( $Exclude )
-
-	if ( $Exclude.Count -gt 0 )
-	{
-		$ExtraInfo = $syncHash.Data.SearchedItem.ExtraInfo.GetEnumerator() | Where-Object { $_.Name -notin $Exclude }
-	}
-	else
-	{
-		$ExtraInfo = $syncHash.Data.SearchedItem.ExtraInfo.GetEnumerator()
-	}
-
-	foreach ( $info in $ExtraInfo )
-	{
-		$info.Value | Get-Member -MemberType NoteProperty | ForEach-Object {
-			$p = $_
-			try
-			{
-				$Prop = [pscustomobject]@{
-						Name = $p.Name
-						Value = $syncHash.Data.SearchedItem.ExtraInfo."$( $info.Name )"."$( $p.Name )"
-						Type = $syncHash.Data.SearchedItem.ExtraInfo."$( $info.Name )"."$( $p.Name )".GetType().Name
-						CheckedForVisible = ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Name -contains $p.Name )
-						Source = $info.Name
-					}
-				if ( $Prop.Source -eq $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."$( $Prop.Name )".Value.MandatorySource )
-				{
-					Add-Member -InputObject $Prop -MemberType NoteProperty -Name "Handler" -Value $syncHash.Code.PropHandlers."$( syncHash.Data.SearchedItem.ObjectClass )"."( $Prop.Name )"
-				}
-
-				if ( "ADPropertyValueCollection" -eq $Prop.Type -or $Prop.Value -is [array] )
-				{
-					[System.Collections.ArrayList] $Prop.Value = $v
-					$Prop.Type = "ArrayList"
-				}
-
-				if ( $Prop.Type -eq "ArrayList" )
-				{
-					if ( "pscustomobject" -eq $Prop.Value[0].GetType().Name )
-					{
-						$Prop.Type = "ObjectList"
-					}
-
-					if ( $Prop.Value.Count -eq 0 )
-					{
-						[void] $Prop.Value.Add( $syncHash.Data.msgTable.StrNoScriptOutput )
-					}
-				}
-			} catch {}
-		}
-	}
-	Invoke-Command $syncHash.Code.ListProperties -ArgumentList ( "Visible" -eq $syncHash.IcObjectDetailed.Visibility )
 }
 
 # Get properties to display and enter into IcPropsList
@@ -1713,16 +1706,27 @@ $syncHash.Code.ListProperties =
 		{
 			if ( $Val.GetType().Name -eq "Int64" )
 			{
-				if ( 9223372036854775807 -eq $Val )
+				if ( -9223372036854775808, 9223372036854775807 -contains $Val )
 				{
 					if ( $syncHash.Data.SearchedItem.ObjectClass -eq "user" )
 					{
 						return $syncHash.Data.msgTable.StrAccountNeverExpires, "String"
 					}
+					else
+					{
+						return "$( $syncHash.Data.msgTable.StrPropInfinityValue ) ($( $Val ))", "String"
+					}
 				}
 				else
 				{
-					return ( Get-Date ( [datetime]::FromFileTime( $Val ) ) -Format "u" ), "String"
+					try
+					{
+						return ( Get-Date ( [datetime]::FromFileTime( $Val ) ) -Format "u" ), "String"
+					}
+					catch
+					{
+						return $Val,"String"
+					}
 				}
 			}
 			elseif ( "ADPropertyValueCollection" -eq $Val.GetType().Name )
@@ -1740,76 +1744,32 @@ $syncHash.Code.ListProperties =
 	$syncHash.Window.Resources['CvsPropsList'].Source.Clear()
 	$Props = if ( $Detailed )
 		{
-			$syncHash.Data.SearchedItem, $syncHash.Data.SearchedItem.ExtraInfo.Keys | `
-				ForEach-Object `
-					-Begin {
-						$c = 0
-						$OtherObjectClass = ( ( Get-Member -InputObject $syncHash.Data.UserSettings.VisibleProperties -MemberType NoteProperty ).Name -notcontains $syncHash.Data.SearchedItem.ObjectClass )
-					} `
-					-Process {
-						if ( 0 -eq $c )
-						{
-							( Get-Member -InputObject $_ -MemberType NoteProperty ).Name | `
-								Where-Object { $_ -and `
-									$_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and `
-									$_ -notmatch "^PS"
-									} | `
-								ForEach-Object {
-									$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem."$( $_ )"
-									[pscustomobject]@{
-										Name = $_
-										Value = $v
-										Source = if ( $syncHash.Data.SearchedItem.ObjectClass -match "^O365((SharedMailbox)|(Room)|(Resource)|(Distributionlist)|(User))" )
-											{
-												"Exchange"
-											}
-											else
-											{
-												"AD"
-											}
-										Type = $t
-										CheckedForVisible = $null
-										DisplayPropInfo = [System.Windows.Visibility]::Collapsed
-									}
-								}
+			Get-Member -inputobject $syncHash.Data.SearchedItem -MemberType NoteProperty | `
+				ForEach-Object {
+					$Source = $_.Name
+					Get-Member -InputObject $syncHash.Data.SearchedItem."$( $_.Name )" -MemberType NoteProperty | `
+						Where-Object { $_ -and `
+							$_ -notmatch "(Propert(y)|(ies))" -and `
+							$_ -notmatch "^PS"
+						} | `
+						ForEach-Object {
+							$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem."$( $Source )"."$( $_.Name )"
+							[pscustomobject]@{
+								Name = $_.Name
+								Value = $v
+								Source = $Source
+								Type = $t
+								CheckedForVisible = $null
+								DisplayPropInfo = [System.Windows.Visibility]::Collapsed
+							}
 						}
-						else
-						{
-							$_ | ForEach-Object {
-								$Source = $_
-								( Get-Member -InputObject $syncHash.Data.SearchedItem.ExtraInfo.$Source -MemberType NoteProperty ).Name | `
-									Where-Object { $_ -and `
-										$_ -notmatch "(ExtraInfo)|(Propert(y)|(ies))" -and `
-										$_ -notmatch "^PS"
-										} | `
-									ForEach-Object {
-										$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem.ExtraInfo."$( $Source )"."$( $_ )"
-										[pscustomobject]@{
-											Name = $_
-											Value = $v
-											Source = $Source
-											Type = $t
-											CheckedForVisible = $null
-											DisplayPropInfo = [System.Windows.Visibility]::Collapsed
-										}
-									}
-								}
-						}
-						$c += 1
-					}
+				}
 		}
 		else
 		{
 			$syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )" | `
 				ForEach-Object {
-					if ( $_.MandatorySource -match "(Exchange)|(AD)" )
-					{
-						$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem."$( $_.Name )"
-					}
-					else
-					{
-						$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem.ExtraInfo."$( $_.MandatorySource )"."$( $_.Name )"
-					}
+					$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem."$( $_.MandatorySource )"."$( $_.Name )"
 					[pscustomobject]@{
 						Name = $_.Name
 						Value = $v
@@ -1822,12 +1782,12 @@ $syncHash.Code.ListProperties =
 		}
 
 		if ( $Props.Name -notmatch "LogonWorkstations" `
-			-and $syncHash.Data.SearchedItem.Name -match $syncHash.Data.msgTable.CodeRegExSharedAccName
+			-and $syncHash.Data.SearchedItem.AD.Name -match $syncHash.Data.msgTable.CodeRegExSharedAccName
 		)
 		{
 			$Props += [pscustomobject]@{
 				Name = "LogonWorkstations"
-				Value = $syncHash.Data.SearchedItem.LogonWorkstations
+				Value = $syncHash.Data.SearchedItem.AD.LogonWorkstations
 				Source = "AD"
 				Type = "ArrayList"
 				CheckedForVisible = $null
@@ -1842,7 +1802,37 @@ $syncHash.Code.ListProperties =
 				# Check if there is a PropHandler for this property
 				if ( $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )".Keys -contains "PH$( $PropGenName )" )
 				{
-					Add-Member -InputObject $Prop -MemberType NoteProperty -Name Handler -Value $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."PH$( $PropGenName )"
+					Add-Member -InputObject $Prop -MemberType NoteProperty -Name Handler -Value ( $syncHash.Code.PropHandlers."$( $syncHash.Data.SearchedItem.ObjectClass )"."PH$( $PropGenName )".psobject.Copy() )
+
+					if ( $null -ne $Prop.Handler.ValidStartDateTime -and $null -eq $Prop.Handler.InvalidateDateTime )
+					{
+						if ( [datetime]::Compare( [datetime]::Parse( $Prop.Handler.ValidStartDateTime ), [datetime]::Now ) -gt 0 )
+						{
+							$Prop.Handler.ExtraTooltipPropHandlerTimeValidity = "$( $syncHash.Data.msgTable.StrStartTimeNotOccured ) '$( $Prop.Handler.ValidStartDateTime )'"
+						}
+					}
+					elseif ( $null -eq $Prop.Handler.ValidStartDateTime -and $null -ne $Prop.Handler.InvalidateDateTime )
+					{
+						if ( [datetime]::Compare( [datetime]::Parse( $Prop.Handler.InvalidateDateTime ), [datetime]::Now ) -lt 0 )
+						{
+							$Prop.Handler.ExtraTooltipPropHandlerTimeValidity = "$( $syncHash.Data.msgTable.StrEndTimeHasPassed ) '$( $Prop.Handler.InvalidateDateTime )'"
+						}
+					}
+					elseif ( $null -ne $Prop.Handler.ValidStartDateTime -and $null -ne $Prop.Handler.InvalidateDateTime )
+					{
+						if ( [datetime]::Compare( [datetime]::Parse( $Prop.Handler.ValidStartDateTime ), [datetime]::Now ) -lt 0 -and [datetime]::Compare( [datetime]::Now, [datetime]::Parse( $Prop.Handler.InvalidateDateTime ) ) -gt 0 )
+						{
+							$Prop.Handler.ExtraTooltipPropHandlerTimeValidity = ""
+						}
+						elseif ( [datetime]::Compare( [datetime]::Parse( $Prop.Handler.ValidStartDateTime ), [datetime]::Now ) -gt 0 -and [datetime]::Compare( [datetime]::Parse( $Prop.Handler.InvalidateDateTime ), [datetime]::Now ) -gt 0 )
+						{
+							$Prop.Handler.ExtraTooltipPropHandlerTimeValidity = "$( $syncHash.Data.msgTable.StrStartTimeNotOccured ) '$( $Prop.Handler.ValidStartDateTime )'"
+						}
+						elseif ( [datetime]::Compare( [datetime]::Parse( $Prop.Handler.ValidStartDateTime ), [datetime]::Now ) -lt 0 -and [datetime]::Compare( [datetime]::Parse( $Prop.Handler.InvalidateDateTime ), [datetime]::Now ) -lt 0 )
+						{
+							$Prop.Handler.ExtraTooltipPropHandlerTimeValidity = "$( $syncHash.Data.msgTable.StrEndTimeHasPassed ) '$( $Prop.Handler.InvalidateDateTime )'"
+						}
+					}
 				}
 
 				# Check if there is a PropDescription for this property
@@ -1873,7 +1863,7 @@ $syncHash.Code.ListProperties =
 				# Should the prop be added to the list of selected visible properties?
 				if ( $syncHash.Data.UserSettings.VisibleProperties."$( $syncHash.Data.SearchedItem.ObjectClass )".Where( { $_.MandatorySource -eq $Prop.Source -and $_.Name -eq $Prop.Name } ) -or `
 					$OtherObjectClass -or `
-					( $Props.Name -notmatch "LogonWorkstations" -and $syncHash.Data.SearchedItem.Name -match "^F\w{3}\d{4}" )
+					( $Props.Name -notmatch "LogonWorkstations" -and $syncHash.Data.SearchedItem.AD.Name -match "^F\w{3}\d{4}" )
 				)
 				{
 					$syncHash.Window.Resources['CvsPropsList'].Source.Add( ( $Prop | Select-Object * ) )
@@ -2025,6 +2015,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 	} )
 }
 
+# region Eventhandlers
 # Eventhandler to copy function output
 [System.Windows.RoutedEventHandler] $syncHash.Code.CopyOutputData =
 {
@@ -2241,6 +2232,7 @@ $(
 				{
 					# Insert a reference to all functions and tools
 					$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+					$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalPropHandlers'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
 					$syncHash.Window.Resources.GetEnumerator() | `
 						Where-Object { $_.Name -match "^CvsMi(?!(O365)|(Output))" } | `
@@ -2250,11 +2242,31 @@ $(
 							{
 								$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalFunctions'].Source.Add( ( [pscustomobject]@{
 									MenuItem = $syncHash."$( $_.Name -replace "^Cvs" )".Header.Children[1].Text
-									MenuItems = $_.Value.Source
-									MenuType = $_.Name -replace "^CvsMi"
+									Items = $_.Value.Source | Sort-Object MenuItem
 								} ) )
 							}
 							catch {}
+						}
+
+					$syncHash.Code.PropHandlers.GetEnumerator() | `
+						Where-Object { $_.Value.Count -ne 0 } | `
+						ForEach-Object {
+							$Items = $_.Value.GetEnumerator() | `
+								ForEach-Object {
+									$Item = $_.Value.psobject.Copy()
+									if ( $null -eq ( $Item | Get-Member -MemberType NoteProperty | Where-Object { $_.Name -match "Author" } ) )
+									{
+										Add-Member -InputObject $Item -MemberType NoteProperty -Name "Author" -Value "-"
+									}
+									Add-Member -InputObject $Item -MemberType NoteProperty -Name "MenuItem" -Value ( ( $_.Name -split $_.Value.MandatorySource )[1] ) -Force
+									$Item
+								} | `
+								Sort-Object MenuItem
+							$PH = [pscustomobject]@{
+								MenuItem = $_.Name
+								Items = $Items
+							}
+							$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalPropHandlers'].Source.Add( $PH )
 						}
 				}
 			}
@@ -2311,6 +2323,7 @@ $(
 				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['MenuItemsHash'] = $MenuItemsHash
 				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['SubMenus'] = $SubMenus
 				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Data.SuiteBaseName = ( Get-Item $PSCommandPath ).BaseName
+				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['PropHandlerNames'] = $syncHash.Code.PropHandlers.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator() } | ForEach-Object { $_.Name }
 			}
 		}
 		catch
@@ -2531,6 +2544,8 @@ $(
 	$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count
 }
 
+# endregion
+
 Set-Localizations
 
 Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximum ( $syncHash.Data.msgTable.Keys.Where( { $_ -match "Joke" } ).Count ) )"
@@ -2607,6 +2622,7 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Script\PagedTools", "$( $syncHash.Dat
 
 Update-SplashText -Text $msgTable.StrSplashAddControlHandlers
 
+# region GUI controls eventhandlers
 # Function note was acknowledged, check is function run button should be enabled
 $syncHash.BrdFunctionNote.Add_IsVisibleChanged( {
 	if ( $null -eq $syncHash.GridFunctionOp.DataContext.InputData -and `
@@ -2963,40 +2979,6 @@ $syncHash.Window.Add_ContentRendered( {
 	WriteLog "Start > $( ( ( Get-DisplayResolution )[0].GetEnumerator() | Where-Object { -not [char]::IsControl( $_ ) } ) -join '' -split 'x' ) | $( $M ) | $( $H ) | $( $W )" -Success $true
 } )
 
-# Catch keystrokes to see if the menu is to be opened
-$syncHash.Window.Add_KeyDown( {
-	switch ( $args[1].Key )
-	{
-		"Escape"
-		{
-			if ( $syncHash.PopupMenu.IsOpen )
-			{
-				$syncHash.PopupMenu.IsOpen = $false
-			}
-		}
-		"F1" {
-			$syncHash.TbSearch.SelectAll()
-			$syncHash.TbSearch.Focus()
-		}
-		"System"
-		{
-			if ( $args[1].SystemKey -eq "D" )
-			{
-				$args[1].Handled = $true
-				$syncHash.TbSearch.SelectAll()
-				$syncHash.TbSearch.Focus()
-			}
-		}
-	}
-} )
-
-# The main window has been moved, also move the popup
-$syncHash.Window.Add_LocationChanged( {
-	$oldLoc = $syncHash.PopupMenu.HorizontalOffset
-	$syncHash.PopupMenu.HorizontalOffset = $oldLoc + 1
-	$syncHash.PopupMenu.HorizontalOffset = $oldLoc
-} )
-
 # The main window closes, exits and deletes runspaces and events
 $syncHash.Window.Add_Closed( {
 	$syncHash.Data.UserSettings | ConvertTo-Json -Compress -Depth 5 | Set-Content $syncHash.Data.SettingsPath
@@ -3065,10 +3047,47 @@ $syncHash.Window.Add_Closing( {
 	$syncHash.Data.UserSettings.WindowLeft  = $syncHash.Window.Left
 } )
 
+# Catch keystrokes to see if the menu is to be opened
+$syncHash.Window.Add_KeyDown( {
+	switch ( $args[1].Key )
+	{
+		"Escape"
+		{
+			if ( $syncHash.PopupMenu.IsOpen )
+			{
+				$syncHash.PopupMenu.IsOpen = $false
+			}
+		}
+		"F1" {
+			$syncHash.TbSearch.SelectAll()
+			$syncHash.TbSearch.Focus()
+		}
+		"System"
+		{
+			if ( $args[1].SystemKey -eq "D" )
+			{
+				$args[1].Handled = $true
+				$syncHash.TbSearch.SelectAll()
+				$syncHash.TbSearch.Focus()
+			}
+		}
+	}
+} )
+
+# The main window has been moved, also move the popup
+$syncHash.Window.Add_LocationChanged( {
+	$oldLoc = $syncHash.PopupMenu.HorizontalOffset
+	$syncHash.PopupMenu.HorizontalOffset = $oldLoc + 1
+	$syncHash.PopupMenu.HorizontalOffset = $oldLoc
+} )
+
+# Assert that the menuitems follow correct visibility when Window is being resized
 $syncHash.Window.Add_SizeChanged( {
 	Set-MenuTextVisibility
 	Set-MenuOrientation
 } )
+
+# endregion
 
 # When new output is added, clear ItemsControl and add output to be displayed
 $syncHash.Window.Resources['CvsMiOutputHistory'].Source.Add_CollectionChanged( {
