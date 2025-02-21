@@ -85,7 +85,7 @@ $syncHash.Controls.TbId.Add_TextChanged( {
 $syncHash.Controls.Window.Add_IsVisibleChanged( {
 	if ( $this.IsVisible -and ( $null -eq $syncHash.Data.User ) )
 	{
-		$syncHash.Controls.TbId.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Alias
+		$syncHash.Controls.TbId.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Exchange.Alias
 	}
 	$syncHash.Controls.TbId.Focus()
 } )
