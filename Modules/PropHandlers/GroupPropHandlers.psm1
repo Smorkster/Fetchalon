@@ -1,8 +1,12 @@
 ﻿<#
-.Synopsis Property handlers for group objects
-.Description A collection of objects, as property handlers, to operate on objects with objectclass 'group'
-.State Prod
-.Author Smorkster (smorkster)
+.Synopsis
+	Property handlers for group objects
+.Description
+	A collection of objects, as property handlers, to operate on objects with objectclass 'group'
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
@@ -44,7 +48,7 @@ $PHGroupOtherHasWritePermission = [pscustomobject]@{
 	else
 	{
 		$PermGrps = [System.Collections.ArrayList]::new()
-		( Get-Acl "AD:$( $SearchedItem.DistinguishedName )" ).Access | `
+		( Get-Acl "AD:$( $SearchedItem.AD.DistinguishedName )" ).Access | `
 			Where-Object { $_.IdentityReference -match $PropLocalization.PLGroupOtherHasWritePermissionCodeIdentityReference } | `
 			ForEach-Object {
 				try
@@ -59,11 +63,11 @@ $PHGroupOtherHasWritePermission = [pscustomobject]@{
 			}
 		if ( $PermGrps.Count -gt 0 )
 		{
-			$NewPropValue = "True"
+			$NewPropValue = $PropLocalization.PLGroupOtherHasWritePermissionStrHasWritePermission
 		}
 		else
 		{
-			$NewPropValue = "False"
+			$NewPropValue = $PropLocalization.PLGroupOtherHasWritePermissionStrDoesNotHaveWritePermission
 		}
 	}
 	'
