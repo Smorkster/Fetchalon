@@ -1,8 +1,12 @@
 ﻿<#
-.Synopsis Property handlers for file info objects
-.Description A collection of objects, as property handlers, to operate on objects with objectclass 'FileInfo'
-.State Prod
-.Author Smorkster (smorkster)
+.Synopsis
+	Property handlers for file info objects
+.Description
+	A collection of objects, as property handlers, to operate on objects with objectclass 'FileInfo'
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
@@ -13,7 +17,7 @@ Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName 
 
 # Handler to open file
 $PHFileInfoAdFullName = [pscustomobject]@{
-	Code = 'explorer $syncHash.Data.SearchedItem.FullName'
+	Code = 'explorer $SearchedItem.AD.FullName'
 	Title = $IntMsgTable.HTFileInfoAdOpenFile
 	Description = $IntMsgTable.HDescFileInfoAdOpenFile
 	Progress = 0
