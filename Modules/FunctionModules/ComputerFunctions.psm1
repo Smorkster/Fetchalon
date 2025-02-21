@@ -82,7 +82,7 @@ function Clear-DNSCache
 
 	try
 	{
-		Invoke-Command -ComputerName $Item.Name -Scriptblock { ipconfig /flushdns }
+		Invoke-Command -ComputerName $Item.AD.Name -Scriptblock { ipconfig /flushdns }
 	}
 	catch
 	{
@@ -115,7 +115,7 @@ function Clear-NetIdCache
 
 	param ( $Item )
 
-	$Files = Invoke-Command -ErrorAction Stop -ComputerName $Item.Name -ScriptBlock `
+	$Files = Invoke-Command -ErrorAction Stop -ComputerName $Item.AD.Name -ScriptBlock `
 	{
 		# Remove all items under 'C:\Windows\temp' containing iid
 		$Files = Get-ChildItem -Path "C:\Windows\Temp\" -Include "*iid*" -Recurse
@@ -154,7 +154,7 @@ function Close-CurrentOpenRemoteConnections
 
 	try
 	{
-		Get-Service -ComputerName $Item.Name -Name CmRcService -ErrorAction Stop | Restart-Service
+		Get-Service -ComputerName $Item.AD.Name -Name CmRcService -ErrorAction Stop | Restart-Service
 	}
 	catch
 	{
@@ -189,7 +189,7 @@ function Connect-AsAdmin
 
 	try
 	{
-		Start-Process -Filepath "C:\Windows\System32\mstsc.exe" -ArgumentList "/v:$( $Item.Name ) /f"
+		Start-Process -Filepath "C:\Windows\System32\mstsc.exe" -ArgumentList "/v:$( $Item.AD.Name ) /f"
 	}
 	catch
 	{
@@ -220,7 +220,7 @@ function Get-ComputersSameCostCenter
 
 	param ( $Item )
 
-	return ( Get-ADComputer -LDAPFilter "($( $IntMsgTable.StrSameCostCenterPropName )=$( $Item."$( $IntMsgTable.StrSameCostCenterPropName )" ))" ).Name | Sort-Object
+	return ( Get-ADComputer -LDAPFilter "($( $IntMsgTable.StrSameCostCenterPropName )=$( $Item.AD."$( $IntMsgTable.StrSameCostCenterPropName )" ))" ).Name | Sort-Object
 }
 
 function Get-Drivers
@@ -249,7 +249,7 @@ function Get-Drivers
 	try
 	{
 		$List = [System.Collections.ArrayList]::new()
-		( driverquery /s $Item.Name /v /fo csv ) -replace [char]8221, "ö" -replace [char]255, "," | `
+		( driverquery /s $Item.AD.Name /v /fo csv ) -replace [char]8221, "ö" -replace [char]255, "," | `
 			ConvertFrom-Csv | `
 			Select-Object -Property "Module Name", "Display Name", "Description", "Driver Type", "Start Mode", "State", "Status", "Path" | `
 			Sort-Object "Display Name" | `
@@ -290,7 +290,7 @@ function Get-LastBootUpTime
 	param ( $Item, $InputData )
 
 	$L = [System.Collections.ArrayList]::new()
-	( ( $InputData.ComputerName -split "\W" ) + $Item.Name ) | `
+	( ( $InputData.ComputerName -split "\W" ) + $Item.AD.Name ) | `
 		Where-Object { $_ -and ( Get-ADObject -LDAPFilter "(&(Name=$( $_ ))(ObjectClass=computer))" ) } | `
 		ForEach-Object {
 			$CName = $_.ToUpper()
@@ -443,7 +443,7 @@ function Get-Printers
 	try
 	{
 		$Printers = [System.Collections.ArrayList]::new()
-		Get-CimInstance -ClassName Win32_Printer -ComputerName $Item.Name | `
+		Get-CimInstance -ClassName Win32_Printer -ComputerName $Item.AD.Name | `
 			Select-Object Name, Comment, Default, DriverName | `
 			Sort-Object -Property Name | `
 			ForEach-Object {
@@ -479,7 +479,7 @@ function Open-RemoteC
 
 	param ( $Item )
 
-	Start-Process -Filepath "C:\Windows\explorer.exe" -ArgumentList "\\$( $Item.Name )\C$\"
+	Start-Process -Filepath "C:\Windows\explorer.exe" -ArgumentList "\\$( $Item.AD.Name )\C$\"
 }
 
 function Open-ServiceTagWebpage
@@ -506,7 +506,7 @@ function Open-ServiceTagWebpage
 
 	param ( $Item )
 
-	$CimComputer = Get-CimInstance -ClassName CIM_Chassis -ComputerName $Item.Name
+	$CimComputer = Get-CimInstance -ClassName CIM_Chassis -ComputerName $Item.AD.Name
 
 	# Get remote servicetag
 	$Vendor = $CimComputer.Manufacturer
@@ -548,7 +548,7 @@ function Open-SysManEdit
 
 	param ( $Item )
 
-	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Client/Edit#targetName=$( $Item.Name )" )
+	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Client/Edit#targetName=$( $Item.AD.Name )" )
 }
 
 function Open-SysManInstall
@@ -574,7 +574,7 @@ function Open-SysManInstall
 
 	param ( $Item )
 
-	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Application/InstallForClients#targetName=$( $Item.Name )" )
+	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Application/InstallForClients#targetName=$( $Item.AD.Name )" )
 }
 
 function Open-SysManOsdMonitor
@@ -598,7 +598,7 @@ function Open-SysManOsdMonitor
 
 	param ( $Item )
 
-	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Tool/Dart#targetName=$( $Item.Name )" )
+	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Tool/Dart#targetName=$( $Item.AD.Name )" )
 }
 
 function Open-SysManOsInstall
@@ -624,7 +624,7 @@ function Open-SysManOsInstall
 
 	param ( $Item )
 
-	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Client/OperatingSystemDeployment#targetName=$( $Item.Name )" )
+	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Client/OperatingSystemDeployment#targetName=$( $Item.AD.Name )" )
 }
 
 function Open-SysManPrintAdd
@@ -650,7 +650,7 @@ function Open-SysManPrintAdd
 
 	param ( $Item )
 
-	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Printer/InstallForClients#targetName=$( $Item.Name )" )
+	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Printer/InstallForClients#targetName=$( $Item.AD.Name )" )
 }
 
 function Open-SysManPrintRemove
@@ -674,7 +674,7 @@ function Open-SysManPrintRemove
 
 	param ( $Item )
 
-	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Printer/UninstallForClients#targetName=$( $Item.Name )" )
+	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Printer/UninstallForClients#targetName=$( $Item.AD.Name )" )
 }
 
 function Open-SysManTools
@@ -700,7 +700,7 @@ function Open-SysManTools
 
 	param ( $Item )
 
-	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Tool/ExecuteForClient#targetName=$( $Item.Name )" )
+	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Tool/ExecuteForClient#targetName=$( $Item.AD.Name )" )
 }
 
 function Open-SysManUninstall
@@ -724,7 +724,7 @@ function Open-SysManUninstall
 
 	param ( $Item )
 
-	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Application/UninstallForClients#targetName=$( $Item.Name )" )
+	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Application/UninstallForClients#targetName=$( $Item.AD.Name )" )
 }
 
 function Open-WebPage
@@ -791,6 +791,77 @@ function Repair-CmAgent
 	return $IntMsgTable.RepairCmAgentStrDone
 }
 
+function Repair-O365Licens
+{
+	<#
+	.Synopsis
+		Repair O365 license
+	.Description
+		Removes stored/loaded profile licenses from the computer's license database. This fixes problems with error messages at the start of office applications.
+	.MenuItem
+		Reset O365 license
+	.InvalidateDateTime
+		2024-12-19 00:00:00
+	.InputData
+		Computername, TRUE, Name of computer
+	.OutputType
+		String
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param ( $InputData )
+
+	try
+	{
+		Get-CimInstance -ComputerName $InputData.Computername -ClassName Win32_OperatingSystem | Out-Null
+
+		$Path, $PathCheck = Invoke-Command -ComputerName $InputData.Computername -ScriptBlock {
+			Test-Path -Path "C:\temp\SCAunpkey.vbs" -PathType Leaf
+			Test-Path -Path "C:\Program files\Microsoft Office\Office16" -PathType Container
+		}
+
+		if ( -not $Path )
+		{
+			Invoke-Command -ComputerName $InputData.Computername -ScriptBlock {
+				New-Item -ItemType Directory "C:\Temp"
+			}
+
+			xcopy.exe "$( $syncHash.Data.BaseDir )\Apps\SCA" "\\$( $InputData.Computername )\c$\Temp" /s /e
+		}
+
+		Invoke-Command -ComputerName $InputData.Computername -ScriptBlock {
+			cscript.exe "C:\temp\SCAunpkey.vbs"
+		}
+
+		if ( $PathCheck )
+		{
+			Invoke-Command -ComputerName $InputData.Computername -ScriptBlock {
+				cscript.exe "C:\Program files\Microsoft Office\Office16\OSPP.vbs" "/dstatus"
+			}
+		}
+		else
+		{
+			Invoke-Command -ComputerName $InputData.Computername -ScriptBlock {
+				cscript.exe "C:\Program files (x86)\Microsoft Office\Office16\OSPP.vbs" "/dstatus"
+			}
+		}
+
+		return $IntMsgTable.RepairO365LicensStrDone
+	}
+	catch [Microsoft.Management.Infrastructure.CimException]
+	{
+		throw "$( $IntMsgTable.RepairO365LicensStrCimError ):`n$( $_.Exception.Message )"
+	}
+	catch
+	{
+		throw $IntMsgTable.RepairO365LicensStrError
+	}
+
+}
+
 function Repair-CitrixIca
 {
 	<#
@@ -814,7 +885,7 @@ function Repair-CitrixIca
 
 	if ( $null -ne $Item )
 	{
-		$InputData.ComputerName = $Item.Name
+		$InputData.ComputerName = $Item.AD.Name
 	}
 
 	try
@@ -873,11 +944,11 @@ function Reset-HostsFile
 
 	try
 	{
-		$HostFileContent = Invoke-Command -ComputerName $Item.SamAccountName -ScriptBlock {
+		$HostFileContent = Invoke-Command -ComputerName $Item.AD.SamAccountName -ScriptBlock {
 			Get-Content C:\Windows\System32\drivers\etc\hosts | `
 				Where-Object { $_ -match "^#" }
 		}
-		Set-Content -Path "\\$( $Item.SamAccountName )\C$\Windows\System32\drivers\etc\hosts"  -Value $HostFileContent
+		Set-Content -Path "\\$( $Item.AD.SamAccountName )\C$\Windows\System32\drivers\etc\hosts"  -Value $HostFileContent
 
 		return $IntMsgTable.ResetHostsFileFinished
 	}
@@ -912,7 +983,7 @@ function Reset-OutlookNavigationPanel
 
 	try
 	{
-		Invoke-Command -ComputerName $Item.SamAccountName -ScriptBlock {
+		Invoke-Command -ComputerName $Item.AD.SamAccountName -ScriptBlock {
 			Get-Process -Name Outlook -ErrorAction SilentlyContinue | `
 				ForEach-Object {
 					$_.CloseMainWindow()
@@ -960,7 +1031,7 @@ function Reset-OutlookViews
 
 	try
 	{
-		Invoke-Command -ComputerName $Item.SamAccountName -ScriptBlock {
+		Invoke-Command -ComputerName $Item.AD.SamAccountName -ScriptBlock {
 			"OUTLOOK", "WINWORD", "EXCEL", "Teams", "POWERPNT", "MSPUB", "ONENOTE", "Todo" | `
 				ForEach-Object {
 					try
@@ -1018,7 +1089,7 @@ function Reset-SoftwareCenter
 
 	param ( $Item )
 
-	Get-CimInstance -ComputerName $Item.Name -Namespace root\ccm\CITasks -Query "Select * From CCM_CITask Where TaskState != ' PendingSoftReboot' AND TaskState != 'PendingHardReboot' AND TaskState != 'InProgress'" | Remove-CimInstance
+	Get-CimInstance -ComputerName $Item.AD.Name -Namespace root\ccm\CITasks -Query "Select * From CCM_CITask Where TaskState != ' PendingSoftReboot' AND TaskState != 'PendingHardReboot' AND TaskState != 'InProgress'" | Remove-CimInstance
 }
 
 function Restart-SMSCMAgent
@@ -1074,7 +1145,7 @@ function Send-ForceLogout
 	try
 	{
 		$LogedIn = [System.Collections.ArrayList]::new()
-		quser /server:"$( $Item.Name )" |
+		quser /server:"$( $Item.AD.Name )" |
 			Select-Object -Skip 1 | `
 			ForEach-Object {
 				$_ -split "\s" | `
@@ -1086,7 +1157,7 @@ function Send-ForceLogout
 							$LogedIn.Add( $_ ) | Out-Null
 						}
 			}
-		Invoke-CimMethod -ClassName Win32_Operatingsystem -ComputerName $Item.Name -MethodName Win32Shutdown -Arguments @{ Flags = 0 }
+		Invoke-CimMethod -ClassName Win32_Operatingsystem -ComputerName $Item.AD.Name -MethodName Win32Shutdown -Arguments @{ Flags = 0 }
 	}
 	catch
 	{
@@ -1118,7 +1189,7 @@ function Send-RestartComputer
 
 	param ( $Item )
 
-	Restart-Computer -ComputerName $Item.Name -Force -Wait -For PowerShell -Timeout 300 -Delay 2 -ErrorAction Stop
+	Restart-Computer -ComputerName $Item.AD.Name -Force -Wait -For PowerShell -Timeout 300 -Delay 2 -ErrorAction Stop
 	return "OK"
 }
 
@@ -1145,7 +1216,7 @@ function Send-ShutdownComputer
 
 	param ( $Item )
 
-	Stop-Computer -ComputerName $Item.Name -Force -ErrorAction Stop
+	Stop-Computer -ComputerName $Item.AD.Name -Force -ErrorAction Stop
 	return "OK"
 }
 
@@ -1204,7 +1275,7 @@ function Send-Toast
 
 	try
 	{
-		Invoke-Command -ComputerName $SearchedItem.Name -ScriptBlock $code -ArgumentList $IntMsgTable, $InputData
+		Invoke-Command -ComputerName $SearchedItem.AD.Name -ScriptBlock $code -ArgumentList $IntMsgTable, $InputData
 		return $IntMsgTable.SendToastSuccess
 	}
 	catch
@@ -1325,7 +1396,7 @@ function Start-CMNewApplications
 	param ( $InputData )
 	try
 	{
-		Invoke-WmiMethod -ComputerName $ComputerName -Namespace root\ccm -Class sms_client -Name TriggerSchedule '{00000000-0000-0000-0000-000000000022}'
+		Invoke-WmiMethod -ComputerName $InputData.ComputerName -Namespace root\ccm -Class sms_client -Name TriggerSchedule '{00000000-0000-0000-0000-000000000022}'
 		return $IntMsgTable.StartCMNewApplicationsDone
 	}
 	catch
@@ -1359,7 +1430,7 @@ function Start-RemoteControl
 
 	param ( $Item )
 
-	Start-Process -Filepath "C:\Program Files (x86)\Microsoft Endpoint Manager\AdminConsole\bin\i386\CmRcViewer.exe" -ArgumentList $Item.Name
+	Start-Process -Filepath "C:\Program Files (x86)\Microsoft Endpoint Manager\AdminConsole\bin\i386\CmRcViewer.exe" -ArgumentList $Item.AD.Name
 }
 
 $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
