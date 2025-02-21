@@ -57,7 +57,7 @@ $PHComputerOtherIsOnline = [pscustomobject]@{
 	Code = '
 		try
 		{
-			Get-CimInstance -ClassName win32_operatingsystem -ComputerName $SearchedItem.Name -ErrorAction Stop -OperationTimeoutSec 3 -Shallow -KeyOnly | Out-Null
+			Get-CimInstance -ClassName win32_operatingsystem -ComputerName $SearchedItem.AD.Name -ErrorAction Stop -OperationTimeoutSec 3 -Shallow -KeyOnly | Out-Null
 			$NewPropValue = $PropLocalization.PLComputerOtherIsOnlineStrOnline
 		}
 		catch
@@ -73,7 +73,7 @@ $PHComputerOtherIsOnline = [pscustomobject]@{
 # Get sharedaccount connected to computer
 $PHComputerOtherSharedAccount = [pscustomobject]@{
 	Code = '
-		$NewPropValue = Get-ADUser -LDAPFilter "(&(Name=F$( $syncHash.Data.SearchedItem.ExtraInfo.Other.Organisation )*)(userWorkstations=$( $syncHash.Data.SearchedItem.Name )))"
+		$NewPropValue = Get-ADUser -LDAPFilter "(&(Name=F$( $SearchedItem.Other.Organisation )*)(userWorkstations=$( $SearchedItem.AD.Name )))"
 	'
 	Title = $IntMsgTable.HTComputerOtherSharedAccount
 	Description = $IntMsgTable.HDescComputerOtherSharedAccount
