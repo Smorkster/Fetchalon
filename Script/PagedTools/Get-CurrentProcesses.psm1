@@ -107,7 +107,7 @@ $syncHash.Controls.TbComputerName.Add_TextChanged( {
 $syncHash.Controls.Window.Add_IsVisibleChanged( {
 	if ( $this.IsVisible -and ( $null -eq $syncHash.Data.FoundComputer ) )
 	{
-		$syncHash.Controls.TbComputerName.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Name
+		$syncHash.Controls.TbComputerName.Text = $syncHash.Controls.Window.Resources['SearchedItem'].AD.Name
 	}
 	$syncHash.Controls.TbComputerName.Focus()
 } )
