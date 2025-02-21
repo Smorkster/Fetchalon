@@ -117,7 +117,7 @@ $syncHash.Controls.Window.Add_IsVisibleChanged( {
 		"" -eq $syncHash.Controls.TbDistId.Text
 	)
 	{
-		$syncHash.Controls.TbDistId.Text = $syncHash.Controls.Window.Resources['SearchedItem'].PrimarySmtpAddress
+		$syncHash.Controls.TbDistId.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Exchange.PrimarySmtpAddress
 		$syncHash.Controls.TbDistId.Focus()
 	}
 } )
