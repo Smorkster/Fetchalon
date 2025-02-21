@@ -7,7 +7,11 @@
         <CollectionViewSource x:Key="CvsHierarchicalFunctions">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
-                                                PropertyName="SortOrder" />
+                                                PropertyName="MenuItem" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsHierarchicalPropHandlers">
+            <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Ascending"
                                                 PropertyName="MenuItem" />
             </CollectionViewSource.SortDescriptions>
@@ -15,11 +19,24 @@
 
         <Thickness x:Key="StdMargin">5</Thickness>
 
+        <Style TargetType="Border"
+               x:Key="BrdGroupStyle">
+            <Setter Property="BorderThickness"
+                    Value="2,0,0,0" />
+            <Setter Property="Margin"
+                    Value="2,5" />
+        </Style>
         <Style TargetType="Button">
+            <Setter Property="FontSize"
+                    Value="15" />
+            <Setter Property="FontWeight"
+                    Value="Bold" />
             <Setter Property="IsEnabled"
                     Value="True" />
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
+            <Setter Property="MinHeight"
+                    Value="45" />
             <Style.Triggers>
                 <DataTrigger Binding="{Binding ElementName=TbText, Path=Text.Length}"
                              Value="0">
@@ -28,7 +45,8 @@
                 </DataTrigger>
             </Style.Triggers>
         </Style>
-        <Style TargetType="Label">
+        <Style TargetType="Label"
+               x:Key="LblDefaultStyle">
             <Setter Property="FontSize"
                     Value="15" />
             <Setter Property="FontWeight"
@@ -49,9 +67,16 @@
             <Setter Property="VerticalAlignment"
                     Value="Center" />
         </Style>
+        <Style TargetType="TextBlock"
+               x:Key="TblTitleStyle"
+               BasedOn="{StaticResource TblBaseStyle}">
+            <Setter Property="FontWeight"
+                    Value="Bold" />
+        </Style>
+
         <HierarchicalDataTemplate x:Key="Hdt"
-                                  ItemsSource="{Binding Path=MenuItems}">
-            <ContentControl>
+                                  ItemsSource="{Binding Path=Items}">
+            <ContentControl IsTabStop="False">
                 <ContentControl.Style>
                     <Style TargetType="ContentControl">
                         <Setter Property="ContentTemplate">
@@ -78,85 +103,183 @@
                                 </DataTemplate>
                             </Setter.Value>
                         </Setter>
-                        <Style.Triggers>
-                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=TreeViewItem}, Path=DataContext.MenuItem}"
-                                         Value="{x:Static sys:String.Empty}">
-                                <Setter Property="ContentTemplate">
-                                    <Setter.Value>
-                                        <DataTemplate>
-                                            <Border BorderBrush="Transparent"
-                                                    BorderThickness="1"
-                                                    Height="2"
-                                                    Margin="0" />
-                                        </DataTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </DataTrigger>
-                        </Style.Triggers>
                     </Style>
                 </ContentControl.Style>
             </ContentControl>
         </HierarchicalDataTemplate>
-    </Page.Resources>
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition />
-            <ColumnDefinition />
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition />
-            <RowDefinition Height="40" />
-        </Grid.RowDefinitions>
-        <TextBlock Name="TblScriptTitle"
-                   Grid.ColumnSpan="2"
-                   Style="{StaticResource TblBaseStyle}"
-                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblScriptTitle}" />
-        <Grid Grid.Column="1"
-              Grid.Row="1">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition />
-            </Grid.ColumnDefinitions>
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
-                <RowDefinition />
-            </Grid.RowDefinitions>
-            <Label Name="LblDescTitle"
-                   Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblDescTitle}"
-                   VerticalAlignment="Top" />
-            <TextBlock Grid.Column="1"
-                       Style="{StaticResource TblBaseStyle}"
-                       Text="{Binding ElementName=TvMenuList, Path=SelectedItem.Description}" />
-            <Label Name="LblAuthorTitle"
-                   Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblAuthorTitle}"
-                   Grid.Row="1" />
-            <TextBlock Grid.Column="1"
-                       Grid.Row="1"
-                       Style="{StaticResource TblBaseStyle}"
-                       Text="{Binding ElementName=TvMenuList, Path=SelectedItem.Author}" />
-            <TextBox Name="TbText"
-                     AcceptsReturn="True"
-                     Grid.ColumnSpan="2"
-                     Grid.Row="2"
-                     Margin="{StaticResource StdMargin}" />
-        </Grid>
-        <TreeView Name="TvMenuList"
-                  Grid.Row="1"
-                  Grid.RowSpan="2"
-                  ItemsSource="{Binding Source={StaticResource CvsHierarchicalFunctions}}"
-                  ItemTemplate="{StaticResource Hdt}"
-                  Margin="{StaticResource StdMargin}">
-            <TreeView.Resources>
+
+        <Style TargetType="TreeView"
+               x:Key="TvDefaultStyle">
+            <Style.Resources>
                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"
                                  Color="Transparent" />
                 <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"
                                  Color="#FF444444" />
-            </TreeView.Resources>
-        </TreeView>
-        <Grid Grid.Column="1"
-              Grid.Row="2">
+            </Style.Resources>
+            <Setter Property="Background"
+                    Value="White" />
+            <Setter Property="Grid.Row"
+                    Value="1" />
+            <Setter Property="ItemTemplate"
+                    Value="{StaticResource Hdt}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ElementName=TBtnSuggestion, Path=IsChecked}"
+                             Value="True">
+                    <Setter Property="Selector.SelectedIndex"
+                            Value="-1" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsKeyboardFocusWithin}"
+                             Value="False">
+                    <Setter Property="Background"
+                            Value="WhiteSmoke" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Page.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Border BorderBrush="Gray"
+                Style="{StaticResource BrdGroupStyle}">
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <TextBlock Name="TblSuggestionTitle"
+                           Style="{StaticResource TblTitleStyle}"
+                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblSuggestionTitle}" />
+                <ToggleButton Name="TBtnSuggestion"
+                              Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTBtnSuggestion}"
+                              FontSize="15"
+                              FontWeight="Bold"
+                              Grid.Row="1"
+                              Margin="{StaticResource StdMargin}"
+                              MinHeight="45" />
+            </Grid>
+        </Border>
+        <Border BorderBrush="Gold"
+                Grid.Row="1">
+            <Border.Style>
+                <Style TargetType="Border"
+                       BasedOn="{StaticResource BrdGroupStyle}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=TvMenuList, Path=IsKeyboardFocusWithin}"
+                                     Value="True">
+                            <Setter Property="BorderThickness"
+                                    Value="2" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <TextBlock Name="TblScriptTitle"
+                           Style="{StaticResource TblTitleStyle}"
+                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblScriptTitle}" />
+                <TreeView Name="TvMenuList"
+                          ItemsSource="{Binding Source={StaticResource CvsHierarchicalFunctions}}"
+                          Style="{StaticResource TvDefaultStyle}" />
+            </Grid>
+        </Border>
+        <Border BorderBrush="LightBlue"
+                Grid.Row="2">
+            <Border.Style>
+                <Style TargetType="Border"
+                       BasedOn="{StaticResource BrdGroupStyle}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=TvPropHandlerList, Path=IsKeyboardFocusWithin}"
+                                     Value="True">
+                            <Setter Property="BorderThickness"
+                                    Value="2" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <TextBlock Name="TblPropHandlerTitle"
+                           Style="{StaticResource TblTitleStyle}"
+                           Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblPropHandlerTitle}" />
+                <TreeView Name="TvPropHandlerList"
+                          ItemsSource="{Binding Source={StaticResource CvsHierarchicalPropHandlers}}"
+                          Style="{StaticResource TvDefaultStyle}" />
+            </Grid>
+        </Border>
+        <Border BorderBrush="MediumSeaGreen"
+                Grid.Row="3">
+            <Border.Style>
+                <Style TargetType="Border"
+                       BasedOn="{StaticResource BrdGroupStyle}">
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding ElementName=TbText, Path=IsKeyboardFocused}"
+                                     Value="True">
+                            <Setter Property="BorderThickness"
+                                    Value="2" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Border.Style>
+            <Grid Grid.Row="3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Label Name="LblDescTitle"
+                       Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblDescTitle}"
+                       Style="{StaticResource LblDefaultStyle}"
+                       VerticalAlignment="Top" />
+                <TextBlock Name="TblDescription"
+                           Grid.Column="1"
+                           Style="{StaticResource TblBaseStyle}" />
+                <Label Name="LblAuthorTitle"
+                       Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblAuthorTitle}"
+                       Grid.Row="1">
+                    <Label.Style>
+                        <Style TargetType="Label"
+                               BasedOn="{StaticResource LblDefaultStyle}">
+                            <Setter Property="Visibility"
+                                    Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=TBtnSuggestion, Path=IsChecked}"
+                                             Value="True">
+                                    <Setter Property="Visibility"
+                                            Value="Collapsed" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Label.Style>
+                </Label>
+                <TextBlock Name="TblAuthor"
+                           Grid.Column="1"
+                           Grid.Row="1"
+                           Style="{StaticResource TblBaseStyle}" />
+                <TextBox Name="TbText"
+                         AcceptsReturn="True"
+                         Grid.ColumnSpan="2"
+                         Grid.Row="2"
+                         Margin="{StaticResource StdMargin}" />
+            </Grid>
+        </Border>
+        <Grid Grid.Row="4">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition />
                 <ColumnDefinition />
