@@ -377,7 +377,7 @@ function PrepGetFolders
 
 			if ( $p -eq "Other" )
 			{
-				[void] $syncHash.Data.Other.Add( ( [pscustomobject]@{ Path = $g.Name ; Name = $g.Name } ) )
+				$syncHash.Data.Other.Add( ( [pscustomobject]@{ Path = $g.Name ; Name = $g.Name } ) ) | Out-Null
 			}
 			else
 			{
@@ -852,7 +852,7 @@ $syncHash.Controls.TotalProgress.Add_ValueChanged( {
 $syncHash.Controls.Window.Add_IsVisibleChanged( {
 	if ( $this.IsVisible -and ( $null -eq $syncHash.User ) )
 	{
-		$syncHash.Controls.TbId.Text = $syncHash.Controls.Window.Resources['SearchedItem'].SamAccountName
+		$syncHash.Controls.TbId.Text = $syncHash.Controls.Window.Resources['SearchedItem'].AD.SamAccountName
 	}
 } )
 
