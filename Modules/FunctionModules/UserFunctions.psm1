@@ -40,7 +40,7 @@ function Compare-UserGroups
 	$UsersIn = @( $InputData.Användare -split "\s" | Where-Object { $_ } )
 	if ( $Item )
 	{
-		$UsersIn += $Item.SamAccountName
+		$UsersIn += $Item.AD.SamAccountName
 	}
 	$Users = [System.Collections.ArrayList]::new()
 	$InputNotFound = @()
@@ -138,7 +138,7 @@ function Get-FolderMembership
 
 	param ( $Item )
 
-	return Get-ADGroup -LDAPFilter ( "(member:1.2.840.113556.1.4.1941:={0})" -f ( Get-ADUser $Item.SamAccountName ).DistinguishedName ) -Properties Description | `
+	return Get-ADGroup -LDAPFilter ( "(member:1.2.840.113556.1.4.1941:={0})" -f ( Get-ADUser $Item.AD.SamAccountName ).DistinguishedName ) -Properties Description | `
 		Where-Object { $_.Name -match ".*_Fil_.*User_(C|R)" -and $_.Name -notmatch $IntMsgTable.StrGetFolderMembershipPropCodeNotMatch } | `
 		Select-Object -Property `
 			@{ Name = "$( $IntMsgTable.StrGetFolderMembershipPropTitleGroup )"; Expression = { $_.Name } }, `
@@ -174,7 +174,7 @@ function Get-FolderOwnership
 	param ( $Item )
 
 	$List = [System.Collections.ArrayList]::new()
-	Get-ADGroup -LDAPFilter "(&(ManagedBy=$( $Item.DistinguishedName ))(&(Name=*_Fil_*_Grp_*_User_*)(|(Name=*User_C)(Name=*User_R))))" -Properties Description | Sort-Object Name | ForEach-Object { ( ( $_.Description -split "\." )[0] -split "\$" )[1] } | Select-Object -Unique | ForEach-Object { $List.Add( "G:$_" ) | Out-Null }
+	Get-ADGroup -LDAPFilter "(&(ManagedBy=$( $Item.AD.DistinguishedName ))(&(Name=*_Fil_*_Grp_*_User_*)(|(Name=*User_C)(Name=*User_R))))" -Properties Description | Sort-Object Name | ForEach-Object { ( ( $_.Description -split "\." )[0] -split "\$" )[1] } | Select-Object -Unique | ForEach-Object { $List.Add( "G:$_" ) | Out-Null }
 
 	if ( $null -eq $List )
 	{
@@ -210,7 +210,7 @@ function Get-LastWorkstationLogins
 	param ( $Item )
 
 	$List = [System.Collections.ArrayList]::new()
-	( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/reporting/User?userName=$( $Item.SamAccountName )" -Method Get -UseDefaultCredentials ).clientLogins | `
+	( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/reporting/User?userName=$( $Item.AD.SamAccountName )" -Method Get -UseDefaultCredentials ).clientLogins | `
 		Select-Object -Property @{ Name = "$( $IntMsgTable.GetLastWorkstationLoginsParamTitleName )" ; Expression = { $_.Name } } , `
 			@{ Name = "$( $IntMsgTable.GetLastWorkstationLoginsParamTitleDate )" ; Expression = { $_.lastHardwareScan } } | `
 		ForEach-Object {
@@ -252,7 +252,7 @@ function Get-O365AccountStatus
 
 	$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
 
-	if ( $Item.Enabled )
+	if ( $Item.AD.Enabled )
 	{
 		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADActiveCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
 	}
@@ -261,7 +261,7 @@ function Get-O365AccountStatus
 		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADActiveCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamADActiveFalse } ) ) | Out-Null
 	}
 
-	if ( -not $Item.LockedOut )
+	if ( -not $Item.AD.LockedOut )
 	{
 		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADLockCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
 	}
@@ -270,7 +270,7 @@ function Get-O365AccountStatus
 		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADLockCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamADLockFalse } ) ) | Out-Null
 	}
 
-	if ( $null -ne $Item.EmailAddress )
+	if ( $null -ne $Item.AD.EmailAddress )
 	{
 		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADMailCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
 	}
@@ -279,7 +279,7 @@ function Get-O365AccountStatus
 		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADMailCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamADMailFalse } ) ) | Out-Null
 	}
 
-	if ( $null -eq $Item.msExchMailboxGuid )
+	if ( $null -eq $Item.AD.msExchMailboxGuid )
 	{
 		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamADmsECheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
 	}
@@ -290,7 +290,7 @@ function Get-O365AccountStatus
 
 	try
 	{
-		$O365Account = Get-AzureADUser -Filter "PrimarySMTPAddress eq '$( $Item.EmailAddress )'"
+		$O365Account = Get-AzureADUser -Filter "PrimarySMTPAddress eq '$( $Item.AD.EmailAddress )'"
 		$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOAccountCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
 
 		if ( $O365Account.AccountEnabled )
@@ -302,7 +302,7 @@ function Get-O365AccountStatus
 			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOLoginCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamOLoginFalse } ) ) | Out-Null
 		}
 
-		if ( ( $Item.EmailAddress | Get-AzureADUserMembership ).DisplayName -match "O365-MigPilots" )
+		if ( ( $Item.AD.EmailAddress | Get-AzureADUserMembership ).DisplayName -match "O365-MigPilots" )
 		{
 			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOMigCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
 		}
@@ -311,7 +311,7 @@ function Get-O365AccountStatus
 			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOMigCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamOMigFalse } ) ) | Out-Null
 		}
 
-		if ( $Item.DistinguishedName -match $IntMsgTable.GetO365AccountStatusCodeMsExchIgnoreOrg )
+		if ( $Item.AD.DistinguishedName -match $IntMsgTable.GetO365AccountStatusCodeMsExchIgnoreOrg )
 		{
 			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOLicCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusParamOLicFalseWrongOrg } ) ) | Out-Null
 		}
@@ -329,7 +329,7 @@ function Get-O365AccountStatus
 
 		try
 		{
-			Get-EXOMailbox -Identity $syncHash.Data.SearchedItem.EmailAddress -ErrorAction Stop | Out-Null
+			Get-EXOMailbox -Identity $Item.AD.EmailAddress -ErrorAction Stop | Out-Null
 			$List.Add( ( [pscustomobject]@{ $IntMsgTable.GetO365AccountStatusParamTitleType = $IntMsgTable.GetO365AccountStatusParamOExchCheck ; $IntMsgTable.GetO365AccountStatusParamTitleValue = $IntMsgTable.GetO365AccountStatusValOk } ) ) | Out-Null
 		}
 		catch
@@ -465,7 +465,7 @@ function Open-SysManGroups
 
 	param ( $Item )
 
-	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Group/GroupManagementForUser#targetName=$( $Item.SamAccountName )" )
+	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/Group/GroupManagementForUser#targetName=$( $Item.AD.SamAccountName )" )
 }
 
 function Open-SysManMobileDevices
@@ -491,7 +491,7 @@ function Open-SysManMobileDevices
 
 	param ( $Item )
 
-	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/MobileDevice/EditForUser#userName=$( $Item.SamAccountName )" )
+	[System.Diagnostics.Process]::Start( "chrome", "$( $IntMsgTable.SysManServerUrl )/MobileDevice/EditForUser#userName=$( $Item.AD.SamAccountName )" )
 }
 
 function Remove-ProfileAria
@@ -515,15 +515,15 @@ function Remove-ProfileAria
 
 	param ( $Item )
 
-	if ( $null -eq $Item.SamAccountName )
+	if ( $null -eq $Item.AD.SamAccountName )
 	{
 		explorer "\\dfs\ctx$\prf_aria"
 	}
 	else
 	{
-		if ( Test-Path "\\dfs\ctx$\prf_aria\$( $Item.SamAccountName )" )
+		if ( Test-Path "\\dfs\ctx$\prf_aria\$( $Item.AD.SamAccountName )" )
 		{
-			Start-Process -FilePath C:\Windows\explorer.exe -ArgumentList "/select, ""\\dfs\ctx$\prf_aria\$( $Item.SamAccountName )"""
+			Start-Process -FilePath C:\Windows\explorer.exe -ArgumentList "/select, ""\dfs\ctx$\prf_aria\$( $Item.AD.SamAccountName )"""
 		}
 		else
 		{
@@ -567,16 +567,16 @@ function Remove-ProfileVK
 	}
 	else
 	{
-		$Canonical = ( $Item.CanonicalName -split "/" )[2]
-		if ( ( $Org = $Item.MemberOf | Where-Object { $_ -match "CN=((Org1)|(Org2)|(Org3))_Org_(\d)_Users" } ) )
+		$Canonical = ( $Item.AD.CanonicalName -split "/" )[2]
+		if ( ( $Org = $Item.AD.MemberOf | Where-Object { $_ -match "CN=((Org1)|(Org2)|(Org3))_Org_(\d)_Users" } ) )
 		{
 			$Org | `
 				ForEach-Object {
 					if ( $_ -match "CN=(?<Org>(Org1)|(Org2)|(Org3))_Org_(\d)_Users" )
 					{
-						if ( Test-Path "\\dfs\ctx$\$( $Matches.Org.ToLower() )_prf\$( $Item.SamAccountName )" )
+						if ( Test-Path "\\dfs\ctx$\$( $Matches.Org.ToLower() )_prf\$( $Item.AD.SamAccountName )" )
 						{
-							Remove-Item -Path "\\dfs\ctx$\$( $Matches.Org.ToLower() )_prf\$( $Item.SamAccountName )" -Recurse -Force
+							Remove-Item -Path "\\dfs\ctx$\$( $Matches.Org.ToLower() )_prf\$( $Item.AD.SamAccountName )" -Recurse -Force
 						}
 						else
 						{
@@ -620,7 +620,7 @@ function Remove-ProfileVKTC
 	$Prod.Append( "\\dfs\ctx$\" ) | Out-Null
 	$RO.Append( "\\dfs\ctx$\" ) | Out-Null
 
-	if ( $Item.CanonicalName -notmatch "H/(Org1)|(Org2)|(Org4)" )
+	if ( $Item.AD.CanonicalName -notmatch "H/(Org1)|(Org2)|(Org4)" )
 	{
 		$Org = ( Show-CustomMessageBox -Text $IntMsgTable.RemoveProfileVKTCSelectCustomer -Title $IntMsgTable.RemoveProfileVKTCSelectCustomerTitle -Button "Org1","Org2","Org4" ).ToLower()
 		$Prod.Append( $Org ) | Out-Null
@@ -628,7 +628,7 @@ function Remove-ProfileVKTC
 	}
 	else
 	{
-		$Item.CanonicalName -match "H/(?<Org>\w*)/" | Out-Null
+		$Item.AD.CanonicalName -match "H/(?<Org>\w*)/" | Out-Null
 		$Prod.Append( $Matches.Org.ToLower() ) | Out-Null
 		$RO.Append( $Matches.Org.ToLower() ) | Out-Null
 	}
@@ -636,10 +636,10 @@ function Remove-ProfileVKTC
 	$Prod.Append( "_tcprod_app" ) | Out-Null
 	$RO.Append( "_tcro_app" ) | Out-Null
 
-	if ( Test-Path "$( $s.ToString() )\$( $Item.SamAccountName )" )
+	if ( Test-Path "$( $s.ToString() )\$( $Item.AD.SamAccountName )" )
 	{
-		$Prod.Append( "\$( $Item.SamAccountName )" ) | Out-Null
-		$RO.Append( "\$( $Item.SamAccountName )" ) | Out-Null
+		$Prod.Append( "\$( $Item.AD.SamAccountName )" ) | Out-Null
+		$RO.Append( "\$( $Item.AD.SamAccountName )" ) | Out-Null
 		Start-Process -FilePath C:\Windows\explorer.exe -ArgumentList "/select, ""$( $s.ToString() )"""
 		Start-Process -FilePath C:\Windows\explorer.exe -ArgumentList "/select, ""$( $s.ToString() )"""
 	}
