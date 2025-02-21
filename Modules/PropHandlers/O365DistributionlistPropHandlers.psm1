@@ -18,7 +18,7 @@ Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName 
 # Toggle setting for external senders to distributionlist
 $PHO365DistributionlistDistGroupRequireSenderAuthenticationEnabled = [pscustomobject]@{
 	Code = '
-	Set-DistributionGroup -Identity $syncHash.Data.SearchedItem.PrimarySmtpAddress -RequireSenderAuthenticationEnabled ( -not $syncHash.Data.SearchedItem.ExtraInfo.DistGroup.RequireSenderAuthenticationEnabled )
+	Set-DistributionGroup -Identity $SearchedItem.Exchange.PrimarySmtpAddress -RequireSenderAuthenticationEnabled ( -not $SearchedItem.Other.DistGroup.RequireSenderAuthenticationEnabled )
 	'
 	Title = $IntMsgTable.HTO365DistributionlistDistGroupRequireSenderAuthenticationEnabled
 	Description = $IntMsgTable.HDescO365DistributionlistDistGroupRequireSenderAuthenticationEnabled
