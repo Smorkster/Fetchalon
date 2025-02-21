@@ -3,6 +3,8 @@
 	Test connection to target
 .Description
 	Testing to reach target 
+.MenuItem
+	Ping computer/IP
 .ObjectOperations
 	Computer
 .EnableQuickAccess
@@ -136,9 +138,9 @@ $syncHash.Controls.Window.Add_IsVisibleChanged( {
 			$syncHash.Controls.TbTarget.Text = ( $syncHash.Controls.Window.Resources.QuickAccessParam )
 			$syncHash.Controls.BtnStart.RaiseEvent( [System.Windows.Controls.Button]::ClickEvent )
 		}
-		elseif ( $syncHash.Controls.Window.Resources.SearchedItem.Enabled -eq $true )
+		elseif ( $syncHash.Controls.Window.Resources.SearchedItem.AD.Enabled -eq $true )
 		{
-			$syncHash.Controls.TbTarget.Text = $syncHash.Controls.Window.Resources.SearchedItem.Name
+			$syncHash.Controls.TbTarget.Text = $syncHash.Controls.Window.Resources.SearchedItem.AD.Name
 		}
 		$syncHash.Controls.TbTarget.Focus()
 	}
@@ -146,9 +148,9 @@ $syncHash.Controls.Window.Add_IsVisibleChanged( {
 
 # Window is first loaded
 $syncHash.Controls.Window.Add_Loaded( {
-	if ( $syncHash.Controls.Window.Resources.SearchedItem.Enabled -eq $true )
+	if ( $syncHash.Controls.Window.Resources.SearchedItem.AD.Enabled -eq $true )
 	{
-		$syncHash.Controls.TbTarget.Text = $syncHash.Controls.Window.Resources.SearchedItem.Name
+		$syncHash.Controls.TbTarget.Text = $syncHash.Controls.Window.Resources.SearchedItem.AD.Name
 	}
 	$syncHash.Controls.TbTarget.Focus()
 } )
