@@ -282,14 +282,17 @@ function LoadConverters
 	{
 		Add-Type -ReferencedAssemblies Microsoft.ActiveDirectory.Management, `
 										PresentationFramework, `
+										System.Collections, `
 										System.DirectoryServices, `
 										System.DirectoryServices.AccountManagement, `
 										System.Drawing, `
 										System.Management.Automation, `
+										System.Net.Mail, `
 										System.Text.RegularExpressions, `
 										System.Windows, `
 										System.Xaml, `
 										System.Xml,`
+										System.Xml.XDocument, `
 										System.Xml.Linq, `
 										'C:\Program Files\PowerShell\7\WindowsBase.dll', `
 										'C:\Program Files\PowerShell\7\System.ComponentModel.Primitives.dll' ,
@@ -996,6 +999,54 @@ namespace FetchalonConverters
 		}
 
 		public object ConvertBack ( object value, Type targetTypes, object parameter, CultureInfo culture )
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	public class PropHandlerDateTimeValidity : IMultiValueConverter
+	{
+		public object Convert( object[] values, Type targetType, object parameter, CultureInfo culture )
+		{
+			if ( values == null )
+			{
+				return "A";
+			}
+			else
+			{
+				if ( values[0] != null && values[1] == null )
+				{
+					if ( DateTime.Compare( DateTime.Parse( (string) values[0] ), DateTime.Now ) < 0 )
+						return "A";
+					else
+						return "B";
+				}
+				else if ( values[0] == null && values[1] != null )
+				{
+					if ( DateTime.Compare( DateTime.Parse( (string) values[1] ), DateTime.Now ) > 0 )
+						return "C";
+					else
+						return "A";
+				}
+				else if ( values[0] != null && values[1] != null )
+				{
+					if ( DateTime.Compare( DateTime.Parse( (string) values[0] ), DateTime.Now ) < 0 && DateTime.Compare( DateTime.Parse( (string) values[1] ), DateTime.Now ) > 0 )
+						return "A";
+					else if ( DateTime.Compare( DateTime.Parse( (string) values[0] ), DateTime.Now ) > 0 && DateTime.Compare( DateTime.Parse( (string) values[1] ), DateTime.Now ) > 0 )
+						return "B";
+					else if ( DateTime.Compare( DateTime.Parse( (string) values[0] ), DateTime.Now ) < 0 && DateTime.Compare( DateTime.Parse( (string) values[1] ), DateTime.Now ) < 0 )
+						return "C";
+					else
+						return "A";
+				}
+				else
+				{
+					return "A";
+				}
+			}
+		}
+
+		public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
 		{
 			throw new NotImplementedException();
 		}
