@@ -79,7 +79,7 @@ $syncHash.Controls.BtnGet.Add_Click( {
 $syncHash.Controls.Window.Add_IsVisibleChanged( {
 	if ( $this.IsVisible )
 	{
-		$syncHash.Controls.TbComputer.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Name
+		$syncHash.Controls.TbComputer.Text = $syncHash.Controls.Window.Resources['SearchedItem'].AD.Name
 	}
 	$syncHash.Controls.TbComputer.Focus()
 } )
