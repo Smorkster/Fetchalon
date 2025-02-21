@@ -287,9 +287,9 @@ $syncHash.Controls.CbEndMinute.Add_DropDownClosed( { . $syncHash.Code.EndTimeCha
 # Text was entered
 $syncHash.Controls.TbId.Add_TextChanged( {
 	ResetControls
-	if ( $this.Text -match "^(((?![AaEeIiOoUuYyÅåÄäÖö])[\w]){4})$" -or ( ( $this.Text -match "@regionstockholm\.se$" ) -and ( Test-MailAddress -Address $this.Text ) ) )
+	if ( $this.Text -match "^(((?![AaEeIiOoUuYyÅåÄäÖö])[\w]){4})$" -or ( ( $this.Text -match "@domain\.se$" ) -and ( Test-MailAddress -Address $this.Text ) ) )
 	{
-		if ( $this.Text -match "@regionstockholm\.se$" )
+		if ( $this.Text -match "@domain\.se$" )
 		{
 			$ADUser = Get-ADUser -LDAPFilter "(Mail=$( $this.Text ))" -Properties EmailAddress -ErrorAction Stop
 		}
@@ -473,7 +473,7 @@ $syncHash.Controls.TbInternalAutoReply.Add_TextChanged( {
 $syncHash.Controls.Window.Add_IsVisibleChanged( {
 	if ( $this.IsVisible -and ( $null -eq $syncHash.Data.User ) )
 	{
-		$syncHash.Controls.TbId.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Alias
+		$syncHash.Controls.TbId.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Exchange.Alias
 	}
 	$syncHash.Controls.TbId.Focus()
 } )
