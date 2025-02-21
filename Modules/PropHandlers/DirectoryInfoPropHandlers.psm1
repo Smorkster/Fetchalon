@@ -1,8 +1,12 @@
 ﻿<#
-.Synopsis Property handlers for directory info objects
-.Description A collection of objects, as property handlers, to operate on objects with objectclass 'DirectoryInfo'
-.State Prod
-.Author Smorkster (smorkster)
+.Synopsis
+	Property handlers for directory info objects
+.Description
+	A collection of objects, as property handlers, to operate on objects with objectclass 'DirectoryInfo'
+.State
+	Prod
+.Author
+	Smorkster (smorkster)
 #>
 
 param ( $culture = "sv-SE" )
@@ -14,12 +18,12 @@ Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName 
 # Handler to open directory in Explorer
 $PHDirectoryInfoADFullName = [pscustomobject]@{
 	Code = '
-	explorer $syncHash.Data.SearchedItem.FullName
+	explorer $SearchedItem.AD.FullName
 	'
 	Title = $IntMsgTable.HTDirectoryInfoADFullName
 	Description = $IntMsgTable.HDescDirectoryInfoADFullName
 	Progress = 0
-	MandatorySource = "Other"
+	MandatorySource = "AD"
 }
 
 # Handler to list directory content
