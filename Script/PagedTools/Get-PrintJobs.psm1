@@ -99,15 +99,15 @@ $syncHash.Controls.Window.Add_IsVisibleChanged( {
 		if ( [string]::IsNullOrEmpty( $syncHash.Controls.TbPrintQueueName.Text ) )
 		{
 			$syncHash.Data.Test.Add(3)|Out-Null
-			$syncHash.Controls.TbPrintQueueName.Text = $syncHash.Controls.Window.Resources['SearchedItem'].Name
+			$syncHash.Controls.TbPrintQueueName.Text = $syncHash.Controls.Window.Resources['SearchedItem'].AD.Name
 		}
-		elseif ( -not [string]::Equals( ( $syncHash.Controls.Window.Resources['SearchedItem'].Name ) , $syncHash.Controls.TbPrintQueueName.Text ) )
+		elseif ( -not [string]::Equals( ( $syncHash.Controls.Window.Resources['SearchedItem'].AD.Name ) , $syncHash.Controls.TbPrintQueueName.Text ) )
 		{
 			$syncHash.Data.Test.Add(4)|Out-Null
 			if ( "Yes" -eq ( Show-MessageBox -Text $syncHash.Data.msgTable.StrSwitchPrinterName -Button "YesNo" ) )
 			{
 				$syncHash.Data.Test.Add(5)|Out-Null
-				$syncHash.Controls.TbPrintQueueName.Text = ( $syncHash.Controls.Window.Resources['SearchedItem'].Name )
+				$syncHash.Controls.TbPrintQueueName.Text = ( $syncHash.Controls.Window.Resources['SearchedItem'].AD.Name )
 			}
 		}
 	}
