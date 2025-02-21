@@ -16,6 +16,35 @@
 Add-Type -AssemblyName PresentationFramework
 $syncHash = $args[0]
 
+function Get-Data
+{
+	Get-Module | `
+		ForEach-Object {
+			$syncHash.Controls.Window.Resources['CvsModules'].Source.Add( $_ ) | Out-Null
+		}
+
+	try
+	{
+		$syncHash.Controls.TblO365Account.Text = ( Get-AzureADCurrentSessionInfo -ErrorAction Stop ).Account.Id
+	}
+	catch
+	{
+		$syncHash.Controls.TblO365Account.Text = $syncHash.Data.msgTable.ErrO365NotLoggedIn
+	}
+
+	if ( Test-Path "C:\Program Files (x86)\Notepad++\notepad++.exe" )
+	{
+		$syncHash.Controls.Window.Resources['CvsEditors'].Source.Add( ( [pscustomobject]@{ Name = "Notepad++"; Path = "C:\Program Files (x86)\Notepad++\notepad++.exe" } ) )
+	}
+	elseif ( Test-Path "C:\Program Files\Notepad++\notepad++.exe" )
+	{
+		$syncHash.Controls.Window.Resources['CvsEditors'].Source.Add( ( [pscustomobject]@{ Name = "Notepad++"; Path = "C:\Program Files\Notepad++\notepad++.exe" } ) )
+	}
+	$syncHash.Controls.Window.Resources['CvsEditors'].Source.Add( ( [pscustomobject]@{ Name = "Notepad"; Path = "notepad" } ) )
+
+	$syncHash.Controls.TblPSVersionTable.Text = $PSVersionTable.PSVersion.ToString()
+}
+
 function Set-Localizations
 {
 	$syncHash.Controls.Window.Resources['CvsEditors'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
@@ -40,8 +69,6 @@ BindControls $syncHash $controls
 	param ( $SenderObject, $e )
 
 	Start-Process -FilePath C:\Windows\explorer.exe -ArgumentList "/select, ""$( $syncHash.File )"""
-
-#	explorer ( Get-Item $SenderObject.DataContext.Path ).Directory
 }
 
 [System.Windows.RoutedEventHandler] $syncHash.Code.ModuleOpenReadClick = {
@@ -58,33 +85,9 @@ BindControls $syncHash $controls
 }
 
 Set-Localizations
+Get-Data
 
-Get-Module | `
-	ForEach-Object {
-		$syncHash.Controls.Window.Resources['CvsModules'].Source.Add( $_ ) | Out-Null
-	}
-
-try
-{
-	$syncHash.Controls.TblO365Account.Text = ( Get-AzureADCurrentSessionInfo -ErrorAction Stop ).Account.Id
-}
-catch
-{
-	$syncHash.Controls.TblO365Account.Text = $syncHash.Data.msgTable.ErrO365NotLoggedIn
-}
-
-if ( Test-Path "C:\Program Files (x86)\Notepad++\notepad++.exe" )
-{
-	$syncHash.Controls.Window.Resources['CvsEditors'].Source.Add( ( [pscustomobject]@{ Name = "Notepad++"; Path = "C:\Program Files (x86)\Notepad++\notepad++.exe" } ) )
-}
-elseif ( Test-Path "C:\Program Files\Notepad++\notepad++.exe" )
-{
-	$syncHash.Controls.Window.Resources['CvsEditors'].Source.Add( ( [pscustomobject]@{ Name = "Notepad++"; Path = "C:\Program Files\Notepad++\notepad++.exe" } ) )
-}
-$syncHash.Controls.Window.Resources['CvsEditors'].Source.Add( ( [pscustomobject]@{ Name = "Notepad"; Path = "notepad" } ) )
-
-$syncHash.Controls.TblPSVersionTable.Text = $PSVersionTable.PSVersion.ToString()
-
+# Create registry key value and save setting
 $syncHash.Controls.ChbRunOnLogin.Add_Checked( {
 	try
 	{
@@ -93,14 +96,15 @@ $syncHash.Controls.ChbRunOnLogin.Add_Checked( {
 		if ( -not [string]::IsNullOrEmpty( $Drive.DisplayRoot ) )
 		{
 			$Root = $Drive.DisplayRoot
+			$SuiteScriptPath = Join-Path $Root -ChildPath ( $SuiteScript.FullName.Replace( $SuiteScript.Directory.Root.Name , "" ) ).Replace( "\\dfs\", "" )
 		}
 		else
 		{
 			$Root = $Drive.Root
+			$SuiteScriptPath = Join-Path $Root -ChildPath ( $SuiteScript.FullName.Replace( $SuiteScript.Directory.Root.Name , "" ) )
 		}
-		$SuiteScriptPath = Join-Path $Root -ChildPath ( $SuiteScript.FullName.Replace( $SuiteScript.Directory.Root.Name , "" ) )
 
-		New-Item -Path "$( $env:APPDATA )\Microsoft\Windows\Start Menu\Programs\Startup" -Name $syncHash.Data.msgTable.StrStartOnLoginBatFileName -ItemType File -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -WindowStyle Hidden -File ""$( $SuiteScriptPath )"" sv-SE 1" -ErrorAction Stop
+		New-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "StartSDValmeny" -PropertyType String -Value """C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"" -WindowStyle Hidden -File ""$( $SuiteScriptPath )"" $( $syncHash.Controls.Window.Language.IetfLanguageTag ) 1" -ErrorAction Stop
 	}
 	catch
 	{
@@ -112,11 +116,13 @@ $syncHash.Controls.ChbRunOnLogin.Add_Checked( {
 	$syncHash.Data.SuiteSettings.RunsAtLogin = $true
 } )
 
+# Remove/disable setting
 $syncHash.Controls.ChbRunOnLogin.Add_Unchecked( {
-	Remove-Item -Path "$( $env:APPDATA )\Microsoft\Windows\Start Menu\Programs\Startup\$( $syncHash.Data.msgTable.StrStartOnLoginBatFileName )"
+	Remove-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run" -Name "StartSDValmeny"
 	$syncHash.Data.SuiteSettings.RunsAtLogin = $false
 } )
 
+# Initial setup
 $syncHash.Controls.Window.Add_Loaded( {
 	$syncHash.Controls.Window.Resources['CvsModules'].View.Refresh()
 	$syncHash.Controls.Window.Resources['CvsQuickAccessWordList'].View.Refresh()
