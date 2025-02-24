@@ -1744,13 +1744,13 @@ $syncHash.Code.ListProperties =
 	$syncHash.Window.Resources['CvsPropsList'].Source.Clear()
 	$Props = if ( $Detailed )
 		{
-			Get-Member -inputobject $syncHash.Data.SearchedItem -MemberType NoteProperty | `
+			Get-Member -InputObject $syncHash.Data.SearchedItem -MemberType NoteProperty | `
 				ForEach-Object {
 					$Source = $_.Name
 					Get-Member -InputObject $syncHash.Data.SearchedItem."$( $_.Name )" -MemberType NoteProperty | `
 						Where-Object { $_ -and `
-							$_ -notmatch "(Propert(y)|(ies))" -and `
-							$_ -notmatch "^PS"
+							$_.Name -notmatch "(Propert(y)|(ies))" -and `
+							$_.Name -notmatch "^PS"
 						} | `
 						ForEach-Object {
 							$v, $t = Get-PropValueAndType $syncHash.Data.SearchedItem."$( $Source )"."$( $_.Name )"
