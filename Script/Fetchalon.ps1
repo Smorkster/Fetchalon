@@ -11,7 +11,6 @@
 #>
 
 # Initiate internal variables
-$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 $InitArgs = $args
 $culture = "sv-SE"
 if ( $null -eq $args[0] )
@@ -22,15 +21,31 @@ if ( $null -eq $args[0] )
 	}
 	catch {}
 }
+
 $BaseDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName UIAutomationClient
+
 Get-Module | Where-Object { $_.Path -match "Fetchalon" } | Remove-Module
 "ActiveDirectory", ( Get-ChildItem -Path "$BaseDir\Modules\SuiteModules\*" -File ).FullName | `
 	ForEach-Object {
 		Import-Module -Name $_ -Force -ArgumentList $culture, $true
 	}
 
+$MutexName = "Startup $( $env:USERNAME )"
+if ( $BaseDir -match "Development" )
+{
+	$MutexName = "Dev $( $MutexName )"
+}
+
+$StartUpMutex = [System.Threading.Mutex]::new( $false, $MutexName )
+if ( -not $StartUpMutex.WaitOne( 200 ) )
+{
+	Show-Splash -Duration 1 -NoProgressBar -Text $msgTable.StrOpenMainWindowFound
+	exit
+}
+
+$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
 if ( $BaseDir -notmatch "Development" )
 {
 	#.Net invokes to look for open windows
@@ -2518,7 +2533,7 @@ $(
 	$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.IcFunctionInput.Items.Where( { $_.Mandatory -and $_.EnteredValue -eq "" } ).Count
 }
 
-# Verify tht all mandatory input values are entered
+# Verify that all mandatory input values are entered
 [System.Windows.Controls.TextChangedEventHandler] $syncHash.Code.MandatoryFuncTextboxInputVerification =
 {
 	param ( $SenderObject, $e )
@@ -2709,6 +2724,7 @@ $syncHash.DgSearchResults.Add_KeyDown( {
 
 # Add index for items in searchresult-list
 $syncHash.DgSearchResults.Add_LoadingRow( {
+	$syncHash.PopupMenu.IsOpen = $true
 	$args[1].Row.Header = ( $args[1].Row.GetIndex() + 1 ).ToString()
 	$args[1].Row.Add_PreviewKeyDown( {
 		if ( $syncHash.DgSearchResults.SelectedIndex -eq 0 -and `
@@ -3131,3 +3147,4 @@ else
 }
 
 [void] $syncHash.Window.ShowDialog()
+$StartUpMutex.ReleaseMutex()
