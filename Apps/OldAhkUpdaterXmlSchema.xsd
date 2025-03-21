@@ -1,0 +1,75 @@
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="qualified" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+  <xs:element name="ahk" type="ahkType"/>
+  <xs:complexType name="settingType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute type="xs:string" name="settingName" use="optional"/>
+        <xs:attribute type="xs:string" name="defaultValue" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="settingsType">
+    <xs:sequence>
+      <xs:element type="settingType" name="setting" maxOccurs="unbounded" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="variableType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute type="xs:string" name="variableName"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="variablesType">
+    <xs:sequence>
+      <xs:element type="variableType" name="variable"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="hotstringType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute type="xs:string" name="hotstringName" use="optional"/>
+        <xs:attribute type="xs:string" name="hotstringSystem" use="optional"/>
+        <xs:attribute type="xs:string" name="hotstringMenuTitle" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="hotstringsType">
+    <xs:sequence>
+      <xs:element type="hotstringType" name="hotstring" maxOccurs="unbounded" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="functionType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute type="xs:string" name="functionName" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="functionsType">
+    <xs:sequence>
+      <xs:element type="functionType" name="function" maxOccurs="unbounded" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="changeType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute type="xs:date" name="version" use="optional"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+  <xs:complexType name="changelogType">
+    <xs:sequence>
+      <xs:element type="changeType" name="change" maxOccurs="unbounded" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+  <xs:complexType name="ahkType">
+    <xs:sequence>
+      <xs:element type="settingsType" name="settings"/>
+      <xs:element type="variablesType" name="variables"/>
+      <xs:element type="hotstringsType" name="hotstrings"/>
+      <xs:element type="functionsType" name="functions"/>
+      <xs:element type="changelogType" name="changelog"/>
+    </xs:sequence>
+  </xs:complexType>
+</xs:schema>

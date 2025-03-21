@@ -1,0 +1,254 @@
+{
+    "ScriptComment":  "Test text\r\nText test\r\nMore text\r\nEnd",
+    "Functions":  [
+                      {
+                          "ParameterList":  [
+                                                {
+                                                    "Name":  "P1"
+                                                },
+                                                {
+                                                    "Name":  "P2"
+                                                },
+                                                {
+                                                    "Name":  "P3"
+                                                },
+                                                {
+                                                    "Name":  "P4"
+                                                },
+                                                {
+                                                    "Name":  "P5"
+                                                },
+                                                {
+                                                    "Name":  "P6"
+                                                },
+                                                {
+                                                    "Name":  "P7"
+                                                },
+                                                {
+                                                    "Name":  "P8"
+                                                }
+                                            ],
+                          "FunctionCode":  "\r\nTest code",
+                          "Comment":  "A testfunction",
+                          "Name":  "TestFunc"
+                      },
+                      {
+                          "ParameterList":  [
+                                                {
+                                                    "Name":  "P1"
+                                                },
+                                                {
+                                                    "Name":  "P2"
+                                                },
+                                                {
+                                                    "Name":  "P3"
+                                                },
+                                                {
+                                                    "Name":  "P4"
+                                                },
+                                                {
+                                                    "Name":  "P5"
+                                                },
+                                                {
+                                                    "Name":  "P6"
+                                                },
+                                                {
+                                                    "Name":  "P7"
+                                                },
+                                                {
+                                                    "Name":  "P8"
+                                                }
+                                            ],
+                          "FunctionCode":  "\r\nTest code",
+                          "Comment":  "Another testfunction",
+                          "Name":  "TestFunc2"
+                      }
+                  ],
+    "Hotstrings":  [
+                       {
+                           "Value":  "Hotstring test replacement 1",
+                           "Name":  "HsTest1",
+                           "MenuTitle":  "Hs Test 1",
+                           "IsAdvanced":  null,
+                           "System":  "HsTestSys1",
+                           "Options":  [
+                                           {
+                                               "Name":  "Asterix"
+                                           },
+                                           {
+                                               "Name":  "SI"
+                                           }
+                                       ],
+                           "Comment":  "Test of hotstring"
+                       },
+                       {
+                           "Value":  "TestFunc2\r\n",
+                           "Name":  "HsTest3",
+                           "MenuTitle":  "Hs Test 3",
+                           "IsAdvanced":  null,
+                           "System":  "HsTestSys1",
+                           "Options":  [
+                                           {
+                                               "Name":  "Asterix"
+                                           },
+                                           {
+                                               "Name":  "QuestionMark"
+                                           }
+                                       ],
+                           "Comment":  "Test of hotstring w func"
+                       },
+                       {
+                           "Value":  "MsgBox, Test",
+                           "Name":  "HsTest2",
+                           "MenuTitle":  "ji2",
+                           "IsAdvanced":  true,
+                           "System":  "HsTestSys2",
+                           "Options":  [
+                                           {
+                                               "Name":  "X"
+                                           }
+                                       ],
+                           "Comment":  "Hotstring exec test"
+                       }
+                   ],
+    "Hotkeys":  [
+                    {
+                        "Name":  "Test HK",
+                        "Comment":  "Test q",
+                        "Hotkey":  "^!q",
+                        "HotkeyCode":  "explorer"
+                    },
+                    {
+                        "Name":  "Test HK3",
+                        "Comment":  "Test e",
+                        "Hotkey":  "^!e",
+                        "HotkeyCode":  "explorer"
+                    },
+                    {
+                        "Name":  "Test HK5",
+                        "Comment":  "Test r",
+                        "Hotkey":  "^!r",
+                        "HotkeyCode":  "explorer"
+                    },
+                    {
+                        "Name":  "Test HK4",
+                        "Comment":  "Test t",
+                        "Hotkey":  "^!t",
+                        "HotkeyCode":  "explorer"
+                    }
+                ],
+    "Variables":  [
+                      {
+                          "Name":  "TestVar",
+                          "Value":  "",
+                          "Comment":  "A variable",
+                          "VariableType":  "Legacy"
+                      },
+                      {
+                          "Name":  "TestVar2",
+                          "Value":  "ok",
+                          "Comment":  "Another variable",
+                          "VariableType":  "Expression"
+                      }
+                  ],
+    "Settings":  [
+                     {
+                         "Name":  "FileName",
+                         "DefaultValue":  null,
+                         "SettingGroup":  "Files",
+                         "SettingType":  "string",
+                         "Value":  "AhkCollection"
+                     },
+                     {
+                         "Name":  "UserId",
+                         "DefaultValue":  null,
+                         "SettingGroup":  "Files",
+                         "SettingType":  "string",
+                         "Value":  ""
+                     },
+                     {
+                         "Name":  "ScriptPath",
+                         "DefaultValue":  null,
+                         "SettingGroup":  "Files",
+                         "SettingType":  "string",
+                         "Value":  "\\\\C:\\Test"
+                     },
+                     {
+                         "Name":  "BackupPath",
+                         "DefaultValue":  null,
+                         "SettingGroup":  "Files",
+                         "SettingType":  "string",
+                         "Value":  "\\\\C:\\Test"
+                     },
+                     {
+                         "Name":  "MenuShowTrigger",
+                         "DefaultValue":  "/ahk_",
+                         "SettingGroup":  "Operations",
+                         "SettingType":  "string",
+                         "Value":  "/ahk_"
+                     },
+                     {
+                         "Name":  "SaveWithGui",
+                         "DefaultValue":  true,
+                         "SettingGroup":  "Operations",
+                         "SettingType":  "bool",
+                         "Value":  true
+                     },
+                     {
+                         "Name":  "IncludeAutoUpdate",
+                         "DefaultValue":  true,
+                         "SettingGroup":  "Operations",
+                         "SettingType":  "bool",
+                         "Value":  true
+                     },
+                     {
+                         "Name":  "TitleForMenu",
+                         "DefaultValue":  "Hotstringmenu",
+                         "SettingGroup":  "Settings",
+                         "SettingType":  "string",
+                         "Value":  "Hotstringmenu"
+                     },
+                     {
+                         "Name":  "TitleDividerCharacter",
+                         "DefaultValue":  "_",
+                         "SettingGroup":  "Settings",
+                         "SettingType":  "string",
+                         "Value":  "_"
+                     },
+                     {
+                         "Name":  "TitleForMenuTriggers",
+                         "DefaultValue":  "Menutriggers, one per system",
+                         "SettingGroup":  "Settings",
+                         "SettingType":  "string",
+                         "Value":  "Menutriggers, one per system"
+                     },
+                     {
+                         "Name":  "TitleForHotkeys",
+                         "DefaultValue":  "Hotkeys",
+                         "SettingGroup":  "Settings",
+                         "SettingType":  "string",
+                         "Value":  "Hotkeys"
+                     },
+                     {
+                         "Name":  "TitleForHotstrings",
+                         "DefaultValue":  "Hotstrings",
+                         "SettingGroup":  "Settings",
+                         "SettingType":  "string",
+                         "Value":  "Hotstrings"
+                     },
+                     {
+                         "Name":  "TitleForFunctions",
+                         "DefaultValue":  "Functions",
+                         "SettingGroup":  "Settings",
+                         "SettingType":  "string",
+                         "Value":  "Functions"
+                     },
+                     {
+                         "Name":  "TitleForVariables",
+                         "DefaultValue":  "Variables",
+                         "SettingGroup":  "Settings",
+                         "SettingType":  "string",
+                         "Value":  "Variables"
+                     }
+                 ]
+}
