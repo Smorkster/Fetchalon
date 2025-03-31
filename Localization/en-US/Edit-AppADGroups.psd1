@@ -59,8 +59,8 @@ StrRemovedUsersTitle = Permission removed
 StrSigGen = Sincerely
 StrSigSD = Servicedesk
 StrSigSD2 = Org2
-StrSpecAddIntroSB = Thank you for your order.
-StrSpecAddOutroSB = Login is required to access the page
+StrSpecAddIntroApp3 = Thank you for your order.
+StrSpecAddOutroApp3 = Login is required to access the page
 StrSpecOrg = org6
-StrSpecRemIntroSB = Permission has now been removed for
+StrSpecRemIntroApp3 = Permission has now been removed for
 '@
