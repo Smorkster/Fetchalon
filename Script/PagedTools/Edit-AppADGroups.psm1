@@ -566,10 +566,10 @@ function Set-Localizations
 	$syncHash.Controls.IcLog.Resources['BrdClick'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.LogItemClickHandler
 
 	$syncHash.Data.SpecialMsgEnums = @{}
-	$syncHash.Data.SpecialMsgEnums.SB = @{
-		SpecMsgAddIntro = $syncHash.Data.msgTable.StrSpecAddIntroSB
-		SpecMsgAddOutro = $syncHash.Data.msgTable.StrSpecAddOutroSB
-		SpecMsgRemoveIntro = $syncHash.Data.msgTable.StrSpecRemIntroSB
+	$syncHash.Data.SpecialMsgEnums.App3 = @{
+		SpecMsgAddIntro = $syncHash.Data.msgTable.StrSpecAddIntroApp3
+		SpecMsgAddOutro = $syncHash.Data.msgTable.StrSpecAddOutroApp3
+		SpecMsgRemoveIntro = $syncHash.Data.msgTable.StrSpecRemIntroApp3
 		Org1 = "Site1"
 		Org2 = "Site2"
 	}
@@ -612,6 +612,21 @@ function Update-AppList
 	<#
 	.Synopsis
 		Add names for applications with AD-Groups
+	.Description
+		Create list of objects for applications, describing how to look for them in a LDAPFilter-search and if any groups should be excluded.
+		Each object must contain AppFilter and GroupList.
+		Available parameters:
+			AppFilter - The LDAPFilter text, i.e. the search definition needed to find the AD-groups
+			GroupList - An initialized observable collection where the groups will be placed/available
+			GroupType - A string describing the group, that will be used describing the added/removed permission
+			Exclude - An array of words that may be present in a groupname. If the name is present, the group will be excluded
+			ExcludeSplitCharacter - A character that will be used to split the groupname, so the excluded word can be found
+			ExcludedWordIndex - Index of the excluded word after splitting the groupname by the ExcludeSplitCharacter
+			AddComputer - If computer also needs to be added in a SysMan collection
+			ComputerAdGroups - A list of groupnames where the compture should be added
+			SpecialMsgEnums - Name of enum-key for special message, this is set in Set-Localizations
+			SpecialMsgNameSplitChar - Character used to split groupname, to differentiate word/character combo that is used to indicate enum-key. This word/character combo must be the same as set in Set-Localizations
+			SpecialMsgNameSplitIndex - Index of word/character combo after split of name
 	#>
 
 	$apps = @()
