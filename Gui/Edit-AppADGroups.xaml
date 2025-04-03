@@ -108,6 +108,8 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition />
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="120" />
             </Grid.RowDefinitions>
             <TextBlock Name="TblApp"
@@ -173,13 +175,118 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <TextBlock Name="TblGroupsChosen"
+            <TextBlock Name="TblCopyFromTitle"
                        Grid.Row="4"
+                       Style="{StaticResource TblTitleStyle}"
+                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblCopyFromTitle}" />
+            <Grid Grid.Row="5">
+                <Grid.Style>
+                    <Style TargetType="Grid">
+                        <Setter Property="IsEnabled"
+                                Value="True" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=LbAppGroupList, Path=ItemsSource.Count}"
+                                         Value="0">
+                                <Setter Property="IsEnabled"
+                                        Value="False" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Grid.Style>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBox Name="TbCopyFrom"
+                         Panel.ZIndex="2"
+                         VerticalContentAlignment="Center">
+                    <TextBox.Style>
+                        <Style TargetType="TextBox"
+                               BasedOn="{StaticResource TbBaseStyle}">
+                            <Setter Property="Grid.ColumnSpan"
+                                    Value="1" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=Text.Length}"
+                                             Value="0">
+                                    <Setter Property="Grid.ColumnSpan"
+                                            Value="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBox.Style>
+                </TextBox>
+                <Path Name="PathCopyFromErrorInfo"
+                      Data="M21 13H14.4L19.1 17.7L17.7 19.1L13 14.4V21H11V14.3L6.3 19L4.9 17.6L9.4 13H3V11H9.6L4.9 6.3L6.3 4.9L11 9.6V3H13V9.4L17.6 4.8L19 6.3L14.3 11H21V13Z"
+                      Fill="LightGray"
+                      Grid.Column="1"
+                      Margin="{StaticResource StdMargin}"
+                      Panel.ZIndex="1"
+                      VerticalAlignment="Center">
+                    <Path.Style>
+                        <Style TargetType="Path">
+                            <Setter Property="Visibility"
+                                    Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=TbCopyFrom, Path=Text.Length}"
+                                             Value="0">
+                                    <Setter Property="Visibility"
+                                            Value="Hidden" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Path.Style>
+                </Path>
+                <Button Name="BtnCopyFrom"
+                        Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnCopyFrom}"
+                        Grid.Column="2"
+                        Panel.ZIndex="1"
+                        ToolTipService.ShowDuration="2000">
+                    <Button.Style>
+                        <Style TargetType="Button"
+                               BasedOn="{StaticResource BtnBaseStyle}">
+                            <Setter Property="IsEnabled"
+                                    Value="False" />
+                            <Setter Property="ToolTip.IsOpen"
+                                    Value="False" />
+                            <Setter Property="Visibility"
+                                    Value="Visible" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=PathCopyFromErrorInfo, Path=Fill}"
+                                             Value="Green">
+                                    <Setter Property="IsEnabled"
+                                            Value="True" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
+                                             Value="True">
+                                    <Setter Property="ToolTip.IsOpen"
+                                            Value="True" />
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding ElementName=TbCopyFrom, Path=Text.Length}"
+                                             Value="0">
+                                    <Setter Property="Visibility"
+                                            Value="Hidden" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Button.Style>
+                </Button>
+                <TextBlock Name="TblCopyFromInfo"
+                           Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
+                           Grid.Row="1" Style="{StaticResource TblBaseStyle}"
+                           TextWrapping="Wrap"/>
+            </Grid>
+            <TextBlock Name="TblGroupsChosen"
+                       Grid.Row="6"
                        Style="{StaticResource TblTitleStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblGroupsChosen}" />
             <ListBox Name="LbGroupsChosen"
                      DisplayMemberPath="Name"
-                     Grid.Row="5"
+                     Grid.Row="7"
                      ItemsSource="{Binding Source={StaticResource CvsSelectedGrps}}"
                      Style="{StaticResource LbBaseStyle}" />
         </Grid>

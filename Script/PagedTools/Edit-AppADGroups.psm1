@@ -777,6 +777,36 @@ Reset-Variables
 Set-UserSettings
 Set-Localizations
 
+$syncHash.Controls.BtnCopyFrom.Add_Click( {
+	$syncHash.Data.UserToCopyFrom.MemberOf | `
+		ForEach-Object `
+		-Begin {
+			$C = 0
+		} `
+		-Process {
+			$Mo = $_
+			if ( $syncHash.Controls.LbAppGroupList.SelectedItem = $syncHash.Controls.LbAppGroupList.ItemsSource.Where( { $_.DistinguishedName -eq $Mo } )[0] )
+			{
+				Group-Selected
+				$C += 1
+			}
+		} `
+		-End {
+			$syncHash.Controls.TblCopyFromInfo.Inlines.Clear()
+			if ( $C -eq 0 )
+			{
+				$syncHash.Controls.TblCopyFromInfo.Inlines.Add( ( [System.Windows.Documents.Run]@{ FontWeight = "Bold" ; Text = $syncHash.Data.UserToCopyFrom.Name } ) )
+				$syncHash.Controls.TblCopyFromInfo.Inlines.Add( ( [System.Windows.Documents.Run]@{ Text = " $( $syncHash.Data.msgTable.StrNoGroupsCopied ) " } ) )
+				$syncHash.Controls.TblCopyFromInfo.Inlines.Add( ( [System.Windows.Documents.Run]@{ FontWeight = "Bold" ; Text = $syncHash.Controls.CbApp.Text } ) )
+			}
+			else
+			{
+				$syncHash.Controls.TblCopyFromInfo.Inlines.Add( ( [System.Windows.Documents.Run]@{ FontWeight = "Bold" ; Text = $C } ) )
+				$syncHash.Controls.TblCopyFromInfo.Inlines.Add( ( [System.Windows.Documents.Run]@{ Text = " $( $syncHash.Data.msgTable.StrGroupsCopied )" } ) )
+			}
+		}
+} )
+
 $syncHash.Controls.BtnRefetchGroups.Add_Click( {
 	if ( $null -eq $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude )
 	{
@@ -822,6 +852,30 @@ $syncHash.Controls.CbApp.Add_SelectionChanged( {
 $syncHash.Controls.LbAppGroupList.Add_MouseDoubleClick( { Group-Selected } )
 
 $syncHash.Controls.LbGroupsChosen.Add_MouseDoubleClick( { Group-Deselected } )
+
+$syncHash.Controls.TbCopyFrom.Add_TextChanged( {
+	$syncHash.Controls.TblCopyFromInfo.Inlines.Clear()
+	if ( $this.Text.Length -ge 4 )
+	{
+		try
+		{
+			$syncHash.Data.UserToCopyFrom = Get-ADUser -Identity $this.Text -ErrorAction Stop -Properties MemberOf
+			$syncHash.Controls.PathCopyFromErrorInfo.Fill = "Green"
+			$syncHash.Controls.TblCopyFromInfo.Inlines.Add( ( [System.Windows.Documents.Run]@{ Text = "$( $syncHash.Data.msgTable.StrUserCopyFound ) " } ) )
+			$syncHash.Controls.TblCopyFromInfo.Inlines.Add( ( [System.Windows.Documents.Run]@{ FontWeight = "Bold" ; Text = "$( $syncHash.Data.UserToCopyFrom.Name ) " } ) )
+		}
+		catch
+		{
+			$syncHash.Controls.PathCopyFromErrorInfo.Fill = "Red"
+			$syncHash.Controls.TblCopyFromInfo.Inlines.Add( $syncHash.Data.msgTable.ErrCopyFromNotIdentified )
+		}
+	}
+	else
+	{
+		$syncHash.Controls.PathCopyFromErrorInfo.Fill = "LightGray"
+		$syncHash.Controls.TblCopyFromInfo.Inlines.Add( $syncHash.Data.msgTable.StrCopyFromEnterId )
+	}
+} )
 
 $syncHash.Controls.TxtUsersAddPermission.Add_TextChanged( { Check-Ready } )
 
