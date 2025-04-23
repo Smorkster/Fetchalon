@@ -169,7 +169,7 @@
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <TextBlock Text="{Binding Path=Name}"
-                                   ToolTip="{Binding Path=Description}"
+                                   ToolTip="{Binding Path=Tt}"
                                    ToolTipService.InitialShowDelay="0"
                                    ToolTipService.ShowDuration="2000" />
                     </DataTemplate>
