@@ -677,7 +677,7 @@ function Update-AppGroupList
 	{
 		try
 		{
-			$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" -Properties Description | `
+			$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList = Get-ADGroup -LDAPFilter "$( $syncHash.Controls.CbApp.SelectedItem.Tag.AppFilter )" -Properties Description, info | `
 				Sort-Object Name | `
 				Select-Object *
 			if ( $null -ne $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude )
@@ -686,6 +686,24 @@ function Update-AppGroupList
 					Where-Object { $syncHash.Controls.CbApp.SelectedItem.Tag.Exclude -notcontains $_.Name.Split( $syncHash.Controls.CbApp.SelectedItem.Tag.ExcludeSplitCharacter )[$syncHash.Controls.CbApp.SelectedItem.Tag.ExcludedWordIndex] } | `
 					Sort-Object Name
 			}
+			$syncHash.Controls.CbApp.SelectedItem.Tag.GroupList | `
+				ForEach-Object {
+					if ( $_.Description -ne $null )
+					{
+						$Tt = $_.Description
+					}
+					elseif ( $_.Description -eq $null `
+						-and $_.info -ne $null
+					)
+					{
+						$Tt = $_.info
+					}
+					else
+					{
+						$Tt = $syncHash.Data.msgTable.StrGroupDescriptionEmpty
+					}
+					Add-Member -InputObject $_ -MemberType NoteProperty -Name "Tt" -Value $Tt
+				}
 		}
 		catch
 		{
