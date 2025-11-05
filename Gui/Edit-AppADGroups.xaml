@@ -74,6 +74,10 @@
         <Style TargetType="TextBlock"
                x:Key="TblLogStyle"
                BasedOn="{StaticResource TblBaseStyle}">
+            <Setter Property="Margin"
+                    Value="0" />
+            <Setter Property="Padding"
+                    Value="5" />
         </Style>
         <Style TargetType="TextBlock"
                x:Key="TblTitleStyle"
@@ -122,6 +126,7 @@
                 </Grid.ColumnDefinitions>
                 <ComboBox Name="CbApp"
                           DisplayMemberPath="Text"
+                          MaxDropDownHeight="{Binding ElementName=Window, Path=ActualHeight}"
                           ItemsSource="{Binding Source={StaticResource CvsAppList}}"
                           Margin="{StaticResource StdMargin}"
                           SelectedIndex="-1"
@@ -483,7 +488,8 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                     <Border BorderThickness="2,2,0,0"
-                                            Grid.Row="3">
+                                            Grid.Row="3"
+                                            Padding="0">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="BorderBrush">
@@ -515,13 +521,21 @@
                                             <TextBlock.Style>
                                                 <Style TargetType="TextBlock"
                                                        BasedOn="{StaticResource TblLogStyle}">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.AddedUsers.Count}"
-                                                                     Value="0">
-                                                            <Setter Property="Visibility"
-                                                                    Value="Collapsed" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
+                                                    <Setter Property="Background">
+                                                        <Setter.Value>
+                                                            <LinearGradientBrush StartPoint="0,0"
+                                                                                 EndPoint="1,1">
+                                                                <LinearGradientBrush.GradientStops>
+                                                                    <GradientStopCollection>
+                                                                        <GradientStop Color="#00F0F0F0"
+                                                                                      Offset="0.0" />
+                                                                        <GradientStop Color="Green"
+                                                                                      Offset="1.1" />
+                                                                    </GradientStopCollection>
+                                                                </LinearGradientBrush.GradientStops>
+                                                            </LinearGradientBrush>
+                                                        </Setter.Value>
+                                                    </Setter>
                                                 </Style>
                                             </TextBlock.Style>
                                         </TextBlock>
@@ -536,7 +550,8 @@
                                         </ItemsControl.ItemTemplate>
                                     </ItemsControl>
                                     <Border BorderThickness="2,2,0,0"
-                                            Grid.Row="5">
+                                            Grid.Row="5"
+                                            Padding="0">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="BorderBrush">
@@ -563,8 +578,28 @@
                                                 </Style.Triggers>
                                             </Style>
                                         </Border.Style>
-                                        <TextBlock Style="{StaticResource TblLogStyle}"
-                                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrRemovedUsersTitle}" />
+                                        <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrRemovedUsersTitle}">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock"
+                                                       BasedOn="{StaticResource TblLogStyle}">
+                                                    <Setter Property="Background">
+                                                        <Setter.Value>
+                                                            <LinearGradientBrush StartPoint="0,0"
+                                                                                 EndPoint="1,1">
+                                                                <LinearGradientBrush.GradientStops>
+                                                                    <GradientStopCollection>
+                                                                        <GradientStop Color="#00F0F0F0"
+                                                                                      Offset="0.0" />
+                                                                        <GradientStop Color="Cyan"
+                                                                                      Offset="1.1" />
+                                                                    </GradientStopCollection>
+                                                                </LinearGradientBrush.GradientStops>
+                                                            </LinearGradientBrush>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </Border>
                                     <ItemsControl Grid.Row="6"
                                                   ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.RemovedUsers}"
@@ -577,7 +612,8 @@
                                     </ItemsControl>
                                     <Border BorderThickness="2,2,0,0"
                                             Grid.Row="7"
-                                            Margin="{StaticResource StdMargin}">
+                                            Margin="{StaticResource StdMargin}"
+                                            Padding="0">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="BorderBrush">
@@ -605,8 +641,28 @@
                                             </Style>
                                         </Border.Style>
                                         <StackPanel>
-                                            <TextBlock Style="{StaticResource TblLogStyle}"
-                                                       Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrErrorUsersTitle}" />
+                                            <TextBlock Text="{Binding ElementName=Window, Path=DataContext.MsgTable.StrErrorUsersTitle}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock"
+                                                           BasedOn="{StaticResource TblLogStyle}">
+                                                        <Setter Property="Background">
+                                                            <Setter.Value>
+                                                                <LinearGradientBrush StartPoint="0,0"
+                                                                                     EndPoint="1,1">
+                                                                    <LinearGradientBrush.GradientStops>
+                                                                        <GradientStopCollection>
+                                                                            <GradientStop Color="#00F0F0F0"
+                                                                                          Offset="0.0" />
+                                                                            <GradientStop Color="Red"
+                                                                                          Offset="1.1" />
+                                                                        </GradientStopCollection>
+                                                                    </LinearGradientBrush.GradientStops>
+                                                                </LinearGradientBrush>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                             <ItemsControl ItemsSource="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=DataContext.ErrorUsers}"
                                                           Style="{StaticResource IcBaseStyle}">
                                                 <ItemsControl.ItemTemplate>
