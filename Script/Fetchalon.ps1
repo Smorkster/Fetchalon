@@ -12,12 +12,12 @@
 
 # Initiate internal variables
 $InitArgs = $args
-$culture = "sv-SE"
+$Culture = "sv-SE"
 if ( $null -eq $args[0] )
 {
 	try
 	{
-		$culture = [System.Globalization.CultureInfo]::GetCultureInfo( $args[0] ).Name
+		$Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $args[0] ).Name
 	}
 	catch {}
 }
@@ -29,7 +29,7 @@ Add-Type -AssemblyName UIAutomationClient
 Get-Module | Where-Object { $_.Path -match "Fetchalon" } | Remove-Module
 "ActiveDirectory", ( Get-ChildItem -Path "$BaseDir\Modules\SuiteModules\*" -File ).FullName | `
 	ForEach-Object {
-		Import-Module -Name $_ -Force -ArgumentList $culture, $true
+		Import-Module -Name $_ -Force -ArgumentList $Culture, $true
 	}
 
 $MutexName = "Startup $( $env:USERNAME )"
@@ -42,7 +42,7 @@ $StartUpMutex = [System.Threading.Mutex]::new( $false, $MutexName )
 if ( -not $StartUpMutex.WaitOne( 200 ) )
 {
 	Show-Splash -Duration 1 -NoProgressBar -Text $msgTable.StrOpenMainWindowFound
-	exit
+#	exit
 }
 
 $OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
@@ -252,6 +252,27 @@ function Check-O365Roles
 	{}
 }
 
+function Clear-TopMenu
+{
+	<#
+	.Synopsis
+		Removes all topmenu menuitems
+	.Description
+		Removes all menuitems under the topmenu and removes all its submenus
+	.Parameter ModuleName
+		Name of the module whos topmenu should be cleared
+	#>
+
+	param ( $ModuleName )
+
+	$syncHash.Window.Resources."CvsMi$( $ModuleName )".Source.Clear()
+	$syncHash.Window.Resources.GetEnumerator() | `
+		Where-Object { $_.Name -match "$( $ModuleName )Sub" } | `
+		ForEach-Object {
+			$syncHash.Window.Resources.Remove( "$( $_.Name )" )
+		}
+}
+
 function Connect-O365
 {
 	<#
@@ -372,6 +393,56 @@ function Get-ExtraInfoFromSysMan
 	$syncHash.MiGetSysManInfo.IsEnabled = $false
 }
 
+function Get-ModuleFunctions
+{
+	<#
+	.Synopsis
+		Load imported functions to menuitems
+	.Description
+		Import modules and insert a representation of each as a menuitem in the GUI
+	#>
+
+	param ( $ModuleName )
+
+	( Import-Module "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\$( $ModuleName ).psm1" -Force -ArgumentList $syncHash.Data.Culture.Name -PassThru ).ExportedCommands.GetEnumerator() | `
+		ForEach-Object {
+			$MiObject = [pscustomobject]@{
+				Name = $_.Key
+			}
+			if ( $null -ne ( $MiObject = GetScriptInfo -Text $_.Value.Definition -InfoObject $MiObject -NoErrorRecord ) )
+			{
+				if ( $ModuleName -notmatch "O365.*Functions" )
+				{
+					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "ObjectClass" -Value ( $ModuleName -replace "Functions$" )
+				}
+
+				if ( [System.Collections.ObjectModel.ObservableCollection[object]] $DFList = Get-DataFormaters -Code $_.Value.Definition )
+				{
+					Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "DataFormaters" -Value $DFList
+				}
+
+				if ( $null -ne $MiObject )
+				{
+					Add-MenuItem $MiObject $ModuleName
+				}
+			}
+			else
+			{
+				WriteErrorlog -LogText "Error creating ScriptInfo" -UserInput "$ModuleName > $( $_.Key )" -Severity ScriptLogicFail
+			}
+		}
+
+	try
+	{
+		$syncHash."Mi$( $ModuleName )".Tag = Get-Date
+	}
+	catch
+	{
+		# O365 menus that hasn't been created
+	}
+
+}
+
 function Get-PropHandlers
 {
 	<#
@@ -452,8 +523,16 @@ function Open-SeparateTool
 
 	param ( $SenderObject )
 
-	$SenderObject.DataContext.Process = [pscustomobject]@{ RunspaceH = $null ; RunspaceP = $null ; EventListenerPsInitializer = $null ; EventListenerToolProcess = $null ; PObj = $null ; MainWindowHandle = $null }
+	$SenderObject.DataContext.Process = [pscustomobject]@{
+		RunspaceH = $null
+		RunspaceP = $null
+		EventListenerPsInitializer = $null
+		EventListenerToolProcess = $null
+		ProcessObject = $null
+		MainWindowHandle = $null
+	}
 
+	# Initialize runspace and start tool
 	$SenderObject.DataContext.Process.RunspaceP = [powershell]::Create()
 	[void] $SenderObject.DataContext.Process.RunspaceP.AddScript( {
 		param ( $Script, $BaseDir, $Modules )
@@ -462,26 +541,39 @@ function Open-SeparateTool
 		Start-Process powershell -ArgumentList $Script, $BaseDir -WindowStyle Hidden -PassThru
 	} )
 	[void] $SenderObject.DataContext.Process.RunspaceP.AddArgument( $SenderObject.DataContext.Ps )
-	[void] $SenderObject.DataContext.Process.RunspaceP.AddArgument( $SenderObject.DataContext.BaseDir )
+	[void] $SenderObject.DataContext.Process.RunspaceP.AddArgument( $syncHash.Data.BaseDir )
 	[void] $SenderObject.DataContext.Process.RunspaceP.AddArgument( ( Get-Module | Where-Object { Test-Path $_.Path } ) )
 	$SenderObject.DataContext.Process.RunspaceH = $SenderObject.DataContext.Process.RunspaceP.BeginInvoke()
 
+	# Eventlistener for the runspace starting the tool
 	$SenderObject.DataContext.Process.EventListenerPsInitializer = Register-ObjectEvent -InputObject $SenderObject.DataContext.Process.RunspaceP -EventName InvocationStateChanged -MessageData @( $SenderObject, $syncHash ) -Action {
-		$Event.MessageData[1].MiTools.Header.UpdateLayout()
-		if ( $EventArgs.InvocationStateInfo.State -in 'Completed', 'Failed' )
+		# Runspace completed normaly, end invocation and collect data
+		$Event.MessageData[0].DataContext.Process.ProcessObject = ( $Event.MessageData[0].DataContext.Process.RunspaceP.EndInvoke( $Event.MessageData[0].DataContext.Process.RunspaceH ) )[0]
+		$Event.MessageData[0].DataContext.Process.MainWindowHandle = $Event.MessageData[0].DataContext.Process.ProcessObject.MainWindowHandle
+		if ( $EventArgs.InvocationStateInfo.State -eq 'Completed' )
 		{
-			$Event.MessageData[0].DataContext.Process.PObj = ( $Event.MessageData[0].DataContext.Process.RunspaceP.EndInvoke( $Event.MessageData[0].DataContext.Process.RunspaceH ) )[0]
-			$Event.MessageData[0].DataContext.Process.MainWindowHandle = $Event.MessageData[0].DataContext.Process.PObj.MainWindowHandle
-			$Event.MessageData[0].DataContext.Process.EventListenerToolProcess = Register-ObjectEvent -InputObject $Event.MessageData[0].DataContext.Process.PObj -EventName Exited -MessageData $Event.MessageData[0] -Action {
+			$Event.MessageData[0].DataContext.Process.EventListenerToolProcess = Register-ObjectEvent -InputObject $Event.MessageData[0].DataContext.Process.ProcessObject -EventName Exited -MessageData $Event.MessageData[0] -Action {
 				$p = $Event.MessageData.DataContext.Process.EventListenerPsInitializer
 				$r = $Event.MessageData.DataContext.Process.EventListenerToolProcess
-				$Event.MessageData.Dispatcher.Invoke( [action] { $Event.MessageData.DataContext.Process = $null }, [System.Windows.Threading.DispatcherPriority]::DataBind )
+				$Event.MessageData.Dispatcher.Invoke( [action] { $Event.MessageData.DataContext.Process = $null } )
 				Unregister-Event $p
 				Unregister-Event $r
 				[GC]::Collect()
 			}
-			[GC]::Collect()
 		}
+		# Runspace finished after some exception
+		elseif ( $EventArgs.InvocationStateInfo.State -eq 'Failed' )
+		{
+			$Event.MessageData[0].DataContext.Process.EventListenerToolProcess = Register-ObjectEvent -InputObject $Event.MessageData[0].DataContext.Process.ProcessObject -EventName Exited -MessageData $Event.MessageData[0] -Action {
+				$p = $Event.MessageData.DataContext.Process.EventListenerPsInitializer
+				$r = $Event.MessageData.DataContext.Process.EventListenerToolProcess
+				$Event.MessageData.Dispatcher.Invoke( [action] { $Event.MessageData.DataContext.Process = $null } )
+				Unregister-Event $p
+				Unregister-Event $r
+				[GC]::Collect()
+			}
+		}
+		[GC]::Collect()
 	}
 }
 
@@ -792,9 +884,11 @@ function Set-Localizations
 	# Set event handlers
 	$syncHash.Window.Resources['BtnCopyOutputDataStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.CopyOutputData
 	$syncHash.Window.Resources['BtnCopyOutputObjectStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.CopyOutputObject
+	$syncHash.Window.Resources['BtnCopyOutputDataFormaterStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.CopyOutputOpenDataFormaterList
 	$syncHash.Window.Resources['BtnCopyPropertyStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.CopyProperty
 	$syncHash.Window.Resources['BtnRunPropStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.RunPropHandler
 	$syncHash.Window.Resources['CbInputStyle'].Setters.Where( { $_.Event.Name -match "SelectionChanged" } )[0].Handler = $syncHash.Code.MandatoryFuncComboboxInputVerification
+	$syncHash.Window.Resources['CmDataFormaterListItem'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.DataFormaterMenuItemClick
 	$syncHash.Window.Resources['DgrFuncOutputStyle'].Setters.Where( { $_.Event.Name -match "RequestBringIntoView" } )[0].Handler = $syncHash.Code.DataGridRowDisableBringIntoView
 	$syncHash.Window.Resources['MiSubLevelFunctionsStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
 	$syncHash.Window.Resources['MiSubLevelToolStyle'].Setters.Where( { $_.Event.Name -match "Click" } )[0].Handler = $syncHash.Code.MenuItemClick
@@ -1113,7 +1207,7 @@ function Start-Search
 					$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsComputer
 					$LDAPSearches.Add( "(&(ObjectClass=computer)(Name=$Id))" ) | Out-Null
 				}
-				elseif ( $Id -match "(?i)^($( $syncHash.Data.msgTable.StrAdmPrefix ))*[a-z0-9]{4}$" -and $Id -notmatch "[aeiouy]")
+				elseif ( $Id -match "(?i)^($( $syncHash.Data.msgTable.StrAdmPrefix ))*[a-z0-9]{4}$" -and ( $Id -replace $syncHash.Data.msgTable.StrAdmPrefix ) -notmatch "[aeiouy]")
 				{
 					$syncHash.DC.TbIdentifiedSearchPattern[0] = $syncHash.Data.msgTable.StrTextIdentifiedAsID
 					$LDAPSearches.Add( "(&(ObjectClass=user)(SamAccountName=$Id))" ) | Out-Null
@@ -1253,7 +1347,7 @@ if ( $PSCommandPath -match "Development" )
 }
 
 $syncHash.Data.BaseDir = $BaseDir
-$syncHash.Data.Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $culture )
+$syncHash.Data.Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $Culture )
 $syncHash.Data.InitArgs = $InitArgs
 $syncHash.Data.msgTable = $msgTable
 $syncHash.Data.SettingsPath = "$( $env:UserProfile )\FetchalonSettings.json"
@@ -1279,7 +1373,7 @@ $syncHash.Jobs.GetFullADMembershipsHandler = $syncHash.Jobs.GetFullADMemberships
 # Check validity of culture, otherwise, default to 'sv-se'
 try
 {
-	$syncHash.Window.Language = [System.Windows.Markup.XmlLanguage]::GetLanguage( $culture )
+	$syncHash.Window.Language = [System.Windows.Markup.XmlLanguage]::GetLanguage( $Culture )
 }
 catch
 {
@@ -1911,7 +2005,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 	$Info = [pscustomobject]@{
 		Started = Get-Date
 		Finished = $null
-		Data = $null
+		Data = @()
 		Script = $ScriptObject
 		Error = [System.Collections.ArrayList]::new()
 		Item = $ItemToSend
@@ -1924,17 +2018,17 @@ $syncHash.Code.SBlockExecuteFunction = {
 		{
 			if ( "None" -eq $ScriptObject.SearchedItemRequest )
 			{
-				$ScriptOutput = . $ScriptObject.Name $InputData
+				$ScriptOutput = . $ScriptObject.Name $InputData 2>&1
 			}
 			else
 			{
 				if ( $ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass )
 				{
-					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem $InputData
+					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem $InputData 2>&1
 				}
 				else
 				{
-					$ScriptOutput = . $ScriptObject.Name $null $InputData
+					$ScriptOutput = . $ScriptObject.Name $null $InputData 2>&1
 				}
 			}
 		}
@@ -1942,21 +2036,37 @@ $syncHash.Code.SBlockExecuteFunction = {
 		{
 			if ( "None" -eq $ScriptObject.SearchedItemRequest )
 			{
-				$ScriptOutput = . $ScriptObject.Name
+				$ScriptOutput = . $ScriptObject.Name 2>&1
 			}
 			else
 			{
 				if ( $ScriptObject.ObjectClass -eq $syncHash.Data.SearchedItem.ObjectClass )
 				{
-					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem
+					$ScriptOutput = . $ScriptObject.Name $syncHash.Data.SearchedItem 2>&1
 				}
 				else
 				{
-					$ScriptOutput = . $ScriptObject.Name $null
+					$ScriptOutput = . $ScriptObject.Name $null 2>&1
 				}
 			}
 		}
-		$Info.Data = $ScriptOutput
+
+		if ( $ScriptObject.OutputType -eq "String" )
+		{
+			$Info.Data = ""
+		}
+
+		foreach ( $msg in $ScriptOutput )
+		{
+			if ( $msg -is [System.Management.Automation.ErrorRecord] )
+			{
+				$Info.Error.Add( $msg ) | Out-Null
+			}
+			else
+			{
+				$Info.Data += $msg
+			}
+		}
 
 		if ( $null -eq $Info.Data )
 		{
@@ -2014,7 +2124,7 @@ $syncHash.Code.SBlockExecuteFunction = {
 
 	if ( $Info.Error )
 	{
-		$eh = WriteErrorlog -LogText $LogText -UserInput $null -Severity -1
+		$eh = WriteErrorlog -LogText "$( $LogText )`r`n$( $Info.Error -join "`n" )" -UserInput $null -Severity -1
 	}
 	WriteLog -Text $LogText -Success ( $null -eq $Info.Error ) -UserInput ( $InputData | ConvertTo-Json -Compress ) -ErrorLogHash $eh | Out-Null
 
@@ -2150,6 +2260,14 @@ $(
 	} | clip
 }
 
+#
+[System.Windows.RoutedEventHandler] $syncHash.Code.CopyOutputOpenDataFormaterList =
+{
+	param ( $SenderObject, $e )
+
+	$SenderObject.ContextMenu.IsOpen = $True
+}
+
 # WPF EventSetter handler to copy property value
 [System.Windows.RoutedEventHandler] $syncHash.Code.CopyProperty =
 {
@@ -2157,6 +2275,14 @@ $(
 
 	Set-Clipboard -Value $SenderObject.Parent.DataContext.Value
 	Show-Splash -Text "$( $SenderObject.Parent.DataContext.Name ) $( $syncHash.Data.msgTable.StrPropertyCopied )" -NoTitle -NoProgressBar
+}
+
+#
+[System.Windows.RoutedEventHandler] $syncHash.Code.DataFormaterMenuItemClick = {
+	param ( $SenderObject, $e )
+
+	Invoke-Command -ScriptBlock $SenderObject.DataContext.Code.GetScriptBlock() -ArgumentList $syncHash.IcOutputObjects.Items[0].Data | clip
+	Show-Splash -Text "$( $syncHash.Data.msgTable.StrDataFormaterCopied ): $( $SenderObject.DataContext.Title )" -NoTitle -NoProgressBar
 }
 
 # WPF EventSetter handler to disable BringIntoView for datagridrow
@@ -2364,6 +2490,7 @@ $(
 			# The tool has Xaml to be shown in main window
 			if ( $SenderObject.DataContext.Separate -eq $false )
 			{
+				Display-View -ViewName 'FrameTool'
 				$name = $SenderObject.DataContext.Name -replace "\W"
 				#Check if tool already is loaded
 				if ( -not ( $syncHash.Window.Resources.Keys.Contains( "LoadedPage$( $name )" ) ) )
@@ -2431,14 +2558,30 @@ $(
 			}
 		}
 		# The menuitem represents a function
-		# This does not have its own UI and will be displayed in main window when finished
+		# This does not have its own UI, its output will be displayed in main window when finished
 		else
 		{
+			Display-View -ViewName 'FrameTool'
 			if ( "None" -ne $SenderObject.DataContext.OutputType )
 			{
 				$syncHash.DC.IcOutputObjects[0].Clear()
 				$syncHash.FrameTool.Navigate( $syncHash.Window.Resources['MainOutput'] )
 			}
+
+			if ( ( Get-Item ( Get-Module ( Get-Command $SenderObject.DataContext.Name ).Source ).Path ).LastWriteTime -gt $syncHash."Mi$( ( Get-Command $SenderObject.DataContext.Name ).Source )".Tag )
+			{
+				$TempSO = $SenderObject.psobject.Copy()
+				$TempSODC = $SenderObject.DataContext.psobject.Copy()
+				$ModuleName = ( Get-Command $TempSO.DataContext.Name ).Source
+				Show-Splash -Text "$( $syncHash."Mi$( $ModuleName )".Header.Children[1].Text )$( $syncHash.Data.msgTable.StrFunctionModuleUpdated )`n$( $syncHash.Data.msgTable.StrFunctionModuleUpdated2 )" -NoProgressBar -NoTitle -SelfAdmin
+				Clear-TopMenu -ModuleName $ModuleName
+				Get-ModuleFunctions -ModuleName $ModuleName
+				$SenderObject = $TempSO.psobject.Copy()
+				$SenderObject.DataContext = $TempSODC.psobject.Copy()
+				Close-SplashScreen
+			}
+
+			$syncHash.tempso2 = $SenderObject
 
 			if ( $SenderObject.DataContext.InputData.Count -gt 0 )
 			{
@@ -2565,32 +2708,9 @@ Set-Localizations
 
 Update-SplashText -Text $msgTable."StrSplashJoke$( Get-Random -Minimum 1 -Maximum ( $syncHash.Data.msgTable.Keys.Where( { $_ -match "Joke" } ).Count ) )"
 
-# Load imported functions to menuitems
 Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\*.psm1" | `
 	ForEach-Object {
-		$ModuleName = $_.BaseName
-		( Import-Module $_.FullName -Force -ArgumentList $culture -PassThru ).ExportedCommands.GetEnumerator() | `
-			ForEach-Object {
-				$MiObject = [pscustomobject]@{
-					Name = $_.Key
-				}
-				if ( $null -ne ( $MiObject = GetScriptInfo -Text $_.Value.Definition -InfoObject $MiObject -NoErrorRecord ) )
-				{
-					if ( $ModuleName -notmatch "O365.*Functions" )
-					{
-						Add-Member -InputObject $MiObject -MemberType NoteProperty -Name "ObjectClass" -Value ( $ModuleName -replace "Functions$" )
-					}
-
-					if ( $null -ne $MiObject )
-					{
-						Add-MenuItem $MiObject $ModuleName
-					}
-				}
-				else
-				{
-					WriteErrorlog -LogText "Error creating ScriptInfo" -UserInput "$ModuleName > $( $_.Key )" -Severity ScriptLogicFail
-				}
-			}
+		Get-ModuleFunctions -ModuleName $_.BaseName
 	}
 
 # Load tools to menuitems
@@ -2637,7 +2757,7 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Script\PagedTools", "$( $syncHash.Dat
 
 Update-SplashText -Text $msgTable.StrSplashAddControlHandlers
 
-# region GUI controls eventhandlers
+# region GUI controler eventhandlers
 # Function note was acknowledged, check is function run button should be enabled
 $syncHash.BrdFunctionNote.Add_IsVisibleChanged( {
 	if ( $null -eq $syncHash.GridFunctionOp.DataContext.InputData -and `
@@ -2992,7 +3112,7 @@ $syncHash.Window.Add_ContentRendered( {
 	$M = $processPattern.Current.WindowVisualState
 	$H = $syncHash.Window.ActualHeight
 	$W = $syncHash.Window.ActualWidth
-	WriteLog "Start > $( ( ( Get-DisplayResolution )[0].GetEnumerator() | Where-Object { -not [char]::IsControl( $_ ) } ) -join '' -split 'x' ) | $( $M ) | $( $H ) | $( $W )" -Success $true
+	WriteLog "Start > $( ( "Width", "Height" | ForEach-Object { ( Get-DisplayResolution )[0]."dmPels$( $_ )" } ) -join ", " ) | $( $M ) | $( $H ) | $( $W )" -Success $true
 } )
 
 # The main window closes, exits and deletes runspaces and events
@@ -3044,8 +3164,8 @@ $syncHash.Window.Add_Closed( {
 		ForEach-Object { $_.Value.Items } | `
 		Where-Object { $_.Separate -and $null -ne $_.Process } | `
 		ForEach-Object {
-			$_.Process.PObj.CloseMainWindow()
-			$_.Process.PObj.Close()
+			$_.Process.ProcessObject.CloseMainWindow()
+			$_.Process.ProcessObject.Close()
 			$_.Process.RunspaceP.Runspace.Close()
 		}
 
