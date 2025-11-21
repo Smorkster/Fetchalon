@@ -117,6 +117,18 @@ function Get-DirectoryPermissions
 
 	param ( $Item )
 
+	function DataFormater_Cvs()
+	{
+		$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $false, $false ).psobject.BaseObject
+		$sb = [System.Text.StringBuilder]::new()
+		$Pn = ( $args[0][0] | Get-Member -MemberType NoteProperty ).Name
+		$args | `
+			ForEach-Object {
+				$sb.AppendLine( "$( $_."$(  $Pn[0] )" );$( $_."$( $Pn[1] )" )" ) | Out-Null
+			}
+		$sb.ToString()
+	}
+
 	$PermList = [System.Collections.ArrayList]::new()
 
 	$acl = Get-Acl $Item.FullName
