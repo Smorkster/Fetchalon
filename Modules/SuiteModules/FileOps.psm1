@@ -257,6 +257,52 @@ function EndScript
 	}
 }
 
+function Get-DataFormaters
+{
+	<#
+	.Synopsis
+		Get output data formaters
+	.Description
+		Collects data formaters defined for functions.
+		For a dataformater to be recognized, it must be defined as a function, inside the module function, and named "DataFormater".
+		There can be multiple dataformaters defined, but to make them distinct the name should be appended with "_<some name>", i.e. "DataFormater_Cvs". The added name will be used as title in the GUI.
+	.Parameter Code
+		Function code to parse
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	param (
+	[ Parameter( Mandatory = $true )]
+		$Code
+	)
+
+	$CodeAst = [System.Management.Automation.Language.Parser]::ParseInput( $Code, [ref]$null, [ref]$null )
+	$FormaterList = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+	$CodeAst.FindAll( { $args[0].GetType().Name -like "*FunctionDefinitionAst" }, $true ) | `
+		Where-Object { $_.Name -match "^DataFormater_" } | `
+		Select-Object -Unique | `
+		Select-Object -Property `
+			@{ Name = 'Name' ; Expression = { $_.Name } },
+			@{ Name = 'Title' ; Expression = {
+				if ( $null -eq ( $t = ( $_.Name -split '_', 2 )[1] ) )
+				{
+					$IntmsgTable.StrDataFormaterNameEmpty
+				}
+				else
+				{
+					$t
+				}
+			} },
+			@{ Name = 'Code' ; Expression = { $_.Body } } | `
+		ForEach-Object {
+			$FormaterList.Add( $_ ) | Out-Null
+		}
+	return $FormaterList
+}
+
 function GetScriptInfo
 {
 	<#
@@ -889,5 +935,5 @@ catch
 	[System.Windows.MessageBox]::Show( $_ )
 }
 
-Export-ModuleMember -Function EndScript, GetUserInput, ShowMessageBox, WriteErrorlog, WriteLog, WriteOutput, WriteLogTest, WriteErrorlogTest, WriteSurvey, New*, GetScriptInfo, Get-LogFilePath
+Export-ModuleMember -Function EndScript, GetUserInput, ShowMessageBox, WriteErrorlog, WriteLog, WriteOutput, WriteLogTest, WriteErrorlogTest, WriteSurvey, New*, Get-DataFormaters, GetScriptInfo, Get-LogFilePath
 Export-ModuleMember -Variable msgTable
