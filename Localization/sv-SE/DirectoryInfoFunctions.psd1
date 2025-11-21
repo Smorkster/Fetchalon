@@ -10,4 +10,6 @@ GetDirectoryPermissionsParamPerm = Behörighet
 GetDirectoryPermissionsStrPermRead = Läsa
 GetDirectoryPermissionsStrPermWrite = Skriva
 GetDirectoryPermissionsStrNoPermissions = Ingen har behörighet
+GetDirectoryPermissionsStrDHRead = Följande personer har läsbehörighet till mappen
+GetDirectoryPermissionsStrDHWrite = Följande personer har skrivbehörighet till mappen
 '@

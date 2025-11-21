@@ -10,4 +10,6 @@ GetDirectoryPermissionsParamPerm = Permission
 GetDirectoryPermissionsStrPermRead = Read
 GetDirectoryPermissionsStrPermWrite = Write
 GetDirectoryPermissionsStrNoPermissions = No one has permission
+GetDirectoryPermissionsStrDHRead = These users have read permission for the folder
+GetDirectoryPermissionsStrDHWrite = These users have write permission for the folder
 '@
