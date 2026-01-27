@@ -689,6 +689,7 @@ using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
+using System.Windows.Media;
 using System.Xaml;
 using System.Xml;
 using System.Xml.Linq;
@@ -1107,7 +1108,76 @@ namespace FetchalonConverters
 			}
 			catch
 			{}
+
 			return DefaultTpl;
+		}
+	}
+
+	public class WeatherToBrushConverter : IValueConverter
+	{
+		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			string code = value.ToString();
+			switch (code)
+			{
+				case "1": return new System.Windows.Media.SolidColorBrush( System.Windows.Media.Color.FromRgb( 255, 236, 139 ) ); // Clear (light yellow)
+				case "3":
+				case "4": return new System.Windows.Media.SolidColorBrush( System.Windows.Media.Color.FromRgb( 200, 200, 200 ) ); // Cloudy
+				case "5":
+				case "6": return new System.Windows.Media.SolidColorBrush( System.Windows.Media.Color.FromRgb( 135, 206, 235 ) ); // Rain
+				case "7": return new System.Windows.Media.SolidColorBrush( System.Windows.Media.Color.FromRgb( 173, 216, 230 ) ); // Snow
+				default: return new System.Windows.Media.SolidColorBrush( System.Windows.Media.Color.FromRgb( 245, 245, 245 ) );  // Default
+			}
+		}
+
+		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			throw new NotImplementedException();
+		}
+	}
+
+	public class WeatherToIconConverter : IValueConverter
+	{
+		public object Convert( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			int code = System.Convert.ToInt32( value );
+			switch ( code )
+			{
+				case 1: return "☀️"; // Clear sky
+				case 2: return "🌤️"; // Nearly clear sky
+				case 3: return "⛅";  // Variable cloudiness
+				case 4: return "🌥️"; // Halfclear sky
+				case 5: return "☁️"; // Cloudy sky
+				case 6: return "🌫️"; // Overcast
+				case 7: return "🌁"; // Fog
+				case 8: return "🌦️"; // Light rain showers
+				case 9: return "🌧️"; // Moderate rain showers
+				case 10: return "🌧️"; // Heavy rain showers
+				case 11: return "⛈️"; // Thunderstorm
+				case 12: return "🌧️"; // Light sleet showers
+				case 13: return "🌧️"; // Moderate sleet showers
+				case 14: return "🌧️"; // Heavy sleet showers
+				case 15: return "🌨️"; // Light snow showers
+				case 16: return "🌨️"; // Moderate snow showers
+				case 17: return "❄️"; // Heavy snow showers
+				case 18: return "🌦️"; // Light rain
+				case 19: return "🌧️"; // Moderate rain
+				case 20: return "🌧️"; // Heavy rain
+				case 21: return "⚡";  // Thunder
+				case 22: return "🌧️"; // Light sleet
+				case 23: return "🌧️"; // Moderate sleet
+				case 24: return "🌧️"; // Heavy sleet
+				case 25: return "🌨️"; // Light snowfall
+				case 26: return "🌨️"; // Moderate snowfall
+				case 27: return "❄️"; // Heavy snowfall
+				default: return "❓"; // Unknown
+			}
+			
+		}
+
+		public object ConvertBack( object value, Type targetType, object parameter, CultureInfo culture )
+		{
+			throw new NotImplementedException();
 		}
 	}
 }
