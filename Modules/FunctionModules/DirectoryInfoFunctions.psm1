@@ -36,7 +36,7 @@ function Get-DirectoryADGroups
 
 	$List = [System.Collections.ArrayList]::new()
 
-	Get-ADGroup -LDAPFilter "(Name=$( $Item.Parent.Name )_*Grp_$( $Item.Name )*)" -Properties * | `
+	Get-ADGroup -LDAPFilter "(Name=$( $Item.FileSystem.Parent.Name )_*Grp_$( $Item.FileSystem.Name )*)" -Properties * | `
 		Select-Object -Property `
 			@{ Name = $IntMsgTable.GetDirectoryADGroupsStrPropNameTitle ; Expression = { $_.Name } }, `
 			@{ Name = $IntMsgTable.GetDirectoryADGroupsStrPropDescTitle ; Expression = { $_.Description } }, `
@@ -80,7 +80,7 @@ function Get-DirectoryContent
 
 	$List = [System.Collections.ArrayList]@{}
 
-	Get-ChildItem $Item.FullName | `
+	Get-ChildItem $Item.FileSystem.FullName | `
 		ForEach-Object {
 			$List.Add( ( [pscustomobject]@{ Name = $_.Name ; Type = $_.GetType().Name ; Item = $_ } ) ) | Out-Null
 		}
@@ -131,7 +131,7 @@ function Get-DirectoryPermissions
 
 	$PermList = [System.Collections.ArrayList]::new()
 
-	$acl = Get-Acl $Item.FullName
+	$acl = Get-Acl $Item.FileSystem.FullName
 	( $acl.Access | Where-Object { $_.IdentityReference -match $IntMsgTable.GetDirectoryPermissionsCodeRegExAclIdentity } ).IdentityReference | `
 		Select-Object -Unique | `
 		ForEach-Object {
