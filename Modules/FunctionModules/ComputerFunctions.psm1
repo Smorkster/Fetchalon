@@ -30,7 +30,7 @@ function Clear-CcmExec
 		Smorkster (smorkster)
 	#>
 
-	param ( $InputData )
+	param ( $Item, $InputData )
 	try
 	{
 		if ( $null -ne ( $CITask = Get-WmiObject -Query "SELECT * FROM CCM_CITask WHERE TaskState != ' PendingSoftReboot' AND TaskState != 'PendingHardReboot' AND TaskState != 'InProgress'" -Namespace root\ccm\CITasks -ComputerName $InputData.Computername ) )
