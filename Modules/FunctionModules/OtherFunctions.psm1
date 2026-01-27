@@ -20,6 +20,8 @@ function Clear-FileDownloads
 		Remove all files older than one week
 	.State
 		Prod
+	.Note
+		Warning | Window will freeze during execution
 	.RequiredAdGroups
 		Role_Servicedesk_BO
 	.SearchedItemRequest
