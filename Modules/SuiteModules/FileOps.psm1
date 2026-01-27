@@ -361,7 +361,7 @@ function GetScriptInfo
 			$Name = ( Get-Item $ResolvedFilePath ).Name
 			if ( [string]::IsNullOrEmpty( $InfoObject.Name ) )
 			{
-				Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Name" -Value ( ( Get-Item $ResolvedFilePath.Path ).BaseName ) -Force
+				$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Name', ( ( Get-Item $ResolvedFilePath.Path ).BaseName ) ) )
 			}
 		}
 		catch
@@ -375,7 +375,7 @@ function GetScriptInfo
 		$Name = $Function.Name
 		if ( [string]::IsNullOrEmpty( $InfoObject.Name ) )
 		{
-			Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Name" -Value $Function.Name -Force
+			$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Name', $Function.Name ) )
 		}
 	}
 	else
@@ -384,185 +384,220 @@ function GetScriptInfo
 		$Name = "Text"
 		if ( [string]::IsNullOrEmpty( $InfoObject.Name ) )
 		{
-			Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Name" -Value "?" -Force
+			$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Name', "?" ) )
 		}
 	}
 
+	$script:re_InfoBlock = [regex]::new( "(?s)<#(?<Info>.*?)#>", "Compiled" )
+	$script:re_InfoParam = [regex]::new( "\s*(?<InfoType>(?!(Parameter)|(Outputs))\w+)\s+(?<Rest>.*)", "Compiled" )
+	$script:re_InputDataList = [regex]::new( "^\s*(?<InputVar>\w+).*?\|\s*(?<Mandatory>\w*)\s*?\|(?<Desc>.*?)\|\s*(?<DefaultValue>\w*)\s*\|(?<InputList>.*)", "Compiled" )
+	$script:re_Note = [regex]::new( "^\s*(?<NoteType>\w+).*?\|\s*(?<NoteText>.*)", "Compiled" )
+	$script:re_Date = [regex]::new( "(?:In)*valid(?:ate)*(?:(?:Start)|(?:End))*DateTime", "Compiled" )
+
 	# Separate infoblock from rest of the script text
-	if ( $FileContent -match "(?s)<#(?<Info>.*?)#>" )
+	$m = $script:re_InfoBlock.Match( $FileContent )
+	if ( $m.Success )
 	{
 		# Parse the info block
-		$Matches.Info -split "(?m)^\s*\." | `
-			Where-Object { $_ } | `
-			ForEach-Object `
-				-Begin {
-					$ListInputData = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-				} `
-				-Process {
-					$_ -match "\s*(?<InfoType>(?!(Parameter)|(Outputs))\w+)\s+(?<Rest>.*)" | Out-Null
-					$InfoType = $Matches.InfoType.Trim()
-					$Rest = $Matches.Rest.Trim()
-					if ( "InputData" -eq $InfoType )
-					{
-						$Name, $Mandatory, $Desc = $Rest -split ",", 3
-						try
-						{
-							$ListInputData.Add( (
-								[pscustomobject]@{
-									Name = $Name
-									InputType = "String"
-									Mandatory = "True" -eq $Mandatory.Trim()
-									InputDescription = $Desc.Trim()
-									EnteredValue = ""
-								}
-							) ) | Out-Null
-						}
-						catch
-						{
-							Write-Warning "$( $IntmsgTable.ErrGetScriptInfoAddInputData )`n$( $Rest )`n$( $_ )"
-						}
-					}
-					elseif ( "InputDataList" -eq $InfoType )
-					{
-						$Rest -match "^\s*(?<InputVar>\w+).*?\|\s*(?<Mandatory>\w*)\s*?\|(?<Desc>.*?)\|\s*(?<DefaultValue>\w*)\s*\|(?<InputList>.*)" | Out-Null
-						$ListInputData.Add( (
-							[pscustomobject]@{
-								Name = $Matches.InputVar.Trim()
-								InputDescription = $Matches.Desc.Trim()
-								InputType = "List"
-								InputList = [System.Collections.ArrayList] ( $Matches.InputList.Trim() -split "," )
-								DefaultValue = $Matches.DefaultValue.Trim()
-								Mandatory = "True" -eq $Matches.Mandatory.Trim()
-								EnteredValue = ""
-							}
-						) ) | Out-Null
-					}
-					elseif ( "InputDataBool" -eq $InfoType )
-					{
-						$Name, $Mandatory, $Desc = $Rest -split ",", 3
-						$ListInputData.Add( (
-							[pscustomobject]@{
-								Name = $Name.Trim()
-								InputType = "Bool"
-								InputDescription = $Desc.Trim()
-								Mandatory = "True" -eq $Mandatory.Trim()
-								EnteredValue = $false
-							}
-						) ) | Out-Null
-					}
-					elseif ( "NoRunspace" -eq $InfoType )
-					{
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "NoRunspace" -Value $true -Force
-					}
-					elseif ( "Note" -eq $InfoType )
-					{
-						$Rest -match "^\s*(?<NoteType>\w+).*?\|\s*(?<NoteText>.*)" | Out-Null
-						if ( $Matches.NoteType.Trim() -eq "Info" -or $Matches.NoteType.Trim() -eq "Warning" )
-						{
-							$Note = [pscustomobject]@{
-								NoteType = $Matches.NoteType.Trim()
-								NoteText = $Matches.NoteText.Trim()
-							}
-						}
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "Note" -Value $Note -Force
-					}
-					elseif ( $InfoType -match "(?:In)*valid(?:ate)*(?:(?:Start)|(?:End))*DateTime" )
-					{
-						try
-						{
-							$Date = [datetime]::Parse( $Rest )
-							Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $InfoType -Value $Date -Force
-						}
-						catch
-						{
-							Write-Host "$( $IntmsgTable.ErrGetScriptInfoAddValidDate ) $( $InfoType ): $( $Rest )`n$( $_ )"
-						}
-					}
-					else
-					{
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name $InfoType -Value $Rest -Force
-					}
-				} `
-				-End {
-					if ( $ListInputData.Count -gt 0 )
-					{
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "InputData" -Value $ListInputData -Force
-					}
-				}
+		$InfoContent = $m.Groups[ "Info" ].Value -split "(?m)^\s*\."
+		$ListInputData = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
 
-				if ( $InfoObject.psobject.Members.Name -Match "(?:In)*valid(?:ate)*(?:(?:Start)|(?:End))*DateTime" )
-				{
-					$Date = Get-Date
-					$DateTimeFormats = [System.Globalization.CultureInfo]::CurrentCulture.DateTimeFormat
-					Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name ValidDateApproved -Value $true
-
-					if ( ( $InfoObject.ValidStartDateTime -and $InfoObject.InvalidateDateTime ) -and `
-						( $InfoObject.ValidStartDateTime -le $InfoObject.InvalidateDateTime )
-					)
-					{
-						if ( ( $Date -ge $InfoObject.ValidStartDateTime -or $Date.Date -ge $InfoObject.ValidStartDateTime ) -and `
-							( $Date -le $InfoObject.InvalidateDateTime -or $Date.Date -le $InfoObject.InvalidateDateTime )
-						)
-						{
-							$ValidDateNote = "$( $IntmsgTable.StrValidDateNotePrefixBetween ) $( Get-Date $InfoObject.ValidStartDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" ) - $( Get-Date $InfoObject.InvalidateDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" )"
-						}
-						else
-						{
-							$InfoObject.ValidDateApproved = $false
-						}
-					}
-					elseif ( $InfoObject.ValidStartDateTime )
-					{
-						if ( $Date -lt $InfoObject.ValidStartDateTime )
-						{
-							$InfoObject.ValidDateApproved = $false
-						}
-						else
-						{
-							$ValidDateNote = "$( $IntmsgTable.StrValidDateNotePrefixFrom ) $( Get-Date $InfoObject.ValidStartDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" )"
-						}
-					}
-					elseif ( $InfoObject.InvalidateDateTime )
-					{
-						if ( $Date -gt $InfoObject.InvalidateDateTime )
-						{
-							$InfoObject.ValidDateApproved = $false
-						}
-						else
-						{
-							$ValidDateNote = "$( $IntmsgTable.StrValidDateNotePrefixUntil ) $( Get-Date $InfoObject.InvalidateDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" )"
-						}
-					}
-
-					if ( $InfoObject.ValidDateApproved )
-					{
-						Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "ValidDateNote" -Value $ValidDateNote
-					}
-				}
-
-
-			if ( [string]::IsNullOrEmpty( $InfoObject.MenuItem ) )
+		foreach( $row in $InfoContent )
+		{
+			$HasDateKey = $true
+			if ( [string]::IsNullOrWhiteSpace( $row ) )
 			{
-				if ( [string]::IsNullOrEmpty( $InfoObject.Synopsis ) )
-				{
-					$MenuItemText = $InfoObject.Name
-				}
-				else
-				{
-					$MenuItemText = $InfoObject.Synopsis
-				}
+				continue
+			}
 
+			$InfoMatch = $script:re_InfoParam.Match( $row )
+			if ( -not $InfoMatch.Success )
+			{
+				continue
+			}
+
+			$InfoType = $InfoMatch.Groups[ "InfoType" ].Value.Trim()
+			if ( [string]::IsNullOrWhiteSpace( $InfoType ) )
+			{
+				continue
+			}
+			$Rest = $InfoMatch.Groups[ "Rest" ].Value.Trim()
+
+			if ( "InputData" -eq $InfoType )
+			{
+				$Name, $Mandatory, $Desc = $Rest -split ",", 3
 				try
 				{
-					Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "MenuItem" -Value $MenuItemText.Trim() -Force
+					$ListInputData.Add( (
+						[pscustomobject]@{
+							Name = $Name
+							InputType = "String"
+							Mandatory = "True" -eq $Mandatory.Trim()
+							InputDescription = $Desc.Trim()
+							EnteredValue = ""
+						}
+					) ) | Out-Null
 				}
 				catch
 				{
-					[System.Windows.MessageBox]::Show( $_.Exception.Message ) | Out-Null
+					Write-Warning "$( $IntmsgTable.ErrGetScriptInfoAddInputData )`n$( $Rest )`n$( $_ )"
+				}
+			}
+			elseif ( "InputDataList" -eq $InfoType )
+			{
+				$IDLMatch = $script:re_InputDataList.Match( $Rest )
+				$ListInputData.Add( (
+					[pscustomobject]@{
+						Name = $IDLMatch.Groups[ "InputVar" ].Value.Trim()
+						InputDescription = $IDLMatch.Groups[ "Desc" ].Value.Trim()
+						InputType = "List"
+						InputList = [System.Collections.ArrayList] ( $IDLMatch.Groups[ "InputList" ].Value.Trim() -split "," )
+						DefaultValue = $IDLMatch.Groups[ "DefaultValue" ].Value.Trim()
+						Mandatory = "True" -eq $IDLMatch.Groups[ "Mandatory" ].Value.Trim()
+						EnteredValue = ""
+					}
+				) ) | Out-Null
+			}
+			elseif ( "InputDataBool" -eq $InfoType )
+			{
+				$Name, $Mandatory, $Desc = $Rest -split ",", 3
+				$ListInputData.Add( (
+					[pscustomobject]@{
+						Name = $Name.Trim()
+						InputType = "Bool"
+						InputDescription = $Desc.Trim()
+						Mandatory = "True" -eq $Mandatory.Trim()
+						EnteredValue = $false
+					}
+				) ) | Out-Null
+			}
+			elseif ( "NoRunspace" -eq $InfoType )
+			{
+				$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'NoRunspace', $true ) )
+			}
+			elseif ( "Note" -eq $InfoType )
+			{
+				$NoteMatch = $script:re_Note.Match( $Rest )
+
+				if ( $NoteMatch.Groups[ "NoteType" ].Value.Trim() -eq "Info" -or $NoteMatch.Groups[ "NoteType" ].Value.Trim() -eq "Warning" )
+				{
+					$Note = [pscustomobject]@{
+						NoteType = $NoteMatch.Groups[ "NoteType" ].Value.Trim()
+						NoteText = $NoteMatch.Groups[ "NoteText" ].Value.Trim()
+					}
+				}
+				$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Note', $Note ) )
+			}
+			elseif ( ( $script:re_Date.Match( $InfoType ) ).Success )
+			{
+				$HasDateKey = $true
+				try
+				{
+					$Date = [datetime]::Parse( $Rest )
+					$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( $InfoType, $Date ) )
+				}
+				catch
+				{
+					Write-Host "$( $IntmsgTable.ErrGetScriptInfoAddValidDate ) $( $InfoType ): $( $Rest )`n$( $_ )"
+				}
+			}
+			else
+			{
+				try
+				{
+					if ( $InfoObject.PSObject.Properties[$InfoType] )
+					{
+						$InfoObject.$InfoType = $Rest
+					}
+					else
+					{
+						$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( $InfoType, $Rest ) )
+					}
+				}
+				catch
+				{
+					Write-Host "Failed adding '$InfoType' for '$Name' from row: [$row]`n$( $_.Exception.Message )"
+				}
+			}
+		}
+
+		if ( $ListInputData.Count -gt 0 )
+		{
+			$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'InputData', $ListInputData ) )
+		}
+
+		if ( $HasDateKey )
+		{
+			$Date = Get-Date
+			$DateTimeFormats = [System.Globalization.CultureInfo]::CurrentCulture.DateTimeFormat
+			$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'ValidDateApproved', $true ) )
+
+			if ( ( $InfoObject.ValidStartDateTime -and $InfoObject.InvalidateDateTime ) -and `
+				( $InfoObject.ValidStartDateTime -le $InfoObject.InvalidateDateTime )
+			)
+			{
+				if ( ( $Date -ge $InfoObject.ValidStartDateTime -or $Date.Date -ge $InfoObject.ValidStartDateTime ) -and `
+					( $Date -le $InfoObject.InvalidateDateTime -or $Date.Date -le $InfoObject.InvalidateDateTime )
+				)
+				{
+					$ValidDateNote = "$( $IntmsgTable.StrValidDateNotePrefixBetween ) $( Get-Date $InfoObject.ValidStartDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" ) - $( Get-Date $InfoObject.InvalidateDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" )"
+				}
+				else
+				{
+					$InfoObject.ValidDateApproved = $false
+				}
+			}
+			elseif ( $InfoObject.ValidStartDateTime )
+			{
+				if ( $Date -lt $InfoObject.ValidStartDateTime )
+				{
+					$InfoObject.ValidDateApproved = $false
+				}
+				else
+				{
+					$ValidDateNote = "$( $IntmsgTable.StrValidDateNotePrefixFrom ) $( Get-Date $InfoObject.ValidStartDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" )"
+				}
+			}
+			elseif ( $InfoObject.InvalidateDateTime )
+			{
+				if ( $Date -gt $InfoObject.InvalidateDateTime )
+				{
+					$InfoObject.ValidDateApproved = $false
+				}
+				else
+				{
+					$ValidDateNote = "$( $IntmsgTable.StrValidDateNotePrefixUntil ) $( Get-Date $InfoObject.InvalidateDateTime -Format "$( $DateTimeFormats.ShortDatePattern ) $( $DateTimeFormats.LongTimePattern )" )"
 				}
 			}
 
-		Add-Member -InputObject $InfoObject -MemberType NoteProperty -Name "IsSubMenuHeader" -Value 0
+			if ( $InfoObject.ValidDateApproved )
+			{
+				$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'ValidDateNote', $ValidDateNote ) )
+			}
+		}
+
+		if ( [string]::IsNullOrEmpty( $InfoObject.MenuItem ) )
+		{
+			if ( [string]::IsNullOrEmpty( $InfoObject.Synopsis ) )
+			{
+				$MenuItemText = $InfoObject.Name
+			}
+			else
+			{
+				$MenuItemText = $InfoObject.Synopsis
+			}
+
+			try
+			{
+				$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'MenuItem', $MenuItemText.Trim() ) )
+			}
+			catch
+			{
+				[System.Windows.MessageBox]::Show( $_.Exception.Message ) | Out-Null
+			}
+		}
+
+		$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'IsSubMenuHeader', 0 ) )
 		return $InfoObject
 	}
 	else
