@@ -1,5 +1,4 @@
-﻿#Require -Version 7.0
-<#
+﻿<#
 .Synopsis
 	Main script for Fetchalon
 .Description
@@ -42,7 +41,6 @@ $StartUpMutex = [System.Threading.Mutex]::new( $false, $MutexName )
 if ( -not $StartUpMutex.WaitOne( 200 ) )
 {
 	Show-Splash -Duration 1 -NoProgressBar -Text $msgTable.StrOpenMainWindowFound
-#	exit
 }
 
 $OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
@@ -197,7 +195,14 @@ function Add-MenuItem
 			}
 		}
 
-		if ( $null -ne $ResourceName )
+		$Sub = if ( $MiObject.PSObject.Properties[ 'SubMenu' ] ) { $MiObject.SubMenu } else { '' }
+		$Ops = if ( $MiObject.PSObject.Properties[ 'ObjectOperations' ] ) { $MiObject.ObjectOperations } else { '' }
+
+		$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( "MenuKey", ( "{0}|{1}|{2}" -f $MiObject.Name, $ops, $sub ) ) )
+
+		if ( $null -ne $ResourceName -and `
+			$MiObject.MenuKey -notin $syncHash.Window.Resources."$( $ResourceName )".Source.MenuKey
+		)
 		{
 			$syncHash.Window.Resources."$( $ResourceName )".Source.Add( $MiObject )
 		}
@@ -765,118 +770,56 @@ function Get-ModuleFunctions
 {
 	<#
 	.Synopsis
-		Load imported functions to menuitems
-	.Description
-		Import modules and insert a representation of each as a menuitem in the GUI
+		Parse module file for functions and data
 	#>
 
 	param ( $ModuleName )
 
-	( Import-Module "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\$( $ModuleName )Functions.psm1" -Force -ArgumentList $syncHash.Data.Culture.Name -PassThru ).ExportedCommands.GetEnumerator() | `
-		ForEach-Object {
-			$MiObject = [pscustomobject]@{
-				Name = $_.Key
-			}
-			if ( $null -ne ( $MiObject = GetScriptInfo -Text $_.Value.Definition -InfoObject $MiObject -NoErrorRecord ) )
-			{
-				if ( $ModuleName -notmatch "O365.*Functions" )
-				{
-					$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'ObjectClass', ( $ModuleName -replace "Functions$" ) ) )
-				}
+	$ModulePath = "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\$( $ModuleName )Functions.psm1"
+	$Code = Get-Content -LiteralPath $ModulePath -Raw
 
-				if ( [System.Collections.ObjectModel.ObservableCollection[object]] $DFList = Get-DataFormaters -Code $_.Value.Definition )
-				{
-					$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'DataFormaters', $DFList ) )
-				}
+	$Tokens = $null
+	$Errors = $null
+	$Ast = [System.Management.Automation.Language.Parser]::ParseInput( $code, [ref]$Tokens, [ref]$Errors )
 
-				if ( $null -ne $MiObject )
-				{
-					Add-MenuItem $MiObject "$( $ModuleName )Functions"
-				}
-			}
-			else
-			{
-				WriteErrorlog -LogText "Error creating ScriptInfo" -UserInput "$ModuleName > $( $_.Key )" -Severity ScriptLogicFail
-			}
+	$FuncAsts = $Ast.FindAll( {
+		param( $n ) $n -is [System.Management.Automation.Language.FunctionDefinitionAst]
+	}, $true )
+
+	foreach ( $f in $FuncAsts )
+	{
+		# Get function text
+		$FuncText = $f.Extent.Text
+
+		# Verify comment-based help block exists
+		if ( $funcText -notmatch "(?s)<#.*?#>" )
+		{
+			continue
 		}
+
+		$HelpBlock = $Matches[0]
+
+		$MiObject = [pscustomobject]@{ Name = $f.Name }
+		$MiObject = GetScriptInfo -Text $helpBlock -InfoObject $MiObject -NoErrorRecord
+
+		if ( $null -eq $MiObject )
+		{
+			continue
+		}
+
+		if ( $ModuleName -notmatch "O365.*Functions" )
+		{
+			$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'ObjectClass', ( $ModuleName -replace "Functions$" ) ) )
+		}
+
+		Add-MenuItem $MiObject "$( $ModuleName )Functions"
+	}
 
 	try
 	{
 		$syncHash."Mi$( $ModuleName )Functions".Tag = Get-Date
 	}
-	catch
-	{
-		Write-Host "$( $ModuleName ) -> $( $( $ModuleName ) )"
-		# O365 menus that hasn't been created
-	}
-}
-
-function Get-PropHandlers
-{
-	<#
-	.Synopsis
-		Import PropHandlers
-	.Description
-		Import PropHandlers per objectclass, if description or title is not specified, a default string will be set
-	#>
-
-	$syncHash.Code.PropHandlers = @{}
-	$syncHash.Code.PropDescriptions = @{}
-	$syncHash.Code.PropLocalizations = @{}
-	$syncHash.Code.PropNameLocalizations = @{}
-	Get-ChildItem -Path "$BaseDir\Modules\PropHandlers" | `
-		ForEach-Object {
-			$Module = $_.BaseName -replace "PropHandlers"
-			$syncHash.Code.PropHandlers."$( $Module )" = @{}
-			$syncHash.Code.PropDescriptions."$( $Module )" = @{}
-			$syncHash.Code.PropLocalizations."$( $Module )" = @{}
-			$syncHash.Code.PropNameLocalizations."$( $Module )" = @{}
-			( Import-Module $_.FullName -PassThru ).ExportedVariables.GetEnumerator() | `
-				ForEach-Object {
-					if ( ( $null -eq $_.Value.Value.ValidStartDateTime ) -or `
-						( ( Get-Date ).Date -ge ( [datetime]::Parse( $_.Value.Value.ValidStartDateTime ) ).Date )
-					)
-					{
-						if ( $null -ne $_.Value.Value.Code )
-						{
-							$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )" = $_.Value.Value
-							$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".PSObject.Properties.Add( [psnoteproperty]::new( 'ExtraTooltipPropHandlerTimeValidity', "" ) )
-
-							# Check if PropertyHandler-description is specified
-							if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description ) )
-							{
-								$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Description = $syncHash.Data.msgTable.StrDefaultPropHandlerDescription
-							}
-
-							# Check if PropertyHandler-title is specified
-							if ( [string]::IsNullOrEmpty( $syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title ) )
-							{
-								$syncHash.Code.PropHandlers."$( $Module )"."$( $_.Key )".Title = $syncHash.Data.msgTable.StrDefaultPropHandlerTitle
-							}
-						}
-
-						# Check for any PropertyHandler localization
-						if ( $_.Key -eq "IntMsgTable" )
-						{
-							$_.Value.Value.GetEnumerator() | `
-								Where-Object { $_.Name -match "^PL" } | `
-								ForEach-Object {
-									$syncHash.Code.PropLocalizations."$( $Module )"."$( $_.Name )" = $_.Value
-								}
-							$_.Value.Value.GetEnumerator() | `
-								Where-Object { $_.Name -match "^PD" } | `
-								ForEach-Object {
-									$syncHash.Code.PropDescriptions."$( $Module )"."$( $_.Name )" = $_.Value
-								}
-							$_.Value.Value.GetEnumerator() | `
-								Where-Object { $_.Name -match "^PNL" } | `
-								ForEach-Object {
-									$syncHash.Code.PropNameLocalizations."$( $Module )"."$( $_.Name )" = $_.Value
-								}
-						}
-					}
-				}
-		}
+	catch {}
 }
 
 function Load-Menu
@@ -895,17 +838,15 @@ function Load-Menu
 
 	if ( $syncHash.Window.Resources."CvsMi$( $Name )Functions".Source.Synopsis -match "$( $Name ) ..." )
 	{
-		$syncHash.Window.Resources."CvsMi$( $Name )Functions".Source.Clear()
+		$LoadingItem = $syncHash.Window.Resources."CvsMi$( $Name )Functions".Source.Where( { $_.Synopsis -eq "$( $Name ) ..." } )[0]
+		$syncHash.Window.Resources."CvsMi$( $Name )Functions".Source.Remove( $LoadingItem )
 	}
 
 	Get-ModuleFunctions -ModuleName $Name
 	$syncHash.Data."$( $Name )FunctionsLoaded" = $true
 	$syncHash.Window.Resources."CvsMi$( $Name )Functions".View.Refresh()
 
-	#if ( -not $syncHash.Data.ToolsLoaded )
-	#{
-		Load-OtherMenus -Name $Name
-	#}
+	Load-OtherMenus -Name $Name
 }
 
 function Load-OtherMenus
@@ -918,13 +859,20 @@ function Load-OtherMenus
 	[CmdletBinding()]
 	param( $Name )
 
-#	if ( $syncHash.Data.ToolsLoaded )
-#	{
-#		return
-#	}
+	if ( $syncHash.Window.Resources."CvsMi$( $Name )".Source.Count -gt 1 )
+	{
+		return
+	}
 
-	$syncHash.Window.Resources."CvsMiAbout".Source.Clear()
-	$syncHash.Window.Resources."CvsMiTools".Source.Clear()
+	if ( $syncHash.Window.Resources."CvsMiAbout".Source.Synopsis -contains "About ..." )
+	{
+		$syncHash.Window.Resources."CvsMiAbout".Source.Clear()
+	}
+	if ( $syncHash.Window.Resources."CvsMiTools".Source.Synopsis -contains "Tools ..." )
+	{
+		$syncHash.Window.Resources."CvsMiTools".Source.Clear()
+	}
+
 	# Load tools to menuitems
 	Get-ChildItem "$( $syncHash.Data.BaseDir )\Script\PagedTools", "$( $syncHash.Data.BaseDir )\Script\SeparateTools" | `
 		ForEach-Object {
@@ -955,7 +903,7 @@ function Load-OtherMenus
 					{
 						try
 						{
-							# No culture found, default to Swedish
+							# No localization file found, default to Swedish
 							$LocFile = Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Localization\sv-SE\$( $_.BaseName ).psd1"
 						}
 						catch
@@ -1816,6 +1764,7 @@ $syncHash.Code = @{}
 $syncHash.Data.BaseDir = $BaseDir
 $syncHash.Data.Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $Culture )
 $syncHash.Data.InitArgs = $InitArgs
+$syncHash.Data.MenuIndex = @{}
 $syncHash.Data.msgTable = $msgTable
 $syncHash.Data.SettingsPath = "$( $env:UserProfile )\FetchalonSettings.json"
 $syncHash.Data.UserGroups = ( Get-ADUser -Identity ( [Environment]::UserName ) -Properties memberof ).memberof | Get-ADGroup | Select-Object -ExpandProperty Name
@@ -1823,7 +1772,7 @@ $syncHash.Data.QuickAccessWordList = @{}
 
 # This will recursively collect all groupmemberships in AD
 $rsAd = [runspacefactory]::CreateRunspace()
-$rsAd.ApartmentState = "STA"        # background work only; UI stays STA on main thread
+$rsAd.ApartmentState = "MTA"        # background work only; UI stays STA on main thread
 $rsAd.ThreadOptions  = "UseNewThread"
 $rsAd.Open()
 $syncHash.Jobs.GetFullADMemberships = [powershell]::Create()
@@ -1848,13 +1797,13 @@ Get-ChildItem "$( $syncHash.Data.BaseDir )\Modules\PropHandlers\*.psm1" | `
 	}
 
 $rsPropHandlers = [runspacefactory]::CreateRunspace()
-$rsPropHandlers.ApartmentState = "STA"        # background work only; UI stays STA on main thread
-$rsPropHandlers.ThreadOptions  = "UseNewThread"
+$rsPropHandlers.ApartmentState = "MTA"        # background work only; UI stays STA on main thread
+$rsPropHandlers.ThreadOptions  = "ReuseThread"
 $rsPropHandlers.Open()
 $syncHash.Jobs.CollectPHInfo = [powershell]::Create()
 $syncHash.Jobs.CollectPHInfo.Runspace = $rsPropHandlers
 $syncHash.Jobs.CollectPHInfo.AddScript( {
-	param ( $Id, $modules , $syncHash )
+	param ( $Id, $modules, $syncHash )
 
 	Import-Module $modules
 
@@ -1894,7 +1843,7 @@ $syncHash.Jobs.CollectPHInfo.AddScript( {
 						}
 
 						# Check for any PropertyHandler localization
-						if ( $_.Key -eq "IntMsgTable" -and $null -ne $_.Value.Value )
+						if ( $_.Key -eq "IntMsgTable" )
 						{
 							$_.Value.Value.GetEnumerator() | `
 								Where-Object { $_.Name -match "^PL" } | `
@@ -2906,7 +2855,7 @@ $(
 			$SenderObject.DataContext.PageObject = $page
 			$syncHash.Window.Resources.Add( "LoadedPage$( $ModuleName )" , $page )
 
-			Import-Module $SenderObject.DataContext.PS -ArgumentList $page -Force
+			Import-Module $SenderObject.DataContext.PS -ArgumentList $page
 
 			if ( $SenderObject.DataContext.Name -eq "Send-Feedback" )
 			{
@@ -2950,15 +2899,6 @@ $(
 							}
 							$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalPropHandlers'].Source.Add( $PH )
 						}
-
-					<#$syncHash.Code.PropHandlers.GetEnumerator() | `
-						Where-Object { $_.Value.Count -ne 0 } | `
-						ForEach-Object {
-							$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalPropHandlers'].Source.Add( ( [pscustomobject]@{
-								MenuItem = $_.Name
-								Items = ( $_.Value.Keys | Select-Object -Property @{ Name = "MenuItem" ; Expression = { $_ } } )
-							} ) )
-						}#>
 				}
 			}
 			elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
@@ -3118,7 +3058,11 @@ $(
 				$syncHash.FrameTool.Navigate( $syncHash.Window.Resources['MainOutput'] )
 			}
 
-			if ( ( Get-Item ( Get-Module ( Get-Command $SenderObject.DataContext.Name ).Source ).Path ).LastWriteTime -gt $syncHash."Mi$( ( Get-Command $SenderObject.DataContext.Name ).Source )".Tag )
+			if ( -not ( Get-Module "$( $SenderObject.DataContext.ObjectClass )Functions" ) )
+			{
+				Import-Module ".\Modules\FunctionModules\$( $SenderObject.DataContext.ObjectClass )Functions.psm1"
+			}
+			elseif ( ( Get-Item ( Get-Module ( Get-Command $SenderObject.DataContext.Name ).Source ).Path ).LastWriteTime -gt $syncHash."Mi$( ( Get-Command $SenderObject.DataContext.Name ).Source )".Tag )
 			{
 				$TempSO = $SenderObject.psobject.Copy()
 				$TempSODC = $SenderObject.DataContext.psobject.Copy()
