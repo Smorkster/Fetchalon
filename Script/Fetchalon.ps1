@@ -9,27 +9,7 @@
 	Smorkster (smorkster)
 #>
 
-# Initiate internal variables
-$InitArgs = $args
-$Culture = "sv-SE"
-if ( $null -eq $args[0] )
-{
-	try
-	{
-		$Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $args[0] ).Name
-	}
-	catch {}
-}
-
 $BaseDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
-Add-Type -AssemblyName PresentationFramework
-Add-Type -AssemblyName UIAutomationClient
-
-Get-Module | Where-Object { $_.Path -match "Fetchalon" } | Remove-Module
-"ActiveDirectory", ( Get-ChildItem -Path "$BaseDir\Modules\SuiteModules\*" -File ).FullName | `
-	ForEach-Object {
-		Import-Module -Name $_ -Force -ArgumentList $Culture, $true
-	}
 
 $MutexName = "Startup $( $env:USERNAME )"
 if ( $BaseDir -match "Development" )
@@ -40,62 +20,16 @@ if ( $BaseDir -match "Development" )
 $StartUpMutex = [System.Threading.Mutex]::new( $false, $MutexName )
 if ( -not $StartUpMutex.WaitOne( 200 ) )
 {
+	Import-Module .\Modules\SuiteModules\GUIOps.psm1 -Function Show-Splash
+	Import-Module .\Modules\SuiteModules\FileOps.psm1 -Variable msgTable
 	Show-Splash -Duration 1 -NoProgressBar -Text $msgTable.StrOpenMainWindowFound
-}
 
-$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
-if ( $BaseDir -notmatch "Development" )
-{
-	#.Net invokes to look for open windows
-	Add-Type  @"
-		using System;
-		using System.Runtime.InteropServices;
-		using System.Text;
-		public class Win32Init {
-			public delegate void ThreadDelegate(IntPtr hWnd, IntPtr lParam);
+	try
+	{
+		[System.Threading.EventWaitHandle]::OpenExisting( "Local\Fetchalon_Activate" ).Set() | Out-Null
+	} catch {}
 
-			[DllImport("user32.dll")]
-			public static extern bool EnumThreadWindows(int dwThreadId, ThreadDelegate lpfn, IntPtr lParam);
-
-			[DllImport("user32.dll")]
-			public static extern bool IsIconic(IntPtr hWnd);
-
-			[DllImport("user32.dll")]
-			public static extern bool IsWindowVisible(IntPtr hWnd);
-
-			[DllImport("user32.dll", SetLastError=true)]
-			public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
-
-			[DllImport("user32.dll")] 
-			public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
-		}
-"@
-
-	<# Verify if script has already been opened
-		If opened, set window state to foreground
-		If not opened, continue with starting script
-	#>
-	Get-Process | `
-		Where-Object { $_.MainWindowTitle } | `
-		ForEach-Object {
-			$_.Threads.ForEach( {
-				[void][Win32Init]::EnumThreadWindows( $_.Id, {
-					param( $hwnd, $lparam )
-					if ( [Win32Init]::IsIconic( $hwnd ) -or [Win32Init]::IsWindowVisible( $hwnd ) )
-					{
-						$a = $null
-						[Win32Init]::GetWindowThreadProcessId( $hwnd, [ref] $a )
-
-						if ( ( Get-CimInstance -ClassName Win32_Process -Filter "ProcessId = '$a'" ).CommandLine -match "Fetchalon.*$( ( Get-Item $PSCommandPath ).Name )" )
-						{
-							Show-Splash -Duration 1 -NoProgressBar -Text $msgTable.StrOpenMainWindowFound
-							[Win32Init]::ShowWindowAsync( $hwnd , 9 )
-							exit
-						}
-					}
-				}, 0 )
-			} )
-		}
+	return
 }
 
 function Add-MenuItem
@@ -868,13 +802,14 @@ function Load-OtherMenus
 	{
 		$syncHash.Window.Resources."CvsMiAbout".Source.Clear()
 	}
+
 	if ( $syncHash.Window.Resources."CvsMiTools".Source.Synopsis -contains "Tools ..." )
 	{
 		$syncHash.Window.Resources."CvsMiTools".Source.Clear()
 	}
 
 	# Load tools to menuitems
-	Get-ChildItem "$( $syncHash.Data.BaseDir )\Script\PagedTools", "$( $syncHash.Data.BaseDir )\Script\SeparateTools" | `
+	Get-ChildItem "$( $syncHash.Data.BaseDir )\Script\PagedTools", "$( $syncHash.Data.BaseDir )\Script\SeparateTools" -File -Filter "*.ps*1" | `
 		ForEach-Object {
 			$MiObject = $File = $null
 			$File = $_
@@ -894,25 +829,21 @@ function Load-OtherMenus
 
 				if ( "PagedTools" -eq $_.Directory.Name )
 				{
-					$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Xaml', ( Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Gui\$( $File.BaseName ).xaml" ).FullName ) )
-					try
+					$xamlPath = Join-Path $syncHash.Data.BaseDir ( "Gui\{0}.xaml" -f $File.BaseName )
+
+					if ( Test-Path -LiteralPath $xamlPath )
 					{
-						$LocFile = Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Localization\$( $syncHash.Data.Culture.Name )\$( $_.BaseName ).psd1" -ErrorAction Stop
-					}
-					catch
-					{
-						try
-						{
-							# No localization file found, default to Swedish
-							$LocFile = Get-ChildItem -Path "$( $syncHash.Data.BaseDir )\Localization\sv-SE\$( $_.BaseName ).psd1"
-						}
-						catch
-						{}
+						$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Xaml', $xamlPath ) )
 					}
 
-					if ( $null -ne $LocFile )
+					$locPath = Join-Path $syncHash.Data.BaseDir ( "Localization\{0}\{1}.psd1" -f $syncHash.Data.Culture.Name, $File.BaseName )
+					if ( -not ( Test-Path -LiteralPath $locPath ) )
 					{
-						$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Localization', $LocFile ) )
+						$locPath = Join-Path $syncHash.Data.BaseDir ( "Localization\sv-SE\{0}.psd1" -f $File.BaseName )
+					}
+					if ( Test-Path -LiteralPath $locPath )
+					{
+						$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( "Localization", $locPath ) )
 					}
 				}
 
@@ -1736,6 +1667,30 @@ function Start-Search
 
 ############################################ Script start
 
+# Initiate internal variables
+$InitArgs = $args
+$Culture = "sv-SE"
+if ( $null -eq $args[0] )
+{
+	try
+	{
+		$Culture = [System.Globalization.CultureInfo]::GetCultureInfo( $args[0] ).Name
+	}
+	catch {}
+}
+
+Add-Type -AssemblyName PresentationFramework
+Add-Type -AssemblyName UIAutomationClient
+
+Get-Module | Where-Object { $_.Path -match "Fetchalon" } | Remove-Module
+
+$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
+
+"ActiveDirectory", ( Get-ChildItem -Path "$BaseDir\Modules\SuiteModules\*" -File ).FullName | `
+	ForEach-Object {
+		Import-Module -Name $_ -ArgumentList $Culture, $true
+	}
+
 Show-Splash -Text "" -SelfAdmin
 
 $controls = [System.Collections.ArrayList]::new()
@@ -1759,6 +1714,35 @@ if ( $PSCommandPath -match "Development" )
 {
 	$Global:syncHash = $syncHash
 }
+
+# Create/open event
+$eventName = "Local\Fetchalon_Activate"
+$created = $false
+$syncHash.Data.ActivateEvent = [System.Threading.EventWaitHandle]::new(
+	$false,
+	[System.Threading.EventResetMode]::AutoReset,
+	$eventName,
+	[ref]$created
+)
+
+# Poll from UI thread
+$syncHash.Data.ActivateTimer = [System.Windows.Threading.DispatcherTimer]::new()
+$syncHash.Data.ActivateTimer.Interval = [TimeSpan]::FromMilliseconds( 200 )
+$syncHash.Data.ActivateTimer.Add_Tick( {
+	if ( $syncHash.Data.ActivateEvent.WaitOne( 0 ) )
+	{
+		try
+		{
+			$syncHash.Window.WindowState = 'Normal'
+			$syncHash.Window.Show()
+			$syncHash.Window.Activate() | Out-Null
+			$syncHash.Window.Topmost = $true
+			$syncHash.Window.Topmost = $false
+			$syncHash.Window.Focus() | Out-Null
+		} catch {}
+	}
+} )
+$syncHash.Data.ActivateTimer.Start()
 
 $syncHash.Code = @{}
 $syncHash.Data.BaseDir = $BaseDir
@@ -3420,3 +3404,6 @@ else
 
 [void] $syncHash.Window.ShowDialog()
 $StartUpMutex.ReleaseMutex()
+$syncHash.Data.ActivateTimer.Stop()
+$syncHash.Data.ActivateEvent.Close()
+$syncHash.Data.ActivateEvent.Dispose()
