@@ -356,12 +356,13 @@ function GetScriptInfo
 	{
 		try
 		{
-			$ResolvedFilePath = Resolve-Path $FilePath -ErrorAction Stop
-			$FileContent = Get-Content $ResolvedFilePath.Path -Raw -ErrorAction Stop
-			$Name = ( Get-Item $ResolvedFilePath ).Name
+			$FileContent = Get-Content $FilePath -Raw -ErrorAction Stop
+			$Item = Get-Item $FilePath
+			$Name = $Item.Name
+
 			if ( [string]::IsNullOrEmpty( $InfoObject.Name ) )
 			{
-				$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Name', ( ( Get-Item $ResolvedFilePath.Path ).BaseName ) ) )
+				$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Name', $Item.BaseName ) )
 			}
 		}
 		catch
@@ -373,6 +374,7 @@ function GetScriptInfo
 	{
 		$FileContent = $Function.Definition
 		$Name = $Function.Name
+
 		if ( [string]::IsNullOrEmpty( $InfoObject.Name ) )
 		{
 			$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Name', $Function.Name ) )
@@ -382,6 +384,7 @@ function GetScriptInfo
 	{
 		$FileContent = $Text
 		$Name = "Text"
+
 		if ( [string]::IsNullOrEmpty( $InfoObject.Name ) )
 		{
 			$InfoObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Name', "?" ) )
