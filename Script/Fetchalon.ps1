@@ -655,7 +655,7 @@ function Generate-Menus
 
 		Load-OtherMenus $_
 
-		New-Item -ItemType "File" -Path $MenuListFilePath -Value  ( $syncHash.Data.MenuList | ConvertTo-Json -Depth 4 ) -Force | Out-Null
+		New-Item -ItemType "File" -Path $MenuListFilePath -Value  ( $syncHash.Data.MenuList | ConvertTo-Json -Depth 5 ) -Force | Out-Null
 	}
 	$Content = Get-Content $MenuListFilePath -Raw -Encoding UTF8 | ConvertFrom-Json
 
@@ -2397,6 +2397,7 @@ if ( $PSCommandPath -match "Development" )
 if ( -not $syncHash.Data.SearchPool )
 {
 	$Iss = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault2()
+	$iss.ApartmentState = "STA"
 	$iss.ImportPSModule(@(
 		"Microsoft.PowerShell.Core",
 		"Microsoft.PowerShell.Utility",
@@ -2791,7 +2792,6 @@ $syncHash.Code.SBlockExecuteFunction = {
 {
 	param ( $SenderObject, $e )
 
-	$syncHash.Data.TestList.add( $SenderObject ) | out-null
 	$PropLocalization = @{}
 	$syncHash.Code.PropLocalizations."$( $syncHash.Data.SearchedItem.ObjectClass )".GetEnumerator() | `
 		Where-Object { $_.Name -match "PL$( $syncHash.Data.SearchedItem.ObjectClass )$( $SenderObject.DataContext.Source )$( $SenderObject.DataContext.Name )" } | `
@@ -3202,7 +3202,7 @@ $(
 
 			if ( -not ( Get-Module "$( $SenderObject.DataContext.ObjectClass )Functions" ) )
 			{
-				Import-Module ".\Modules\FunctionModules\$( $SenderObject.DataContext.ObjectClass )Functions.psm1"
+				Import-Module "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\$( $SenderObject.DataContext.ObjectClass )Functions.psm1"
 			}
 			elseif ( ( Get-Item ( Get-Module ( Get-Command $SenderObject.DataContext.Name ).Source ).Path ).LastWriteTime -gt $syncHash."Mi$( ( Get-Command $SenderObject.DataContext.Name ).Source )".Tag )
 			{
