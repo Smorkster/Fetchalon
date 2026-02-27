@@ -12,21 +12,23 @@
 $BaseDir = ( Get-Item $PSCommandPath ).Directory.Parent.FullName
 
 $MutexName = "Startup $( $env:USERNAME )"
+$MutexEventName = "Fetchalon_Activate"
 if ( $BaseDir -match "Development" )
 {
 	$MutexName = "Dev $( $MutexName )"
+	$MutexEventName = "Dev $( $MutexEventName )"
 }
 
 $StartUpMutex = [System.Threading.Mutex]::new( $false, $MutexName )
 if ( -not $StartUpMutex.WaitOne( 200 ) )
 {
-	Import-Module .\Modules\SuiteModules\GUIOps.psm1 -Function Show-Splash
-	Import-Module .\Modules\SuiteModules\FileOps.psm1 -Variable msgTable
+	Import-Module ..\Modules\SuiteModules\GUIOps.psm1 -Function Show-Splash
+	Import-Module ..\Modules\SuiteModules\FileOps.psm1 -Variable msgTable
 	Show-Splash -Duration 1 -NoProgressBar -Text $msgTable.StrOpenMainWindowFound
 
 	try
 	{
-		[System.Threading.EventWaitHandle]::OpenExisting( "Local\Fetchalon_Activate" ).Set() | Out-Null
+		[System.Threading.EventWaitHandle]::OpenExisting( "Local\$( $MutexEventName )" ).Set() | Out-Null
 	} catch {}
 
 	return
@@ -715,6 +717,16 @@ function Generate-Menus
 		}
 		catch
 		{}
+
+		try
+		{
+			$KeyName = ( $key -replace "Cvs" )
+			if ( $KeyName -in $syncHash.Keys )
+			{
+				$syncHash."$( $KeyName )".Tag = Get-Date
+			}
+		}
+		catch {}
 	}
 }
 
@@ -827,12 +839,6 @@ function Get-ModuleFunctions
 
 		Add-MenuItem $MiObject "$( $ModuleName )Functions"
 	}
-
-	try
-	{
-		$syncHash."Mi$( $ModuleName )Functions".Tag = Get-Date
-	}
-	catch {}
 }
 
 function Load-Menu
@@ -2412,7 +2418,7 @@ if ( -not $syncHash.Data.SearchPool )
 }
 
 # Create/open event
-$eventName = "Local\Fetchalon_Activate"
+$eventName = "Local\$( $MutexEventName )"
 $created = $false
 $syncHash.ActivateEvent = [System.Threading.EventWaitHandle]::new(
 	$false,
