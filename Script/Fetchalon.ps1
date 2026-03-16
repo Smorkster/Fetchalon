@@ -2542,19 +2542,19 @@ $syncHash.Jobs.CollectPHInfo.AddScript( {
 				}
 			}
 
-			foreach ( $K in $IntMsgTable.Keys )
+			foreach ( $VarKey in $IntMsgTable.Keys )
 			{
-				if ( $K -match "^PL" )
+				if ( $VarKey -match "^PL" )
 				{
-					$syncHash.Code.PropLocalizations."$( $BN )"."$( $_ )" = $IntMsgTable."$( $_ )"
+					$syncHash.Code.PropLocalizations."$( $BN )"."$( $VarKey )" = $IntMsgTable."$( $VarKey )"
 				}
-				elseif ( $K -match "^PD" )
+				elseif ( $VarKey -match "^PD" )
 				{
-					$syncHash.Code.PropDescriptions."$( $BN )"."$( $_ )" = $IntMsgTable."$( $_ )"
+					$syncHash.Code.PropDescriptions."$( $BN )"."$( $VarKey )" = $IntMsgTable."$( $VarKey )"
 				}
-				elseif ( $K -match "^PNL" )
+				elseif ( $VarKey -match "^PNL" )
 				{
-					$syncHash.Code.PropNameLocalizations."$( $BN )"."$( $_ )" = $IntMsgTable."$( $_ )"
+					$syncHash.Code.PropNameLocalizations."$( $BN )"."$( $VarKey )" = $IntMsgTable."$( $VarKey )"
 				}
 			}
 		}
@@ -3200,6 +3200,7 @@ $(
 		else
 		{
 			Display-View -ViewName 'FrameTool'
+			$syncHash.Data.Temp = $SenderObject
 			if ( "None" -ne $SenderObject.DataContext.OutputType )
 			{
 				$syncHash.DC.IcOutputObjects[0].Clear()
