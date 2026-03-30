@@ -812,15 +812,21 @@ function WriteLog
 		[string] $ComputerName
 	)
 
-	try
+	$MtxName = try
 	{
+		if ( -not [System.IO.File]::Exists( $MyInvocation.PSCommandPath ) )
+		{
+			"WriteLog $( Get-Random )"
+		}
+
 		$ScriptName = ( Get-Item $MyInvocation.PSCommandPath ).BaseName
-		$mtx = [System.Threading.Mutex]::new( $false, "WriteLog $( $ScriptName )" )
+		"WriteLog $( $ScriptName )"
 	}
 	catch
 	{
-		$mtx = [System.Threading.Mutex]::new( $false, "WriteLog $( Get-Random )" )
+		"WriteLog $( Get-Random )"
 	}
+	$mtx = [System.Threading.Mutex]::new( $false, $MtxName )
 
 	if ( $MyInvocation.PSCommandPath -notmatch "Tools" )
 	{
@@ -973,5 +979,5 @@ catch
 	[System.Windows.MessageBox]::Show( $_ )
 }
 
-Export-ModuleMember -Function EndScript, GetUserInput, ShowMessageBox, WriteErrorlog, WriteLog, WriteOutput, WriteLogTest, WriteErrorlogTest, WriteSurvey, New*, Get-DataFormaters, GetScriptInfo, Get-LogFilePath
-Export-ModuleMember -Variable msgTable
+Export-ModuleMember -Verbose:$false -Function EndScript, GetUserInput, ShowMessageBox, WriteErrorlog, WriteLog, WriteOutput, WriteLogTest, WriteErrorlogTest, WriteSurvey, New*, Get-DataFormaters, GetScriptInfo, Get-LogFilePath
+Export-ModuleMember -Verbose:$false -Variable msgTable

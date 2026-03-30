@@ -138,18 +138,43 @@ function Get-FolderMembership
 
 	param ( $Item )
 
-	return Get-ADGroup -LDAPFilter ( "(member:1.2.840.113556.1.4.1941:={0})" -f ( Get-ADUser $Item.AD.SamAccountName ).DistinguishedName ) -Properties Description | `
-		Where-Object { $_.Name -match ".*_Fil_.*User_(C|R)" -and $_.Name -notmatch $IntMsgTable.StrGetFolderMembershipPropCodeNotMatch } | `
-		Select-Object -Property `
-			@{ Name = "$( $IntMsgTable.StrGetFolderMembershipPropTitleGroup )"; Expression = { $_.Name } }, `
-			@{ Name = "$( $IntMsgTable.StrGetFolderMembershipPropTitleFolder )"; Expression = { ( ( $_.Description -split " $( $IntMsgTable.StrGetFolderMembershipPropCodeSplit1 ) " )[1] -split "\." )[0] -replace $IntMsgTable.StrGetFolderMembershipPropCodeReplace1, "G:" -replace $IntMsgTable.StrGetFolderMembershipPropCodeReplace2, "S:" } }, `
-			@{ Name = "$( $IntMsgTable.StrGetFolderMembershipPropTitlePermission )" ; Expression = { `
-				if ( $_.Name -match "_User_R$" ) { $IntMsgTable.StrGetFolderMembershipPropValRead }
-				elseif ( $_.Name -match "_User_C$" ) { $IntMsgTable.StrGetFolderMembershipPropValWrite }
-				else { "?" } } } | `
-		Sort-Object -Property `
-			@{ Expression = { $_."$( $IntMsgTable.StrGetFolderMembershipPropTitlePermission )" } ; Ascending = $true }, `
-			@{ Expression = { $_."$( $IntMsgTable.StrGetFolderMembershipPropTitleFolder )" } ; Ascending = $true }
+	try
+	{
+		Write-Information $IntMsgTable.StrGetFolderMembershipStart
+		$LdapSearchTerm = "(&(member:1.2.840.113556.1.4.1941:=$( $Item.AD.DistinguishedName ))(|(Name=*_File_*_User_C)(Name=*_File_*_User_R)))"
+		$AllGroups = Get-ADGroup -LDAPFilter $LdapSearchTerm -Properties Description | Select-Object *
+		Write-Progress "$( $AllGroups.Count ) $( $IntMsgTable.StrGetFolderMembershipCountInfo )"
+		$Folders = [System.Collections.Generic.List[object]]::new()
+
+		$i = 0
+		foreach ( $Group in $AllGroups )
+		{
+			$FetchedGroup = Get-ADGroup -Identity $Group.DistinguishedName -Properties Description
+			$Folder = ( ( $FetchedGroup.Description -split " $( $IntMsgTable.StrGetFolderMembershipPropCodeSplit1 ) " )[1] -split "\." )[0] -replace $IntMsgTable.StrGetFolderMembershipPropCodeReplace1, "G:" -replace $IntMsgTable.StrGetFolderMembershipPropCodeReplace2, "S:"
+
+			$Perm = if ( $FetchedGroup.Name.EndsWith( "_User_R" ) ) { $IntMsgTable.StrGetFolderMembershipPropValRead }
+				elseif ( $FetchedGroup.Name.EndsWith( "_User_C" ) ) { $IntMsgTable.StrGetFolderMembershipPropValWrite }
+				else { "?" }
+
+			[int] $P = ( $i / $AllGroups.Count ) * 100
+			Write-Progress "$( $IntMsgTable.StrGetFolderMembershipFilterInfo ) $( $P ) %" -PercentComplete $P
+			$FolderDef = [pscustomobject]@{
+				$IntMsgTable.StrGetFolderMembershipPropTitleGroup = $FetchedGroup.Name
+				$IntMsgTable.StrGetFolderMembershipPropTitleFolder = $Folder
+				$IntMsgTable.StrGetFolderMembershipPropTitlePermission = $Perm
+			}
+			$Folders.Add( $FolderDef ) | Out-Null
+			$i += 1
+		}
+
+		return $Folders | Sort-Object -Property `
+				@{ Expression = { $_."$( $IntMsgTable.StrGetFolderMembershipPropTitlePermission )" } ; Ascending = $true }, `
+				@{ Expression = { $_."$( $IntMsgTable.StrGetFolderMembershipPropTitleFolder )" } ; Ascending = $true }
+	}
+	catch
+	{
+		throw "$( $_ )`n$( $Group )`n$( $LdapSearchTerm )"
+	}
 }
 
 function Get-FolderOwnership
@@ -654,7 +679,7 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Compare-UserGroups
-Export-ModuleMember -Function Get-FolderMembership, Get-FolderOwnership, Get-O365AccountStatus, Get-SharedAccountsByDepId, Get-LastWorkstationLogins
-Export-ModuleMember -Function Open-SysManGroups, Open-SysManMobileDevices
-Export-ModuleMember -Function Remove-ProfileAria, Remove-ProfileVK, Remove-ProfileVKTC
+Export-ModuleMember -Verbose:$false -Function Compare-UserGroups
+Export-ModuleMember -Verbose:$false -Function Get-FolderMembership, Get-FolderOwnership, Get-O365AccountStatus, Get-SharedAccountsByDepId, Get-LastWorkstationLogins
+Export-ModuleMember -Verbose:$false -Function Open-SysManGroups, Open-SysManMobileDevices
+Export-ModuleMember -Verbose:$false -Function Remove-ProfileAria, Remove-ProfileVK, Remove-ProfileVKTC

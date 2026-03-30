@@ -35,7 +35,7 @@ function Get-DLMembers
 	param ( $Item )
 
 	$Members = [System.Collections.ArrayList]::new()
-	Get-AzureADGroup -SearchString "DL-$( $Item.DisplayName )" | `
+	Get-AzureADGroup -SearchString "DL-$( $Item.Exchange.DisplayName )" | `
 		Get-AzureADGroupMember | `
 			Where-Object { $_.ObjectType -ne "Group" } | `
 			Sort-Object DisplayName | `
@@ -43,7 +43,7 @@ function Get-DLMembers
 			ForEach-Object {
 				$Members.Add( $_ ) | Out-Null
 			}
-	Get-AzureADGroup -SearchString "$( $Item.DisplayName )" | `
+	Get-AzureADGroup -SearchString "$( $Item.Exchange.DisplayName )" | `
 		Get-AzureADGroupMember | `
 			Where-Object { $_.ObjectType -ne "Group" } | `
 			Sort-Object DisplayName | `
@@ -89,7 +89,7 @@ function Set-DLMailTip
 
 	try
 	{
-		Set-Mailbox $Item.PrimarySmtpAddress -MailTip $InputData.MailTip
+		Set-Mailbox $Item.Exchange.PrimarySmtpAddress -MailTip $InputData.MailTip
 		return $IntMsgTable.SetDLMailTipDone
 	}
 	catch
@@ -102,5 +102,5 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Get-DLMembers
-Export-ModuleMember -Function Set-DLMailTip
+Export-ModuleMember -Verbose:$false -Function Get-DLMembers
+Export-ModuleMember -Verbose:$false -Function Set-DLMailTip

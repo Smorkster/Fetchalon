@@ -51,10 +51,56 @@ function Open-ConfigurationManager
 	[System.Diagnostics.Process]::Start( "C:\Program Files\Client Center for Configuration Manager\SCCMCliCtrWPF.exe" ) | Out-Null
 }
 
+function Open-Dameware
+{
+	<#
+	.Synopsis
+		Start Dameware
+	.Description
+		Start Dameware
+	.MenuItem
+		Dameware
+	.SearchedItemRequest
+		None
+	.OutputType
+		None
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	[System.Diagnostics.Process]::Start( "C:\Program Files\SolarWinds\Dameware Mini Remote Control x64\DWRCC.exe" ) | Out-Null
+}
+
+function Open-mRemoteNG
+{
+	<#
+	.Synopsis
+		Start mRemoteNG
+	.Description
+		Start mRemoteNG
+	.MenuItem
+		mRemoteNG
+	.SearchedItemRequest
+		None
+	.OutputType
+		None
+	.State
+		Prod
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	& "C:\Program Files (x86)\mRemoteNG\mRemoteNG.exe"
+}
+
 function Open-PrintConsole
 {
 	<#
 	.Synopsis
+		Start PrintConsole
+	.Description
 		Start PrintConsole
 	.MenuItem
 		Print Console
@@ -75,4 +121,4 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function *
+Export-ModuleMember -Verbose:$false -Function *

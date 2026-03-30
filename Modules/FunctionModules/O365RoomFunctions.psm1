@@ -36,7 +36,7 @@ function Get-RoomMembers
 
 	$Members = [System.Collections.ArrayList]::new()
 
-	Get-AzureADGroup -SearchString "RES-$( $Item.Name )-Admins" | `
+	Get-AzureADGroup -SearchString "RES-$( $Item.Exchange.Exchange.Name )-Admins" | `
 		Get-AzureADGroupMember | `
 			Where-Object { $_.ObjectType -ne "Group" } | `
 			Select-Object -Property DisplayName, UserPrincipalName, @{ Name = "$( $IntMsgTable.GetRoomMembersParamPermName )" ; Expression = { "$( $IntMsgTable.GetRoomMembersParamPermAdmin )" } } | `
@@ -45,7 +45,7 @@ function Get-RoomMembers
 				$Members.Add( $_ ) | Out-Null
 			}
 
-	Get-AzureADGroup -SearchString "RES-$( $Item.Name )-Book" | `
+	Get-AzureADGroup -SearchString "RES-$( $Item.Exchange.Name )-Book" | `
 		Get-AzureADGroupMember | `
 			Select-Object -Property DisplayName, UserPrincipalName, @{ Name = "$( $IntMsgTable.GetRoomMembersParamPermName )" ; Expression = { "$( $IntMsgTable.GetRoomMembersParamPermBook )" } } | `
 			Sort-Object DisplayName | `
@@ -90,7 +90,7 @@ function Set-RoomMailTip
 
 	try
 	{
-		Set-Mailbox $Item.PrimarySmtpAddress -MailTip $InputData.MailTip
+		Set-Mailbox $Item.Exchange.PrimarySmtpAddress -MailTip $InputData.MailTip
 		return $IntMsgTable.SetRoomMailTipDone
 	}
 	catch
@@ -103,5 +103,5 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Get-RoomMembers
-Export-ModuleMember -Function Set-RoomMailTip
+Export-ModuleMember -Verbose:$false -Function Get-RoomMembers
+Export-ModuleMember -Verbose:$false -Function Set-RoomMailTip
