@@ -259,5 +259,6 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Get-FilePermissions
-Export-ModuleMember -Function Search-Virus
+Export-ModuleMember -Verbose:$false -Function Get-FilePermissions
+Export-ModuleMember -Verbose:$false -Function Search-Virus
+Export-ModuleMember -Verbose:$false -Function Unlock-NetworkShareFile

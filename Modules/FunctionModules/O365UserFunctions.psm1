@@ -34,7 +34,7 @@ function Get-ExoMail
 
 	param ( $Item )
 
-	return Get-EXOMailbox $Item.Name | Select-Object *
+	return Get-EXOMailbox $Item.Exchange.Name | Select-Object *
 }
 
 function Get-UserDevices
@@ -60,7 +60,7 @@ function Get-UserDevices
 
 	param ( $Item )
 
-	return Get-AzureADUserRegisteredDevice -ObjectId $Item.ExternalDirectoryObjectId | `
+	return Get-AzureADUserRegisteredDevice -ObjectId $Item.Exchange.ExternalDirectoryObjectId | `
 		Select-Object DisplayName, ObjectId, ApproximateLastLogonTimeStamp, DeviceId, DeviceOSType, DeviceOSVersion
 }
 
@@ -89,7 +89,7 @@ function Get-Delegates
 
 	$Delegates = [System.Collections.ArrayList]::new()
 
-	Get-MailboxFolderPermission -Identity "$( $syncHash.data.SearchedItem.PrimarySmtpAddress ):\$( $IntMsgTable.GetDelegatesInbox )" | `
+	Get-MailboxFolderPermission -Identity "$( $Item.Exchange.PrimarySmtpAddress ):\$( $IntMsgTable.GetDelegatesInbox )" | `
 		Where-Object { $_.User -notin "Standard","Anonymous","Default" } | `
 		Select-Object -Property @{ Name = "$( $IntMsgTable.GetDelegatesUser )" ; Expression = { "$( $_.User.DisplayName ) ($( $_.User.RecipientPrincipal.PrimarySmtpAddress ))"} } ,
 				@{ Name = "$( $IntMsgTable.GetDelegatesPermissions )" ; Expression = { $_.AccessRights -join ", " } },
@@ -98,7 +98,7 @@ function Get-Delegates
 			$Delegates.Add( $_ ) | Out-Null
 		}
 
-	Get-MailboxFolderPermission -Identity "$( $syncHash.data.SearchedItem.PrimarySmtpAddress ):\$( $IntMsgTable.GetDelegatesCalendar )" | `
+	Get-MailboxFolderPermission -Identity "$( $Item.Exchange.PrimarySmtpAddress ):\$( $IntMsgTable.GetDelegatesCalendar )" | `
 		Where-Object { $_.User -notin "Standard","Anonymous","Default" } | `
 		Select-Object -Property @{ Name = "$( $IntMsgTable.GetDelegatesUser )" ; Expression = { "$( $_.User.DisplayName ) ($( $_.User.RecipientPrincipal.PrimarySmtpAddress ))"} } ,
 				@{ Name = "$( $IntMsgTable.GetDelegatesPermissions )" ; Expression = { $_.AccessRights -join ", " } },
@@ -140,7 +140,7 @@ function Get-DistsMembership
 
 	param ( $Item )
 
-	$List = Get-AzureADUserMembership -ObjectId $Item.ExternalDirectoryObjectId  | Where-Object { $_.DisplayName -match "^DL-" }
+	$List = Get-AzureADUserMembership -ObjectId $Item.Exchange.ExternalDirectoryObjectId  | Where-Object { $_.DisplayName -match "^DL-" }
 
 	if ( 0 -eq @( $List ).Count )
 	{
@@ -177,7 +177,7 @@ function Get-DistsOwnership
 
 	param ( $Item )
 
-	$List = Get-DistributionGroup -Filter "CustomAttribute10 -like '*$( ( $Item.PrimarySmtpAddress -split '@' )[0] )*'"
+	$List = Get-DistributionGroup -Filter "CustomAttribute10 -like '*$( ( $Item.Exchange.PrimarySmtpAddress -split '@' )[0] )*'"
 
 	if ( 0 -eq @( $List ).Count )
 	{
@@ -212,8 +212,8 @@ function Get-Logins
 
 	param ( $Item )
 
-	$LastLogon = ( Get-MailboxStatistics $Item.PrimarySmtpAddress ).LastLogonTime
-	$Auditdata = Search-UnifiedAuditLog -StartDate ( ( [DateTime]::Today.AddDays( -10 ) ).ToUniversalTime() ) -EndDate ( ( [DateTime]::Now ).ToUniversalTime() ) -UserIds $Item.PrimarySmtpAddress -Operations "FileAccessed" -RecordType "SharePointFileOperation"
+	$LastLogon = ( Get-MailboxStatistics $Item.Exchange.PrimarySmtpAddress ).LastLogonTime
+	$Auditdata = Search-UnifiedAuditLog -StartDate ( ( [DateTime]::Today.AddDays( -10 ) ).ToUniversalTime() ) -EndDate ( ( [DateTime]::Now ).ToUniversalTime() ) -UserIds $Item.Exchange.PrimarySmtpAddress -Operations "FileAccessed" -RecordType "SharePointFileOperation"
 	$TeamsLogon = ( $Auditdata | Sort-Object CreationDate )[-1].CreationDate
 
 	$List = [System.Collections.ArrayList]::new()
@@ -248,7 +248,7 @@ function Get-SharedMailboxMembership
 
 	try
 	{
-		Get-AzureADUser -SearchString $Item.Alias -ErrorAction Stop | `
+		Get-AzureADUser -SearchString $Item.Exchange.Alias -ErrorAction Stop | `
 			Get-AzureADUserMembership | `
 			Where-Object { $_.DisplayName -match "^MB" } | `
 			ForEach-Object {
@@ -290,7 +290,7 @@ function Get-SharedMailboxOwnership
 
 	try
 	{
-		Get-EXOMailBox -Filter "CustomAttribute10 -like '*$( $Item.PrimarySmtpAddress )*'" -ErrorAction Stop | `
+		Get-EXOMailBox -Filter "CustomAttribute10 -like '*$( $Item.Exchange.PrimarySmtpAddress )*'" -ErrorAction Stop | `
 			Select-Object DisplayName, PrimarySmtpAddress | `
 			Sort-Object DisplayName | `
 			ForEach-Object {
@@ -333,7 +333,7 @@ function Set-UserMailTip
 
 	try
 	{
-		Set-Mailbox $Item.PrimarySmtpAddress -MailTip $InputData.MailTip
+		Set-Mailbox $Item.Exchange.PrimarySmtpAddress -MailTip $InputData.MailTip
 		return $IntMsgTable.SetUserMailTipDone
 	}
 	catch
@@ -367,7 +367,7 @@ function Set-UserPasswordNeverExpires
 
 	try
 	{
-		Set-AzureADUser -ObjectId $Item.ExternalDirectoryObjectId -PasswordPolicies DisablePasswordExpiration -ErrorAction Stop
+		Set-AzureADUser -ObjectId $Item.Exchange.ExternalDirectoryObjectId -PasswordPolicies DisablePasswordExpiration -ErrorAction Stop
 	}
 	catch
 	{
@@ -379,5 +379,5 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Get-Delegates, Get-DistsMembership, Get-DistsOwnership, Get-ExoMail, Get-Logins, Get-SharedMailboxMembership, Get-SharedMailboxOwnership, Get-UserDevices
-Export-ModuleMember -Function Set-UserMailTip, Set-UserPasswordNeverExpires
+Export-ModuleMember -Verbose:$false -Function Get-Delegates, Get-DistsMembership, Get-DistsOwnership, Get-ExoMail, Get-Logins, Get-SharedMailboxMembership, Get-SharedMailboxOwnership, Get-UserDevices
+Export-ModuleMember -Verbose:$false -Function Set-UserMailTip, Set-UserPasswordNeverExpires

@@ -35,7 +35,7 @@ function Get-SMMembers
 	param ( $Item )
 
 	$Members = [System.Collections.ArrayList]::new()
-	Get-AzureADGroup -SearchString "MB-$( $Item.DisplayName )-Admins" | `
+	Get-AzureADGroup -SearchString "MB-$( $Item.Exchange.DisplayName )-Admins" | `
 		Get-AzureADGroupMember | `
 			Where-Object { $_.ObjectType -ne "Group" } | `
 			Select-Object -Property DisplayName, UserPrincipalName, @{ Name = "$( $IntMsgTable.GetSMMembersParamPermName )" ; Expression = { "Admins" } } | `
@@ -43,7 +43,7 @@ function Get-SMMembers
 				$Members.Add( $_ ) | Out-Null
 			}
 
-	Get-AzureADGroup -SearchString "MB-$( $Item.DisplayName )-Full" | `
+	Get-AzureADGroup -SearchString "MB-$( $Item.Exchange.DisplayName )-Full" | `
 		Get-AzureADGroupMember | `
 			Where-Object { $_.ObjectType -ne "Group" } | `
 			Select-Object -Property DisplayName, UserPrincipalName, @{ Name = "$( $IntMsgTable.GetSMMembersParamPermName )" ; Expression = { "Full" } } | `
@@ -51,7 +51,7 @@ function Get-SMMembers
 				$Members.Add( $_ ) | Out-Null
 			}
 
-	Get-AzureADGroup -SearchString "MB-$( $Item.DisplayName )-Read" | `
+	Get-AzureADGroup -SearchString "MB-$( $Item.Exchange.DisplayName )-Read" | `
 		Get-AzureADGroupMember | `
 			Where-Object { $_.ObjectType -ne "Group" } | `
 			Select-Object -Property DisplayName, UserPrincipalName, @{ Name = "$( $IntMsgTable.GetSMMembersParamPermName )" ; Expression = { "Read" } } | `
@@ -65,7 +65,7 @@ function Get-SMMembers
 	}
 	else
 	{
-		return $Members
+		return $Members | Sort-Object -Property @{ Expression = { $_."$( $IntMsgTable.GetSMMembersParamPermName )" } }, DisplayName
 	}
 }
 
@@ -96,7 +96,7 @@ function Set-SMMailTip
 
 	try
 	{
-		Set-Mailbox $Item.PrimarySmtpAddress -MailTip $InputData.MailTip
+		Set-Mailbox $Item.Exchange.PrimarySmtpAddress -MailTip $InputData.MailTip
 		return $IntMsgTable.SetSMMailTipDone
 	}
 	catch
@@ -109,5 +109,5 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Get-SMDelegates, Get-SMMembers, Get-SMUnsynced
-Export-ModuleMember -Function Set-SMMailTip
+Export-ModuleMember -Verbose:$false -Function Get-SMDelegates, Get-SMMembers, Get-SMUnsynced
+Export-ModuleMember -Verbose:$false -Function Set-SMMailTip

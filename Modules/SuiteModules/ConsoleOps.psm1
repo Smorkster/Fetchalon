@@ -185,4 +185,4 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 try { $CallingScript = ( Get-Item $MyInvocation.PSCommandPath ).BaseName } catch { $CallingScript = $null }
 Import-LocalizedData -BindingVariable IntmsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function *
+Export-ModuleMember -Verbose:$false -Function *

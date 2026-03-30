@@ -125,20 +125,41 @@ function Get-PollenRapport
 
 	param ( $InputData )
 
-	$CityId = ( ( Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/regions" -Method Get ).items | `
-		Where-Object { ( $_.name -replace "Ã¥", "å" -replace "Ã¤", "ä" -replace "Ã¶", "ö" ) -match $InputData.Stad } ).id
+	$PList = [System.Collections.Generic.List[object]]::new()
+	$Date = Get-Date -Format "yyyy-MM-dd"
+	$PollenTypes = @{}
+	$CityId = ""
 
-	$PList = [System.Collections.ArrayList]::new()
-	$PollenTypes = ( Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/pollen-types" -Method get ).items
-
-	$PollenForecast = Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/forecasts?region_id=$( $CityId )&current=true" -Method Get -ContentType "application/json"
-	$PollenForecast.items[0].levelSeries | `
-		Where-Object { $_.level -gt 0 -and $_.time -match ( Get-Date -Format "yyyy-MM-dd" ) } | `
-		Select-Object @{ Name = $IntMsgTable.GetPollenRapportTitle1 ; Expression = { $current = $_ ; ( $PollenTypes | Where-Object { $_.id -eq $current.pollenId } ).Name -replace "Ã¥", "å" -replace "Ã¤", "ä" -replace "Ã¶", "ö" } } , `
-			@{ Name = $IntMsgTable.GetPollenRapportTitle2 ; Expression = { $_.level } } | `
-		ForEach-Object {
-			$PList.Add( $_ ) | Out-Null
+	$CityList = ( Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/regions" -Method Get ).items
+	foreach ( $i in $CityList )
+	{
+		if ( $InputData.Stad.Equals( $i.name.Replace( "Ã¥", "å" ).Replace( "Ã¤", "ä" ).Replace( "Ã¶", "ö" ) ) )
+		{
+			$CityId = $i.id
+			break
 		}
+	}
+
+	$PT = ( Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/pollen-types" -Method get ).items
+	foreach ( $t in $PT )
+	{
+		$n = $t.name.Replace( "Ã¥", "å" ).Replace( "Ã¤", "ä" ).Replace( "Ã¶", "ö" )
+		$PollenTypes[$t.id] = $n
+	}
+
+	$PollenForecast = ( Invoke-RestMethod -Uri "https://api.pollenrapporten.se/v1/forecasts?region_id=$( $CityId )&current=true" -Method Get -ContentType "application/json" ).items[0].levelSeries
+	foreach( $item in $PollenForecast )
+	{
+		if ( $item.level -eq 0 -or -not $Item.time.StartsWith( $Date ) )
+		{
+			continue
+		}
+		$p = [pscustomobject]@{
+			$IntMsgTable.GetPollenRapportTitle1 = $PollenTypes[ $item.pollenId ]
+			$IntMsgTable.GetPollenRapportTitle2 = $item.level
+		}
+		$PList.Add( $p ) | Out-Null
+	}
 
 	return $PList
 }
@@ -163,36 +184,50 @@ function Get-SomeFiles
 		Smorkster (smorkster)
 	#>
 
-	$List = [System.Collections.ArrayList]::new()
+	$List = [System.Collections.Generic.List[object]]::new()
+
 	try
 	{
-		Get-ChildItem C:\ | `
-			Select-Object -Property `
-				Name, `
-				Extension, `
-				LastWriteTime, `
-				@{ Name = "IsDir"; Expression = { $_ -is [System.IO.DirectoryInfo] }
-					}, `
-				@{ Name = "Size"; Expression = {
-					if ( $_ -is [System.IO.DirectoryInfo] ) { $IntMsgTable.GetSomeFilesFolder }
-					elseif ( $_.Length -lt 1kB ) { "$( $_.Length ) B" }
-					elseif ( $_.Length -gt 1kB -and $_.Length -lt 1MB ) { "$( [math]::Round( ( $_.Length / 1kB ), 2 ) ) kB" }
-					elseif ( $_.Length -gt 1MB -and $_.Length -lt 1GB ) { "$( [math]::Round( ( $_.Length / 1MB ), 2 ) ) MB" }
-					elseif ( $_.Length -gt 1GB -and $_.Length -lt 1TB ) { "$( [math]::Round( ( $_.Length / 1GB ), 2 ) ) GB" } }
-					} | `
-			Sort-Object @{ Expression = { $_.IsDir }; Descending = $true }, Extension, Name | `
-			Select-Object Name, LastWriteTime, Size, Extension | `
-			ForEach-Object {
-				$List.Add( $_ ) | Out-Null
+		$Files = Get-ChildItem C:\
+		foreach ( $File in $Files )
+		{
+			$FileObj = [pscustomobject]@{
+				Name = $File.Name
+				Extension = $File.Extension
+				LastWriteTime = $File.LastWriteTime
+				IsNotDir = $true
+				Size = ""
 			}
-	} catch {}
+
+			if ( $File -is [System.IO.DirectoryInfo] )
+			{
+				$FileObj.IsNotDir = $false
+				$FileObj.Extension = $IntMsgTable.GetSomeFilesFolder
+			}
+
+			$FileObj.Size = if ( $File -is [System.IO.DirectoryInfo] ) { 0 }
+				elseif ( $File.Length -lt 1kB ) { "$( $File.Length ) B" }
+				elseif ( $File.Length -gt 1kB -and $File.Length -lt 1MB ) { "$( [math]::Round( ( $File.Length / 1kB ), 2 ) ) kB" }
+				elseif ( $File.Length -gt 1MB -and $File.Length -lt 1GB ) { "$( [math]::Round( ( $File.Length / 1MB ), 2 ) ) MB" }
+				elseif ( $File.Length -gt 1GB -and $File.Length -lt 1TB ) { "$( [math]::Round( ( $File.Length / 1GB ), 2 ) ) GB" }
+
+			$List.Add( $FileObj ) | Out-Null
+		}
+	}
+	catch
+	{}
+
 	if ( $null -eq $List )
 	{
 		return $null
 	}
 	else
 	{
-		return $List
+		$sorted = $List | `
+			Sort-Object IsNotDir, Extension, Name | `
+			Select-Object Name, Extension, LastWriteTime, Size
+
+		return $sorted
 	}
 }
 
@@ -243,7 +278,7 @@ function Get-StringList
 
 	$s = [system.collections.arraylist]::new()
 
-	0..50 | ForEach-Object { [void] $s.Add( "A string" ) }
+	foreach ( $a in 0..50 ) { [void] $s.Add( "En string" ) }
 
 	return $s
 }
@@ -303,7 +338,7 @@ function Test-Error
 		Smorkster (smorkster)
 	#>
 
-	throw "An error"
+	0/0
 }
 
 function Test-HyperlinkObjectList
@@ -329,6 +364,34 @@ function Test-HyperlinkObjectList
 	$List.Add( ( [pscustomobject]@{ Text = "Ecosia" ; Address = "https://www.ecosia.org" ; Type = "Hyperlink" } ) ) | Out-Null
 	$List.Add( ( [pscustomobject]@{ Text = "Power Automate" ; Address = "https://make.powerautomate.com/" ; Type = "Hyperlink" } ) ) | Out-Null
 	return $List
+}
+
+function Test-StreamOutput
+{
+	<#
+	.Synopsis
+		Test progress through runspace streams
+	.MenuItem
+		Test streams output
+	.SearchedItemRequest
+		None
+	.OutputType
+		String
+	.Description
+		Test progress output throught runspace streams
+	.State
+		Test
+	.Author
+		Smorkster (smorkster)
+	#>
+
+	Write-Information "Start"
+	Write-Debug "Start ForEach-Object"
+	Write-Error "False Error"
+	Write-Verbose "Verbose"
+	Write-Warning "Warning End"
+	0..10 | ForEach-Object { $p = $_ * 10; Write-Progress "Progress $p" -PercentComplete ( [int]$p ) }
+	Start-Sleep -Seconds 15
 }
 
 function Test-WriteError

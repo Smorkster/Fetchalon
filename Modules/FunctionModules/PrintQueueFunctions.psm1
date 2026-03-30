@@ -279,5 +279,5 @@ $RootDir = ( Get-Item $PSCommandPath ).Directory.Parent.Parent.FullName
 
 Import-LocalizedData -BindingVariable IntMsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization"
 
-Export-ModuleMember -Function Install-SysManPrinter,
-							Uninstall-SysManPrinter
+Export-ModuleMember -Verbose:$false -Function Install-SysManPrinter
+Export-ModuleMember -Verbose:$false -Function Uninstall-SysManPrinter

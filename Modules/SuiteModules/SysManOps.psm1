@@ -76,4 +76,4 @@ try { $CallingScript = ( Get-Item $MyInvocation.PSCommandPath ).BaseName } catch
 Import-LocalizedData -BindingVariable IntmsgTable -UICulture $culture -FileName "$( ( $PSCommandPath.Split( "\" ) | Select-Object -Last 1 ).Split( "." )[0] ).psd1" -BaseDirectory "$RootDir\Localization\"
 $ServerUrl = $IntmsgTable.SysManServerUrl
 
-Export-ModuleMember -Function *
+Export-ModuleMember -Verbose:$false -Function *
