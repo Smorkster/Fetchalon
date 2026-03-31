@@ -256,6 +256,7 @@ function CreateWindowExt
 
 	$syncHash = [hashtable]::Synchronized( @{} )
 	$syncHash.Bindings = [hashtable]( @{} )
+	$syncHash.Code = [hashtable]( @{} )
 	$syncHash.Data = [hashtable]( @{} )
 	$syncHash.DC = [hashtable]( @{} )
 	$syncHash.EventSubscribers = [System.Collections.ArrayList]::new()
@@ -299,7 +300,8 @@ function LoadConverters
 										'C:\Program Files\PowerShell\7\System.Collections.NonGeneric.dll',
 										C:\Windows\Microsoft.NET\assembly\GAC_64\PresentationCore\v4.0_4.0.0.0__31bf3856ad364e35\PresentationCore.dll `
 				-TypeDefinition $Converters `
-				-ErrorAction Stop
+				-ErrorAction Stop `
+				-Verbose:$false
 	}
 	else
 	{
@@ -317,7 +319,8 @@ function LoadConverters
 										C:\Windows\Microsoft.NET\Framework\v4.0.30319\WPF\WindowsBase.dll,
 										C:\Windows\Microsoft.NET\assembly\GAC_32\PresentationCore\v4.0_4.0.0.0__31bf3856ad364e35\PresentationCore.dll `
 				-TypeDefinition $Converters `
-				-ErrorAction Stop
+				-ErrorAction Stop `
+				-Verbose:$false
 	}
 }
 
