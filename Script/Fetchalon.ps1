@@ -2188,14 +2188,7 @@ if ( -not $syncHash.Jobs.SearchPool )
 		"Microsoft.PowerShell.Management",
 		"ActiveDirectory"
 	) )
-	if ( $null -eq $psISE )
-	{
-		$Pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool( 1, 1, $Iss, $Host )
-	}
-	else
-	{
-		$Pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool( $Iss )
-	}
+	$Pool = [System.Management.Automation.Runspaces.RunspaceFactory]::CreateRunspacePool( $Iss )
 	$Pool.SetMinRunspaces( 1 ) | Out-Null
 	$Pool.SetMaxRunspaces( 6 ) | Out-Null
 	$Pool.Open()
