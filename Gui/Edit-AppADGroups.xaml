@@ -41,6 +41,17 @@
             <Setter Property="Padding"
                     Value="10,5" />
         </Style>
+        <Style TargetType="ComboBox"
+               x:Key="CbBaseStyle">
+            <Setter Property="Height"
+                    Value="{StaticResource ControlHeight}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="MaxDropDownHeight"
+                    Value="{Binding ElementName=Window, Path=ActualHeight}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
         <Style TargetType="ItemsControl"
                x:Key="IcBaseStyle">
             <Setter Property="Margin"
@@ -57,10 +68,20 @@
         </Style>
         <Style TargetType="ListBox"
                x:Key="LbBaseStyle">
+            <Setter Property="DisplayMemberPath"
+                    Value="Name" />
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="ToolTip"
+                                Value="{Binding Path=Tt}" />
+                    </Style>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="ListBoxItem">
             <Setter Property="Margin"
@@ -126,13 +147,11 @@
                 </Grid.ColumnDefinitions>
                 <ComboBox Name="CbApp"
                           DisplayMemberPath="Text"
-                          MaxDropDownHeight="{Binding ElementName=Window, Path=ActualHeight}"
                           ItemsSource="{Binding Source={StaticResource CvsAppList}}"
-                          Margin="{StaticResource StdMargin}"
-                          SelectedIndex="-1"
-                          VerticalContentAlignment="Center">
+                          SelectedIndex="-1">
                     <ComboBox.Style>
-                        <Style TargetType="ComboBox">
+                        <Style TargetType="ComboBox"
+                               BasedOn="{StaticResource CbBaseStyle}">
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=ItemsSource.Count}"
                                              Value="1">
@@ -170,16 +189,7 @@
                      ItemsSource="{Binding Source={StaticResource CvsAppGrps}}"
                      ScrollViewer.PanningDeceleration="2"
                      ScrollViewer.PanningRatio="0.5"
-                     Style="{StaticResource LbBaseStyle}">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Path=Name}"
-                                   ToolTip="{Binding Path=Tt}"
-                                   ToolTipService.InitialShowDelay="0"
-                                   ToolTipService.ShowDuration="2000" />
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+                     Style="{StaticResource LbBaseStyle}" />
             <TextBlock Name="TblCopyFromTitle"
                        Grid.Row="4"
                        Style="{StaticResource TblTitleStyle}"
@@ -290,7 +300,6 @@
                        Style="{StaticResource TblTitleStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblGroupsChosen}" />
             <ListBox Name="LbGroupsChosen"
-                     DisplayMemberPath="Name"
                      Grid.Row="7"
                      ItemsSource="{Binding Source={StaticResource CvsSelectedGrps}}"
                      Style="{StaticResource LbBaseStyle}" />
