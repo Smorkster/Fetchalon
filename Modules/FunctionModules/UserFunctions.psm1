@@ -211,47 +211,6 @@ function Get-FolderOwnership
 	}
 }
 
-function Get-LastWorkstationLogins
-{
-	<#
-	.Synopsis
-		List last logins
-	.Description
-		List the last registered computer logins
-	.MenuItem
-		List logins
-	.SearchedItemRequest
-		Required
-	.SubMenu
-		SysMan
-	.OutputType
-		ObjectList
-	.State
-		Prod
-	.Author
-		Smorkster (smorkster)
-	#>
-
-	param ( $Item )
-
-	$List = [System.Collections.ArrayList]::new()
-	( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/reporting/User?userName=$( $Item.AD.SamAccountName )" -Method Get -UseDefaultCredentials ).clientLogins | `
-		Select-Object -Property @{ Name = "$( $IntMsgTable.GetLastWorkstationLoginsParamTitleName )" ; Expression = { $_.Name } } , `
-			@{ Name = "$( $IntMsgTable.GetLastWorkstationLoginsParamTitleDate )" ; Expression = { $_.lastHardwareScan } } | `
-		ForEach-Object {
-			$List.Add( $_ ) | Out-Null
-		}
-
-	if ( $List.Count -eq 0 )
-	{
-		return $IntMsgTable.GetLastWorkstationLoginsNoLogins
-	}
-	else
-	{
-		return $List
-	}
-}
-
 function Get-O365AccountStatus
 {
 	<#
