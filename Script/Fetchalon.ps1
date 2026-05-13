@@ -2125,7 +2125,7 @@ if ( $null -eq $args[0] )
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName UIAutomationClient
-Add-Type -Namespace GuiNative -Name Win -MemberDefinition '
+Add-Type -Namespace GuiNative -Name Win -Debug:$false -MemberDefinition '
 [DllImport("user32.dll")]
 public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
 
@@ -3559,9 +3559,9 @@ $(
 			}
 			Display-View -ViewName 'FrameTool' -PageName $Page
 
-			if ( -not ( Get-Module "$( $SenderObject.DataContext.ObjectClass )Functions" ) )
+			if ( $null -eq ( Get-Module "$( $SenderObject.DataContext.ObjectClass )Functions" ) )
 			{
-				Import-Module "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\$( $SenderObject.DataContext.ObjectClass )Functions.psm1" -Verbose:$false -Force | Out-Null
+				Import-Module "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\$( $SenderObject.DataContext.ObjectClass )Functions.psm1" -Force | Out-Null
 			}
 			elseif ( ( Get-Item ( Get-Module ( Get-Command $SenderObject.DataContext.Name ).Source ).Path ).LastWriteTime -gt $syncHash."Mi$( ( Get-Command $SenderObject.DataContext.Name ).Source )".Tag )
 			{
