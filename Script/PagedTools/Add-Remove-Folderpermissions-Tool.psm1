@@ -82,7 +82,7 @@ function Collect-ADGroups
 
 	if ( $syncHash.DC.CbDisk[1].Substring( 1, 2 ) -eq ":\" )
 	{
-		switch ( $syncHash.DC.CbDisk[1].Substring( 0, 1 ) )
+		switch ( $syncHash.DC.CbDisk[1][0] )
 		{
 			"G" { Collect-ADGroupsG -Entries $syncHash.DC.LbFoldersChosen[0] }
 			"R" { Collect-ADGroupsR -Entries $syncHash.DC.LbFoldersChosen[0] }
@@ -186,7 +186,7 @@ function Collect-ADGroupsR
 	$syncHash.Data.ADGroups.Clear()
 	foreach ( $entry in $Entries )
 	{
-		Set-WinTitle -Text ( Invoke-Expression $syncHash.Data.msgTable.StrTitleProgressGroups ) -Progress $loopCounter -Max $Entries.Count
+		Set-WinTitle -Text $syncHash.Data.msgTable.StrTitleProgressGroups -Progress $loopCounter -Max $Entries.Count
 
 		$FolderName = $syncHash.DC.CbDisk[1].ToString() + "\" + $entry.Name
 		$entry = $entry.Name -replace " ", "_"
@@ -282,11 +282,11 @@ function Collect-ADGroupsS
 
 	$Customer = ( ( $syncHash.DC.CbDisk[1] -split "\\" )[1] )
 	$syncHash.Data.ADGroups.Clear()
-	foreach ( $entry in $entries )
+	foreach ( $entry in $Entries )
 	{
-		Set-WinTitle -Text ( Invoke-Expression $syncHash.Data.msgTable.StrTitleProgressGroups ) -Progress $loopCounter -Max $entries.Count
+		Set-WinTitle -Text $syncHash.Data.msgTable.StrTitleProgressGroups -Progress $loopCounter -Max $Entries.Count
 
-		$FolderName = $syncHash.DC.CbDisk[1].ToString() + "\" + $entry.Name
+		$FolderName = $entry.FullName
 		$entry = $entry.Name -replace " ", "_"
 		try
 		{
@@ -537,51 +537,6 @@ function Folder-Selected
 	}
 }
 
-function Get-OtherPerm
-{
-	<#
-	.Synopsis
-		Check if there are any permissions for the folder from any securitygroups
-	.Parameter Folder
-		Folder to check permissions for
-	.Parameter UserList
-		List of users to check the permissions for
-	#>
-
-	param (
-		$Folder,
-		$UserList
-	)
-
-	Set-WinTitle -Text "$( $syncHash.Data.msgTable.StrSearchOtherPermRoutes ) '$Folder'"
-	$OFS = ", "
-	$Grps = ( Get-Acl $Folder ).Access | `
-		Where-Object { $_.IdentityReference -match "C|R$" } | `
-		ForEach-Object {
-			$_.IdentityReference -replace "$( $syncHash.Data.msgTable.StrDomain )\\"
-		} | `
-		Select-Object -Unique | `
-		Get-ADGroup | `
-		Get-ADGroupMember
-
-	$OtherPermissionRoutes = @()
-	foreach ( $Group in $Grps )
-	{
-		foreach ( $Member in ( Get-ADGroupMember $Group ).Where( { $_.ObjectClass -eq "group" } ) )
-		{
-			if ( $Members = ( ( Get-ADGroupMember $Member ).SamAccountName | Where-Object { $_ -in $UserList.Id } | Get-ADUser | Select-Object -ExpandProperty Name ) )
-			{
-				[pscustomobject]@{ Group = $Member.Name; Members = [string]$Members }
-			}
-		}
-	}
-
-	if ( $OtherPermissionRoutes.Count -gt 0 )
-	{
-		[pscustomobject]@{ Folder = $Folder; PermissionsList = $OtherPermissionRoutes }
-	}
-}
-
 function Perform-Permissions
 {
 	<#
@@ -607,6 +562,7 @@ function Perform-Permissions
 					try
 					{
 						Add-ADGroupMember -Identity $Group.Write -Members $syncHash.Data.WriteUsers.AD.DistinguishedName -Confirm:$false
+						Remove-ADGroupMember -Identity $Group.Read -Members $syncHash.Data.RemoveUsers.AD.DistinguishedName -Confirm:$false
 					}
 					catch
 					{
@@ -622,6 +578,7 @@ function Perform-Permissions
 					try
 					{
 						Add-ADGroupMember -Identity $Group.Read -Members $syncHash.Data.ReadUsers.AD.DistinguishedName -Confirm:$false 
+						Remove-ADGroupMember -Identity $Group.Write -Members $syncHash.Data.RemoveUsers.AD.DistinguishedName -Confirm:$false
 					}
 					catch
 					{
@@ -710,9 +667,7 @@ function Set-UserSettings
 
 	try
 	{
-		$a = Get-ADPrincipalGroupMembership -Identity ( [Environment]::UserName )
-
-		if ( $a.SamAccountName -match $syncHash.Data.msgTable.StrOpGroup )
+		if ( ( Get-ADGroupMember $syncHash.Data.msgTable.StrOpGroup ).SamAccountName -contains [Environment]::UserName )
 		{
 			$syncHash.LogFilePath = $syncHash.Data.msgTable.StrOpLogPath
 			$syncHash.ErrorLogFilePath = "$( $syncHash.Data.msgTable.StrOpLogPath )$( $syncHash.Data.msgTable.StrOpErrLogFile )$( ( [Environment]::UserName ) ).log"
@@ -720,10 +675,12 @@ function Set-UserSettings
 			$syncHash.HandledFolders = $syncHash.Data.KatalogHandledFolders
 			$syncHash.Data.Signature += "`n`n$( $syncHash.Data.msgTable.StrSignOp )"
 		}
-		elseif ( $a.SamAccountName -match $syncHash.Data.msgTable.StrSDGroup )
+		elseif ( ( Get-ADGroupMember $syncHash.Data.msgTable.StrSDGroup ).SamAccountName -contains [Environment]::UserName )
 		{
-			$syncHash.LogFilePath = ( ( Get-Item $PSScriptRoot ).Parent.FullName) + "\Log\" + $( [datetime]::Now.Year ) + "\" + [datetime]::Now.Month + "\" + ( Get-Item $PSCommandPath ).BaseName + "\"
-			$syncHash.ErrorLogFilePath = ( ( Get-Item $PSScriptRoot ).Parent.FullName ) + "\ErrorLogs\" + ( Get-Item $PSCommandPath ).BaseName + "\" + ( [Environment]::UserName ) + " ErrorLog.txt"
+			$ScriptRoot = ( ( Get-Item $PSScriptRoot ).Parent.FullName )
+			$FileName = ( Get-Item $PSCommandPath ).BaseName
+			$syncHash.LogFilePath = $ScriptRoot + "\Log\" + $( [datetime]::Now.Year ) + "\" + [datetime]::Now.Month + "\" + $FileName + "\"
+			$syncHash.ErrorLogFilePath = $ScriptRoot + "\ErrorLogs\" + $FileName + "\" + ( [Environment]::UserName ) + " ErrorLog.txt"
 
 			$syncHash.HandledFolders = $syncHash.Data.ServicedeskHandledFolders
 			$syncHash.Data.Signature += "`n`n$( $syncHash.Data.msgTable.StrSignSD )"
@@ -787,13 +744,21 @@ function Update-DiskList
 		Fill combobox list with disk-folders
 	#>
 
-	"G:\", "S:\", "R:\" | `
-		Get-ChildItem2 -Directory | `
-		Where-Object { $_.FullName -in $syncHash.HandledFolders } | `
-		Select-Object -ExpandProperty FullName | `
-		ForEach-Object {
-			$syncHash.DC.CbDisk[0].Add( $_ ) | Out-Null
+	foreach ( $Root in @( "G:\", "S:\", "R:\" ) )
+	{
+		try
+		{
+			foreach ( $TopFolder in [System.IO.Directory]::EnumerateDirectories( $Root ) )
+			{
+				if ( $syncHash.HandledFolders -contains $TopFolder )
+				{
+					$syncHash.DC.CbDisk[0].Add( $_ )
+				}
+			}
 		}
+		catch
+		{}
+	}
 }
 
 function Update-FolderList
@@ -1018,30 +983,79 @@ $syncHash.Data.Loaded = $false
 
 # Folders depending on user AD-groups
 $syncHash.Data.KatalogHandledFolders =
-"G:\Org1",
-"G:\Org2",
-"G:\Org3",
+"G:\Dan",
+"G:\Hsf",
+"G:\Kar",
+#"G:\Kul",
+"G:\Lit",
+"G:\Lsf",
+"G:\Pnf",
+"G:\Rev",
+"G:\Sos",
+"G:\Tob",
+"G:\Trf",
 
-"R:\Org1",
-"R:\Org2",
-"R:\Org3",
+"R:\Dan",
+#"R:\Global",
+#"R:\HEA",
+"R:\Hsf",
+"R:\Kar",
+#"R:\Kul",
+"R:\Lit",
+"R:\Lsf",
+"R:\Pnf",
+#"R:\Sll",
+"R:\Sos",
 
-"S:\Org1",
-"S:\Org2",
-"S:\Org3"
+#"S:\Dan",
+#"S:\Hsf",
+"S:\Kar",
+#"S:\Kul",
+"S:\Lit",
+#"S:\Lsf",
+#"S:\mcweb",
+#"S:\Rev",
+"S:\Sos"
+#"S:\Trf"
 
 $syncHash.Data.ServicedeskHandledFolders =
-"G:\Org1",
-"G:\Org2",
-"G:\Org3",
+"G:\Dan",
+"G:\Hsf",
+"G:\Kar",
+#"G:\Kul",
+#"G:\Lit",
+"G:\Lsf",
+"G:\Pnf",
+"G:\Rev",
+"G:\Sos",
+"G:\Tob",
+#"G:\Trf",
 
-"R:\Org1",
+#"R:\Dan",
+#"R:\Global",
+#"R:\HEA",
+#"R:\Hsf",
+#"R:\Kar",
+#"R:\Kul",
+#"R:\Lit",
+#"R:\Lsf",
+#"R:\Pnf",
+#"R:\Sll",
+#"R:\Sos",
 
-"S:\Org1",
-"S:\Org2"
+#"S:\Dan",
+#"S:\Hsf",
+"S:\Kar",
+#"S:\Kul",
+#"S:\Lit",
+#"S:\Lsf",
+#"S:\mcweb",
+#"S:\Rev",
+"S:\Sos"
+#"S:\Trf"
 
 # Folders to exclude
-$syncHash.Data.ExceptionFolders = ""
+$syncHash.Data.ExceptionFolders = "R:\Lit\.DFSFolderLink", "R:\Pnf\.DFSFolderLink", "R:\Sos\.DFSFolderLink", "G:\Lsf\BKV-FSNS1", "G:\Lsf\LSF-FSARK2", "G:\Lsf\LSF-FSFLG2", "G:\Lsf\LSF-FSHAG2", "G:\Hsf\app$", "G:\Hsf\BKV-FSFATB2", "G:\Hsf\LSF-FSFATB3", "G:\Hsf\LSF-FSHAG3"
 
 Reset-Variables
 
