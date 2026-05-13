@@ -36,7 +36,17 @@
                                                 PropertyName="LogDate" />
             </CollectionViewSource.SortDescriptions>
         </CollectionViewSource>
-        <CollectionViewSource x:Key="CvsDgLogs">
+        <CollectionViewSource x:Key="CvsDgLogs"
+                              IsLiveSortingRequested="True"
+                              Source="{Binding ElementName=CbLogsScriptNames, Path=SelectedItem.ScriptLogs}">
+            <CollectionViewSource.SortDescriptions>
+                <componentmodel:SortDescription Direction="Descending"
+                                                PropertyName="LogDate" />
+            </CollectionViewSource.SortDescriptions>
+        </CollectionViewSource>
+        <CollectionViewSource x:Key="CvsDgLogsRecent"
+                              IsLiveSortingRequested="True"
+                              Source="{Binding ElementName=CbLogsScriptNames, Path=SelectedItem.ScriptLogsRecent}">
             <CollectionViewSource.SortDescriptions>
                 <componentmodel:SortDescription Direction="Descending"
                                                 PropertyName="LogDate" />
@@ -207,18 +217,22 @@
                     Value="False" />
             <Setter Property="CanUserAddRows"
                     Value="False" />
-            <Setter Property="HeadersVisibility"
-                    Value="Column" />
-            <Setter Property="IsReadOnly"
-                    Value="True" />
-            <Setter Property="SelectionMode"
-                    Value="Single" />
             <Setter Property="ColumnHeaderStyle">
                 <Setter.Value>
                     <Style TargetType="DataGridColumnHeader"
                            BasedOn="{StaticResource DgColumnHeaderStyle}" />
                 </Setter.Value>
             </Setter>
+            <Setter Property="HeadersVisibility"
+                    Value="Column" />
+            <Setter Property="HorizontalScrollBarVisibility"
+                    Value="Disabled" />
+            <Setter Property="IsReadOnly"
+                    Value="True" />
+            <Setter Property="SelectionMode"
+                    Value="Single" />
+            <Setter Property="VerticalScrollBarVisibility"
+                    Value="Auto" />
         </Style>
         <Style TargetType="DataGrid"
                x:Key="DgInCellStyle"
@@ -1955,9 +1969,21 @@
                         </Grid>
                         <DataGrid Name="DgLogs"
                                   Grid.Row="4"
-                                  ItemsSource="{Binding Source={StaticResource CvsDgLogs}}"
-                                  RowStyle="{StaticResource DgLogsRowStyle}"
-                                  Style="{StaticResource DgBaseStyle}">
+                                  RowStyle="{StaticResource DgLogsRowStyle}">
+                            <DataGrid.Style>
+                                <Style TargetType="DataGrid"
+                                       BasedOn="{StaticResource DgBaseStyle}">
+                                    <Setter Property="ItemsSource"
+                                            Value="{Binding Source={StaticResource CvsDgLogs}}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=RbLogsDisplayPeriodRecent, Path=IsChecked}"
+                                                     Value="True">
+                                            <Setter Property="ItemsSource"
+                                                    Value="{Binding Source={StaticResource CvsDgLogsRecent}}" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.Style>
                             <DataGrid.Resources>
                                 <Style TargetType="DataGridRow">
                                     <Style.Triggers>
@@ -1989,8 +2015,8 @@
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto" />
-                            <RowDefinition />
-                            <RowDefinition />
+                            <RowDefinition Height="0.5*" />
+                            <RowDefinition Height="1*" />
                             <RowDefinition Height="40" />
                             <RowDefinition Height="40" />
                             <RowDefinition Height="40" />
@@ -2049,7 +2075,8 @@
                                  Grid.Column="1"
                                  Grid.Row="1"
                                  Style="{StaticResource TbLogInfoStyle}"
-                                 Text="{Binding ElementName=DgLogs, Path=SelectedItem.UserInput}" />
+                                 Text="{Binding ElementName=DgLogs, Path=SelectedItem.UserInput}"
+                                 TextWrapping="Wrap" />
                         <Label Name="LblLogTextTitle"
                                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblLogTextTitle}"
                                Grid.Row="2"
@@ -2058,7 +2085,8 @@
                                  Grid.Column="1"
                                  Grid.Row="2"
                                  Style="{StaticResource TbLogInfoStyle}"
-                                 Text="{Binding ElementName=DgLogs, Path=SelectedItem.LogText}" />
+                                 Text="{Binding ElementName=DgLogs, Path=SelectedItem.LogText}"
+                                 TextWrapping="Wrap" />
                         <Label Name="LblLogComputerNameTitle"
                                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblLogComputerNameTitle}"
                                Grid.Row="3"
@@ -2081,9 +2109,22 @@
                         <Button Name="BtnOpenErrorLog"
                                 Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnOpenErrorLog}"
                                 Grid.Column="2"
-                                Grid.Row="4"
-                                IsEnabled="{Binding ElementName=CbLogErrorlog, Path=IsEnabled}"
-                                Style="{StaticResource BtnBaseStyle}" />
+                                Grid.Row="4">
+                            <Button.Style>
+                                <Style TargetType="Button"
+                                       BasedOn="{StaticResource BtnBaseStyle}">
+                                    <Setter Property="IsEnabled"
+                                            Value="{Binding ElementName=CbLogErrorlog, Path=IsEnabled}" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=CbLogErrorlog, Path=SelectedIndex}"
+                                                     Value="-1">
+                                            <Setter Property="IsEnabled"
+                                                    Value="False" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                        </Button>
                         <Label Name="LblLogOutputFileTitle"
                                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblLogOutputFileTitle}"
                                Grid.Row="5"
@@ -2117,8 +2158,7 @@
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
-                            <RowDefinition Height="Auto" />
-                            <RowDefinition />
+                            <RowDefinition Height="1*" />
                         </Grid.RowDefinitions>
                         <Button Name="BtnReadErrorLogs">
                             <Button.Style>
@@ -2217,6 +2257,37 @@
                                     Style="{StaticResource BtnBaseStyle}"
                                     Visibility="Collapsed" />
                         </Grid>
+                        <Border Name="BorderErrorLogsParsing"
+                                Grid.Row="2"
+                                Height="{Binding ElementName=GridErrorlogsList, Path=ActualHeight}"
+                                Margin="{StaticResource StdMargin}">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility"
+                                            Value="Collapsed" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=GridErrorlogsList, Path=Visibility}"
+                                                     Value="Collapsed">
+                                            <Setter Property="Visibility"
+                                                    Value="Visible" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <Grid>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="1.5*" />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
+                                <ProgressBar Name="PbParseErrorLogs"
+                                             BorderThickness="0"
+                                             Margin="0" />
+                                <ProgressBar Name="PbParseErrorLogsOps"
+                                             BorderThickness="0"
+                                             Grid.Row="1"
+                                             Margin="0" />
+                            </Grid>
+                        </Border>
                         <GroupBox Name="GbErrorLogsDisplayPeriod"
                                   Grid.Row="3"
                                   Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentGbErrorLogsDisplayPeriod}">
@@ -2251,39 +2322,7 @@
                                              Style="{StaticResource RbErrorLogsDisplayPeriodStyle}" />
                             </StackPanel>
                         </GroupBox>
-                        <Border Name="BorderErrorLogsParsing"
-                                Grid.Row="4"
-                                Height="{Binding ElementName=GridErrorlogsList, Path=ActualHeight}"
-                                Margin="{StaticResource StdMargin}">
-                            <Border.Style>
-                                <Style TargetType="Border">
-                                    <Setter Property="Visibility"
-                                            Value="Collapsed" />
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ElementName=GridErrorlogsList, Path=Visibility}"
-                                                     Value="Collapsed">
-                                            <Setter Property="Visibility"
-                                                    Value="Visible" />
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Border.Style>
-                            <Grid>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="1.5*" />
-                                    <RowDefinition />
-                                </Grid.RowDefinitions>
-                                <ProgressBar Name="PbParseErrorLogs"
-                                             BorderThickness="0"
-                                             Margin="0" />
-                                <ProgressBar Name="PbParseErrorLogsOps"
-                                             BorderThickness="0"
-                                             Grid.Row="1"
-                                             Margin="0" />
-                            </Grid>
-                        </Border>
                         <DataGrid Name="DgErrorLogs"
-                                  AutoGenerateColumns="False"
                                   Grid.Row="4"
                                   ItemsSource="{Binding Source={StaticResource CvsDgErrorLogs}}"
                                   RowStyle="{StaticResource DgLogsRowStyle}"
@@ -2307,7 +2346,7 @@
                             <RowDefinition Height="40" />
                             <RowDefinition Height="40" />
                             <RowDefinition Height="40" />
-                            <RowDefinition Height="1*" />
+                            <RowDefinition Height="0.5*" />
                             <RowDefinition Height="1*" />
                         </Grid.RowDefinitions>
                         <Button Name="BtnCopyErrorInfo"
@@ -2340,7 +2379,7 @@
                                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblSeverity}"
                                Grid.Column="2"
                                Grid.Row="1"
-                               Style="{StaticResource LblBaseStyle}" />
+                               Style="{StaticResource TitleLabel}" />
                         <TextBox Name="TbErrLogSeverity"
                                  Grid.Column="3"
                                  Grid.Row="1"
@@ -2364,7 +2403,8 @@
                                  Grid.ColumnSpan="3"
                                  Grid.Row="3"
                                  Style="{StaticResource TbLogInfoStyle}"
-                                 Text="{Binding ElementName=DgErrorLogs, Path=SelectedItem.UserInput}" />
+                                 Text="{Binding ElementName=DgErrorLogs, Path=SelectedItem.UserInput}"
+                                 TextWrapping="Wrap" />
                         <Label Name="LblErrLogErrorMessage"
                                Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLlblErrorMessage}"
                                Grid.Row="4"
@@ -2374,7 +2414,8 @@
                                  Grid.ColumnSpan="3"
                                  Grid.Row="4"
                                  Style="{StaticResource TbLogInfoStyle}"
-                                 Text="{Binding ElementName=DgErrorLogs, Path=SelectedItem.ErrorMessage}" />
+                                 Text="{Binding ElementName=DgErrorLogs, Path=SelectedItem.ErrorMessage}"
+                                 TextWrapping="Wrap" />
                     </Grid>
                 </Grid>
             </TabItem>
@@ -2994,10 +3035,39 @@
                 </TabItem.Resources>
                 <Grid Grid.IsSharedSizeScope="True">
                     <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
                         <RowDefinition Height="1*" />
                         <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
-                    <TabControl Name="TcNewCodeTemplate">
+                    <Expander Header="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentExpanderSendMsFormUrlTitle}"
+                              Margin="{StaticResource StdMargin}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <Label Name="LblSendMsFormUrlTitle"
+                                   Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentLblSendMsFormUrlTitle}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold"
+                                   VerticalContentAlignment="Center" />
+                            <Button Name="BtnSendMsFormUrl"
+                                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnSendMsFormUrl}"
+                                    Grid.Column="1"
+                                    Style="{StaticResource BtnBaseStyle}" />
+                            <TextBox Name="TbMsFormReceivers"
+                                     Height="30"
+                                     Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
+                                     Grid.Row="1"
+                                     VerticalContentAlignment="Center" />
+                        </Grid>
+                    </Expander>
+                    <TabControl Name="TcNewCodeTemplate"
+                                Grid.Row="1">
                         <TabControl.Resources>
                             <Style TargetType="TabItem"
                                    BasedOn="{StaticResource TiBaseStyle}">
@@ -4794,7 +4864,7 @@
                             </Grid>
                         </TabItem>
                     </TabControl>
-                    <Grid Grid.Row="1">
+                    <Grid Grid.Row="2">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition />
                             <ColumnDefinition />
