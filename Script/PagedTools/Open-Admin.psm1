@@ -659,32 +659,35 @@ function Initialize-Parsing
 		$syncHash.DC.PbParseErrorLogs[0] = 0.0
 
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.BtnReadErrorLogs.IsEnabled = $false
 			$syncHash.Controls.PbParseErrorLogs.IsIndeterminate = $false
 		} )
-		$syncHash.Data.ErrorLoggs | `
-			ForEach-Object {
-				$n = $_.BaseName -replace " - ErrorLog"
-				if ( $syncHash.Data.ParsedErrorLogs.ScriptName -notcontains $n )
-				{
-					$syncHash.Data.ParsedErrorLogs.Add(
-						[pscustomobject]@{
-							ScriptName = $n
-							ScriptErrorLogs = [System.Collections.ArrayList]::new()
-							ScriptErrorLogsRecent = [System.Collections.ArrayList]::new()
-						}
-					)
-				}
-				Get-Content $_.FullName | `
-					ForEach-Object {
-						$log = NewErrorLog ( $_ | ConvertFrom-Json )
-						( $syncHash.Data.ParsedErrorLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptErrorLogs.Add( $log )
-						if ( ( Get-Date $log.LogDate ) -gt ( Get-Date ).AddDays( -7 ) )
-						{
-							[void] ( $syncHash.Data.ParsedErrorLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptErrorLogsRecent.Add( $log )
-						}
+		foreach ( $Log in $syncHash.Data.ErrorLoggs )
+		{
+			$n = $Log.BaseName -replace " - ErrorLog" -replace "\.psm*1"
+			if ( $syncHash.Data.ParsedErrorLogs.ScriptName -notcontains $n )
+			{
+				$syncHash.Data.ParsedErrorLogs.Add(
+					[pscustomobject]@{
+						ScriptName = $n
+						ScriptErrorLogs = [System.Collections.ArrayList]::new()
+						ScriptErrorLogsRecent = [System.Collections.ArrayList]::new()
 					}
-				$syncHash.DC.PbParseErrorLogs[0] += 1
+				)
 			}
+
+			$C = Get-Content $Log.FullName
+			foreach ( $Row in $C )
+			{
+				$LogEntry = NewErrorLog ( $Row | ConvertFrom-Json )
+				( $syncHash.Data.ParsedErrorLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptErrorLogs.Add( $LogEntry )
+				if ( ( Get-Date $LogEntry.LogDate ) -gt ( Get-Date ).AddDays( -7 ) )
+				{
+					( $syncHash.Data.ParsedErrorLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptErrorLogsRecent.Add( $LogEntry ) | Out-Null
+				}
+			}
+			$syncHash.DC.PbParseErrorLogs[0] += 1
+		}
 
 		$syncHash.DC.PbParseErrorLogsOps[0] = 1.0
 
@@ -700,6 +703,7 @@ function Initialize-Parsing
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
 			$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source = $syncHash.Data.ParsedErrorLogs
 			$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].View.Refresh()
+			$syncHash.Controls.BtnReadErrorLogs.IsEnabled = $true
 		}, [System.Windows.Threading.DispatcherPriority]::Send )
 
 		$syncHash.DC.PbParseErrorLogsOps[0] = 3.0
@@ -717,53 +721,58 @@ function Initialize-Parsing
 		Add-Type -AssemblyName PresentationFramework
 		Import-Module $Modules
 
+		$RecentDate = ( Get-Date ).AddDays( -7 )
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
 			$syncHash.Controls.PbLogSearch.Visibility = [System.Windows.Visibility]::Visible
 		} )
 		$syncHash.Data.ParsedLogs.Clear()
-		$a = Get-ChildItem "$( $syncHash.Data.BaseDir )\Logs" -Recurse -File -Filter "*log.json"
+		$LogFiles = Get-ChildItem "$( $syncHash.Data.BaseDir )\Logs" -Recurse -File -Filter "*log.json"
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.BtnReadLogs.IsEnabled = $false
 			$syncHash.Controls.PbLogSearch.IsIndeterminate = $false
 			$syncHash.Controls.PbLogSearch.Maximum = [double] $a.Count
 			$syncHash.Controls.PbLogSearch.Value = 0.0
 		} )
 
-		$a | Sort-Object Name | `
-			ForEach-Object {
-				$n = $_.BaseName -replace " - Log"
-				if ( $syncHash.Data.ParsedLogs.ScriptName -notcontains $n )
-				{
-					[void] $syncHash.Data.ParsedLogs.Add(
-						[pscustomobject]@{
-							ScriptName = $n
-							ScriptLogs = [System.Collections.ArrayList]::new()
-							ScriptLogsRecent = [System.Collections.ArrayList]::new()
-						}
-					)
-				}
-
-				Get-Content $_.FullName | `
-					ForEach-Object {
-						$log = NewLog ( $_ | ConvertFrom-Json )
-						[void] ( $syncHash.Data.ParsedLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptLogs.Add( $log )
-						if ( ( Get-Date $log.LogDate ) -gt ( Get-Date ).AddDays( -7 ) )
-						{
-							[void] ( $syncHash.Data.ParsedLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptLogsRecent.Add( $log )
-						}
+		foreach( $LogFile in $LogFiles )
+		{
+			$n = $LogFile.BaseName -replace " - Log"
+			if ( $syncHash.Data.ParsedLogs.ScriptName -notcontains $n )
+			{
+				$syncHash.Data.ParsedLogs.Add(
+					[pscustomobject]@{
+						ScriptName = $n
+						ScriptLogs = [System.Collections.Generic.List[object]]::new()
+						ScriptLogsRecent = [System.Collections.Generic.List[object]]::new()
 					}
-				$syncHash.DC.PbLogSearch[0] += 1
+				) | Out-Null
 			}
 
-		$syncHash.Data.ParsedLogs | `
-			ForEach-Object {
-				$_.ScriptLogs = [System.Collections.ArrayList]::new( @( $_.ScriptLogs | Sort-Object -Property LogDate -Descending ) )
+			foreach ( $Row in Get-Content $LogFile.FullName )
+			{
+				$log = NewLog ( $Row | ConvertFrom-Json )
+				( $syncHash.Data.ParsedLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptLogs.Add( $log ) | Out-Null
+
+				if ( $log.LogDate -gt $RecentDate )
+				{
+					( $syncHash.Data.ParsedLogs.Where( { $_.ScriptName -eq $n } ) )[0].ScriptLogsRecent.Add( $log ) | Out-Null
+				}
 			}
+			$syncHash.DC.PbLogSearch[0] += 1
+		}
+
+		foreach( $Parse in $syncHash.Data.ParsedLogs )
+		{
+			$Parse.ScriptLogs = $Parse.ScriptLogs | Sort-Object LogDate -Descending
+			$Parse.ScriptLogsRecent = $Parse.ScriptLogsRecent | Sort-Object LogDate -Descending
+		}
+
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
 			$syncHash.Controls.Window.Resources['CvsCbLogsScriptNames'].Source = $syncHash.Data.ParsedLogs
-			$syncHash.Controls.Window.Resources['CvsCbLogsScriptNames'].View.Refresh()
 			$syncHash.Controls.PbLogSearch.Visibility = [System.Windows.Visibility]::Collapsed
-		} )
-		$syncHash.Controls.RbLogsDisplayPeriodRecent.IsChecked = $true
+			$syncHash.Controls.RbLogsDisplayPeriodRecent.IsChecked = $true
+			$syncHash.Controls.BtnReadLogs.IsEnabled = $true
+		}, [System.Windows.Threading.DispatcherPriority]::Render )
 	} )
 	$syncHash.Jobs.PParseLogs.AddArgument( $syncHash )
 	$syncHash.Jobs.PParseLogs.AddArgument( ( Get-Module ) )
@@ -773,6 +782,9 @@ function Initialize-Parsing
 		param ( $syncHash, $Modules )
 		Import-Module $Modules
 
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.BtnListRollbacks.IsEnabled = $false
+		} )
 		$syncHash.Data.RollbackData.Clear()
 		$syncHash.Data.RollbackFiles.Clear()
 
@@ -809,6 +821,7 @@ function Initialize-Parsing
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
 			$syncHash.Controls.Window.Resources['CvsLvRollbackFileNames'].Source = $syncHash.Data.RollbackData
 			$syncHash.Controls.PbListingRollbacks.Visibility = [System.Windows.Visibility]::Collapsed
+			$syncHash.Controls.BtnListRollbacks.IsEnabled = $true
 		} )
 	} )
 	$syncHash.Jobs.PParseRollbacks.AddArgument( $syncHash )
@@ -819,8 +832,9 @@ function Initialize-Parsing
 		param ( $syncHash, $Modules )
 		Import-Module $Modules
 
-		$ProdFiles = [System.Collections.ArrayList]::new()
-		$DevFiles = [System.Collections.ArrayList]::new()
+		$ProdFiles = [System.Collections.Generic.List[object]]::new()
+		$DevFiles = [System.Collections.Generic.List[object]]::new()
+		$DevRootFiles = Get-ChildItem -Path "$( $syncHash.Data.DevRoot )" -Recurse -File
 		$MD5 = New-Object -TypeName System.Security.Cryptography.MD5CryptoServiceProvider
 
 		$syncHash.DC.TblUpdatesProgress[0] = $syncHash.Data.msgTable.StrCheckingUpdatesGetFiles
@@ -836,107 +850,139 @@ function Initialize-Parsing
 
 		$syncHash.DC.PbParseUpdates[0] = [double] 0
 		$syncHash.DC.PbParseUpdates[1] = [double] $DevFiles.Count
-		
 
-		$DevFiles | `
-			ForEach-Object `
-				-Process {
-					try { Remove-Variable DevFile, ProdFile, File, DevMD5, ProdMD5 -ErrorAction Stop } catch {}
-					$DevFile = $_
+		$Updated = [System.Collections.Generic.List[object]]::new()
+		foreach ( $DevFile in $DevFiles )
+		{
+			$ProdFile = $ProdFiles | Where-Object { $_.Name -eq $DevFile.Name } | Select-Object -First 1
 
-					$ProdFile = $ProdFiles | Where-Object { $_.Name -eq $DevFile.Name } | Select-Object -First 1
+			$DevMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $DevFile.FullName ) ) )
+			try { $ProdMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $ProdFile.FullName ) ) ) } catch {}
 
-					$DevMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $DevFile.FullName ) ) )
-					try { $ProdMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $ProdFile.FullName ) ) ) } catch {}
+			if ( $DevMD5 -ne $ProdMD5 )
+			{
+				$File = [pscustomobject]@{
+					DevFile = $DevFile | Select-Object *
+					New = $false
+					ProdFile = $null
+					ScriptInfo = $null
+					ToolTip = ""
+				}
 
-					if ( $DevMD5 -ne $ProdMD5 )
-					{
-						$File = [pscustomobject]@{
-							DevFile = $DevFile | Select-Object *
-							New = $false
-							ProdFile = $null
-							ScriptInfo = $null
-							ToolTip = ""
-						}
-
-						if ( $DevFile.Extension -notmatch "psm*1" )
-						{
-							Add-Member -InputObject $File -MemberType NoteProperty -Name "SFile" -Value ( Get-ChildItem -Path "$( $syncHash.Data.DevRoot )" -Recurse -File -ErrorAction Stop | Where-Object { $_.BaseName -eq $DevFile.BaseName -and $_.Extension -match "psm*1" } | Select-Object -First 1 -ExpandProperty FullName )
-						}
-
-						if ( $DevFile.LastWriteTime -gt $ProdFile.LastWriteTime )
-						{
-							if ( $null -ne $ProdFile )
-							{
-								$File.ProdFile = $ProdFile | Select-Object *
-							}
-							else
-							{
-								$File.New = $true
-							}
-							$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-								$syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Add( $File ) | Out-Null
-							}, [System.Windows.Threading.DispatcherPriority]::Send )
-						}
-					}
-
-					$syncHash.DC.PbParseUpdates[0] += 1
-					$syncHash.DC.TblUpdatesProgress[0] = "$( $syncHash.Data.msgTable.StrCheckingUpdatesCheckFiles ) $( [System.Math]::Round( ( $syncHash.DC.PbParseUpdates[0] / $syncHash.DC.PbParseUpdates[1] ) * 100 , 2 ) ) %"
-				} `
-			-End {
-				try
+				if ( $DevFile.Extension -match "psm*1" )
 				{
-					Remove-Variable DevFile, ProdFile, File, DevMD5, ProdMD5 -ErrorAction Stop
-				} catch {}
+					$File.ScriptInfo = GetScriptInfo -FilePath $DevFile.FullName
+				}
+				else
+				{
+					$SFile = $DevRootFiles.where( { $_.BaseName -eq $DevFile.BaseName -and $_.Extension -match "psm*1" } )[0].FullName
+					$File.PSObject.Properties.Add( [psnoteproperty]::new( "SFile", $SFile ) )
 
-				$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-					$syncHash.Controls.Window.Resources['CvsDgUpdates'].View.Refresh()
-				}, [System.Windows.Threading.DispatcherPriority]::Send )
+					try
+					{
+						$File.ScriptInfo = GetScriptInfo -FilePath $SFile
+					}
+					catch
+					{
+						try
+						{
+							$File.ScriptInfo = GetScriptInfo -Function ( Get-Command $DevFile.BaseName -ErrorAction Stop )
+						}
+						catch
+						{}
+					}
+				}
+
+				if ( $DevFile.LastWriteTime -gt $ProdFile.LastWriteTime )
+				{
+					if ( $null -ne $ProdFile )
+					{
+						$File.ProdFile = $ProdFile | Select-Object *
+					}
+					else
+					{
+						$File.New = $true
+					}
+				}
+				
+				$Updated.Add( $File ) | Out-Null
 			}
+
+			$syncHash.DC.PbParseUpdates[0] += 1
+			$syncHash.DC.TblUpdatesProgress[0] = "$( $syncHash.Data.msgTable.StrCheckingUpdatesCheckFiles ) $( [System.Math]::Round( ( $syncHash.DC.PbParseUpdates[0] / $syncHash.DC.PbParseUpdates[1] ) * 100 , 2 ) ) %"
+		}
+		if ( $Updated.Count -gt 0 )
+		{
+			$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+				foreach ( $U in $Updated )
+				{
+					$syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Add( $U ) | Out-Null
+				}
+				$syncHash.Controls.Window.Resources['CvsDgUpdates'].View.Refresh()
+			}, [System.Windows.Threading.DispatcherPriority]::Send )
+		}
+
+
+		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+			$syncHash.Controls.Window.Resources['CvsDgUpdates'].View.Refresh()
+		}, [System.Windows.Threading.DispatcherPriority]::Send )
 
 		$syncHash.DC.PbParseUpdates[0] = [double] 0
 		$syncHash.DC.PbParseUpdates[1] = [double] $ProdFiles.Count
-		$ProdFiles | `
-			ForEach-Object `
-				-Process {
-					$ProdFile = $_
 
-					$DevFile = $DevFiles | Where-Object { $_.Name -eq $ProdFile.Name } | Select-Object -First 1
+		$UpdatedInProd = [System.Collections.Generic.List[object]]::new()
 
-					$ProdMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $ProdFile.FullName ) ) )
-					try { $DevMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $DevFile.FullName ) ) ) } catch {}
+		foreach ( $ProdFile in $ProdFiles )
+		{
+			$DevFile = $DevFiles.where( { $_.Name -eq $ProdFile.Name } )[0]
 
-					$File = [pscustomobject]@{
-						ProdFile = $ProdFile | Select-Object *
-						New = $false
-						DevFile = $null
-						ToolTip = ""
-						DevMD5 = ""
-						ProdMD5 = ""
-					}
-					if ( $DevMD5 -ne $ProdMD5 -or $null -eq $DevFile )
-					{
-						$File.DevMD5 = $DevMD5
-						$File.ProdMD5 = $ProdMD5
-						$File.DevFile = $DevFile | Select-Object *
-						if ( $null -eq $DevFile )
-						{
-							$File.New = $true
-						}
-						if ( $ProdFile.LastWriteTime -gt $DevFile.LastWriteTime )
-						{
-							$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-								$syncHash.Controls.Window.Resources['CvsDgUpdatedInProd'].Source.Add( $File ) | Out-Null
-							}, [System.Windows.Threading.DispatcherPriority]::Send )
-						}
-					}
+			$ProdMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $ProdFile.FullName ) ) )
+			try
+			{
+				$DevMD5 = [System.BitConverter]::ToString( $MD5.ComputeHash( [System.IO.File]::ReadAllBytes( $DevFile.FullName ) ) )
+			}
+			catch
+			{}
 
-					$syncHash.DC.PbParseUpdates[0] += 1
+			if ( $DevMD5 -ne $ProdMD5 -or $null -eq $DevFile )
+			{
+				$File = [pscustomobject]@{
+					ProdFile = $ProdFile
+					New = $false
+					DevFile = $DevFile
+					ToolTip = ""
+					DevMD5 = $DevMD5
+					ProdMD5 = $ProdMD5
 				}
+
+				if ( $null -eq $DevFile )
+				{
+					$File.New = $true
+				}
+				if ( $ProdFile.LastWriteTime -gt $DevFile.LastWriteTime )
+				{
+					$UpdatedInProd.Add( $File ) | Out-Null
+				}
+			}
+
+			$syncHash.DC.PbParseUpdates[0] += 1
+		}
+		if ( $UpdatedInProd.Count -gt 0 )
+		{
+			$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
+				foreach ( $U in $UpdatedInProd )
+				{
+					$syncHash.Controls.Window.Resources['CvsDgUpdatedInProd'].Source.Add( $U ) | Out-Null
+				}
+			}, [System.Windows.Threading.DispatcherPriority]::Send )
+		}
+
 		$syncHash.Controls.Window.Dispatcher.Invoke( [action] {
-			$syncHash.DC.TbDevCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Dev" } ).Count
-			$syncHash.DC.TbTestCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Test" } ).Count
-			$syncHash.DC.TbProdCount[0] = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source.Where( { $_.ScriptInfo.State -eq "Prod" } ).Count
+			$Source = $syncHash.Controls.Window.Resources['CvsDgUpdates'].Source
+
+			$syncHash.DC.TbDevCount[0] = $Source.Where( { $_.ScriptInfo.State -eq "Dev" } ).Count
+			$syncHash.DC.TbTestCount[0] = $Source.Where( { $_.ScriptInfo.State -eq "Test" } ).Count
+			$syncHash.DC.TbProdCount[0] = $Source.Where( { $_.ScriptInfo.State -eq "Prod" } ).Count
 			$syncHash.DC.TblInfo[0] = [System.Windows.Visibility]::Visible
 			$syncHash.DC.TblUpdateInfo[0] = $syncHash.Data.msgTable.StrNoUpdates
 		} , [System.Windows.Threading.DispatcherPriority]::Send )
@@ -1197,10 +1243,10 @@ function Open-File
 
 	$FilePaths | `
 		ForEach-Object {
-			if ( Test-Path $_ )
+			if ( [System.IO.File]::Exists( $_ ) )
 			{
 				$Arguments = @( "`"$_`"" )
-				if ( $syncHash.Data.Editor -match "notepad++" -and $StartAtRow )
+				if ( $syncHash.Data.Editor.EndsWith( "notepad++.exe" ) -and $StartAtRow )
 				{
 					$Arguments += "-n$( $StartAtRow )"
 				}
@@ -1613,7 +1659,7 @@ function Test-Localizations
 						ForEach-Object {
 							if ( $MainScriptLocalizationData.Keys -notcontains $_.Groups['Key'].Value )
 							{
-								$InvalidLocs.Add( $_.Groups['Key'].Value ) | Out-Null
+								$InvalidLocs.Add( $_.Groups['Key'].Value.Trim() ) | Out-Null
 							}
 						}
 				}
@@ -1625,7 +1671,7 @@ function Test-Localizations
 						{
 							if ( $LocalizationData.Keys -notcontains $Matches.Key )
 							{
-								$InvalidLocs.Add( ( [pscustomobject]@{ Key = $Matches.Key ; LineNumber = $_.LineNumber ; Line = $_.Line.Trim() } ) ) | Out-Null
+								$InvalidLocs.Add( ( [pscustomobject]@{ Key = $Matches.Key.Trim() ; LineNumber = $_.LineNumber ; Line = $_.Line.Trim() } ) ) | Out-Null
 							}
 						}
 					}
@@ -1640,7 +1686,7 @@ function Test-Localizations
 					ForEach-Object {
 						if ( $LocalizationData.Keys -notcontains $_.Groups['LocVar'].Value )
 						{
-							$InvalidLocs.Add( [pscustomobject]@{ ScVar = $_.Groups['LocVar'].Value ; ScLine = $LineMatch.Line ; ScLineNr = $LineMatch.linenumber } ) | Out-Null
+							$InvalidLocs.Add( [pscustomobject]@{ ScVar = $_.Groups['LocVar'].Value.Trim() ; ScLine = $LineMatch.Line.Trim() ; ScLineNr = $LineMatch.linenumber.Trim() } ) | Out-Null
 						}
 					}
 				}
@@ -1899,6 +1945,13 @@ function Update-Files
 			Copy-Item -Path $File.DevFile.FullName -Destination $ProdFilePublishedFullName -Force
 		}
 		$syncHash.Updated += $File
+	}
+
+	# Ensure that menu will match any updated function information
+	Remove-Item "$( $syncHash.Data.BaseDir )\Output\Suite\MenuList.json" -ErrorAction SilentlyContinue
+	if ( $syncHash.Controls.ChbPublishFiles.IsChecked )
+	{
+		Remove-Item "$( $syncHash.Data.PublishedProd )\Output\Suite\MenuList.json" -ErrorAction SilentlyContinue
 	}
 
 	$OFS = "`n`t"
@@ -2397,9 +2450,9 @@ $syncHash.Controls.LvRollbackFileNames.Add_SelectionChanged( {
 $syncHash.Controls.BtnCheckForUpdates.Add_Click( { Get-Updates } )
 
 $syncHash.Controls.BtnUpdatedInProdOpenDiffs.Add_Click( { Show-DiffWindow } )
-$syncHash.Controls.BtnUpdatedInProdOpenDevFile.Add_Click( { Open-File $syncHash.Controls.DgUpdatedInProd.SelectedItem.DevPath } )
-$syncHash.Controls.BtnUpdatedInProdOpenProdFile.Add_Click( { Open-File $syncHash.Controls.DgUpdatedInProd.SelectedItem.ProdPath } )
-$syncHash.Controls.BtnUpdatedInProdOpenBothFiles.Add_Click( { Open-File ( $syncHash.Controls.DgUpdatedInProd.SelectedItem.psobject.Properties | Where-Object { $_.Name -match "^[^R].+Path$" } | Select-Object -ExpandProperty Value ) } )
+$syncHash.Controls.BtnUpdatedInProdOpenDevFile.Add_Click( { Open-File $syncHash.Controls.DgUpdatedInProd.SelectedItem.DevFile.FullName } )
+$syncHash.Controls.BtnUpdatedInProdOpenProdFile.Add_Click( { Open-File $syncHash.Controls.DgUpdatedInProd.SelectedItem.ProdFile.FullName } )
+$syncHash.Controls.BtnUpdatedInProdOpenBothFiles.Add_Click( { Open-File @( $syncHash.Controls.DgUpdatedInProd.SelectedItem.DevFile.FullName, $syncHash.Controls.DgUpdatedInProd.SelectedItem.ProdFile.FullName ) } )
 $syncHash.Controls.BtnUpdatesOpenDiff.Add_Click( { Show-DiffWindow } )
 $syncHash.Controls.BtnUpdatesOpenDevFile.Add_Click( { Open-File $syncHash.Controls.DgUpdates.SelectedItem.DevFile.FullName } )
 $syncHash.Controls.BtnUpdatesOpenProdFile.Add_Click( { Open-File $syncHash.Controls.DgUpdates.SelectedItem.ProdFile.FullName } )
@@ -2424,41 +2477,13 @@ $syncHash.Controls.BtnUpdateFailedScripts.Add_Click( {
 $syncHash.Controls.CbShowDevFiles.Add_Checked( { $syncHash.Controls.Window.Resources['DevFilesVisible'] = [System.Windows.Visibility]::Visible } )
 $syncHash.Controls.CbShowDevFiles.Add_Unchecked( { $syncHash.Controls.Window.Resources['DevFilesVisible'] = [System.Windows.Visibility]::Collapsed } )
 
-$syncHash.Controls.DgUpdates.Add_LoadingRow( {
-	if ( $args[1].Row.DataContext.DevFile.Extension -match "psm*1" )
-	{
-		$args[1].Row.DataContext.ScriptInfo = GetScriptInfo -FilePath $args[1].Row.DataContext.DevFile.FullName
-		$args[1].Row.DataContext.ToolTip = ""
-	}
-	else
-	{
-		try
-		{
-			$args[1].Row.DataContext.ScriptInfo = GetScriptInfo -FilePath $args[1].Row.DataContext.SFile -ErrorAction Stop
-			$args[1].Row.DataContext.ToolTip = "$( $syncHash.Data.msgTable.StrScriptState ) $( $args[1].Row.DataContext.ScriptInfo.State )"
-		}
-		catch
-		{
-			try
-			{
-				$args[1].Row.DataContext.ScriptInfo = GetScriptInfo -Function ( Get-Command $args[1].Row.DataContext.DevFile.BaseName -ErrorAction Stop )
-				$args[1].Row.DataContext.ToolTip = "$( $syncHash.Data.msgTable.StrFunctionState ) $( $args[1].Row.DataContext.ScriptInfo.State )"
-			}
-			catch
-			{
-				$args[1].Row.DataContext.ToolTip = $syncHash.Data.msgTable.StrNoScriptfile
-			}
-		}
-	}
-} )
-
 $syncHash.Controls.DgUpdates.Add_MouseLeftButtonUp( { Remove-DatagridSelection $args[1].OriginalSource $this } )
 
 # If rightclick is used, open the file from dev and prod
 $syncHash.Controls.DgUpdates.Add_MouseRightButtonUp( {
 	if ( ( $args[1].OriginalSource.GetType() ).Name -eq "TextBlock" )
 	{
-		Open-File ( $this.CurrentItem.psobject.Properties | Where-Object { $_.name -match "^[^R].+Path$" } | Select-Object -ExpandProperty Value )
+		Open-File @( $this.CurrentItem.DevFile.FullName, $this.CurrentItem.ProdFile.FullName )
 	}
 } )
 
@@ -2536,6 +2561,30 @@ $syncHash.Controls.BtnLogSearch.Add_Click( {
 	$syncHash.Data.ParsedLogs | Where-Object { $_.ScriptLogs.( $syncHash.Controls.CbLogSearchType.SelectedItem.Content ) -match $syncHash.Controls.TbLogSearchText.Text } | ForEach-Object { $syncHash.Controls.Window.Resources['CvsLogsScriptNames'].Source.Add( $_ ) }
 } )
 
+# If errorlogs have been parsed, open the selected data in the errorlogs-tab
+$syncHash.Controls.BtnOpenErrorLog.Add_Click( {
+	if ( $syncHash.Controls.CbErrorLogsScriptNames.HasItems )
+	{
+		$syncHash.Controls.TbAdmin.SelectedIndex = 2
+		$syncHash.Controls.CbErrorLogsScriptNames.SelectedItem = $syncHash.Controls.CbErrorLogsScriptNames.Items.Where( { $syncHash.Controls.CbLogsScriptNames.Text -match $_.ScriptName } )[0]
+		if ( ( Get-Date $syncHash.Controls.CbLogErrorlog.Text ) -lt ( Get-Date ).AddDays( -7 ) )
+		{
+			$syncHash.Controls.RbErrorLogsDisplayPeriodAll.IsChecked = $true
+		}
+		else
+		{
+			$syncHash.Controls.RbErrorLogsDisplayPeriodRecent.IsChecked = $true
+		}
+		Start-Sleep 0.5
+		$syncHash.Controls.DgErrorLogs.SelectedIndex = $syncHash.Controls.DgErrorLogs.Items.IndexOf( ( $syncHash.Controls.DgErrorLogs.Items.Where( { $_.Logdate -eq $syncHash.Controls.CbLogErrorlog.SelectedValue } ) )[0] )
+		$syncHash.Controls.DgErrorLogs.ScrollIntoView( $syncHash.Controls.DgErrorLogs.SelectedItem )
+	}
+	else
+	{
+		Show-MessageBox -Text $syncHash.Data.msgTable.StrErrorlogsNotLoaded
+	}
+} )
+
 # Open the outputfile
 $syncHash.Controls.BtnOpenOutputFile.Add_Click( { Open-File $syncHash.Controls.CbLogOutputFiles.SelectedItem } )
 
@@ -2549,11 +2598,6 @@ $syncHash.Controls.CbLogsFilterSuccessFailed.Add_Checked( { $syncHash.Controls.W
 $syncHash.Controls.CbLogsFilterSuccessFailed.Add_Unchecked( { $syncHash.Controls.Window.Resources['LogskRowFailedVisible'] = [System.Windows.Visibility]::Collapsed } )
 $syncHash.Controls.CbLogsFilterSuccessSuccess.Add_Checked( { $syncHash.Controls.Window.Resources['LogskRowSuccessVisible'] = [System.Windows.Visibility]::Visible } )
 $syncHash.Controls.CbLogsFilterSuccessSuccess.Add_Unchecked( { $syncHash.Controls.Window.Resources['LogskRowSuccessVisible'] = [System.Windows.Visibility]::Collapsed } )
-
-$syncHash.Controls.CbLogsScriptNames.Add_SelectionChanged( {
-	$syncHash.Controls.Window.Resources['CvsDgLogs'].Source = $this.SelectedItem.ScriptLogs
-	$syncHash.Controls.RbLogsDisplayPeriodRecent.IsChecked = $true
-} )
 
 # Set binding to all logs
 $syncHash.Controls.RbLogsDisplayPeriodAll.Add_Checked( {
@@ -2583,7 +2627,20 @@ $syncHash.Controls.BtnClearErrorLogSearch.Add_Click( {
 # Copy the information for the currently selected error
 $syncHash.Controls.BtnCopyErrorInfo.Add_Click( {
 	$OutputEncoding = ( New-Object System.Text.UnicodeEncoding $False, $False ).psobject.BaseObject
-	$syncHash.Controls.GridErrorInfo.DataContext | Clip
+	$ErrorLog = $syncHash.Controls.DgErrorLogs.SelectedItem
+
+	$OFS = "`n"
+	$a = @"
+$( $syncHash.Data.msgTable.StrErrorLogInfoCopyTitle ) '$( $syncHash.Controls.CbErrorLogsScriptNames.Text )'
+
+$( $syncHash.Data.msgTable.StrErrorLogInfoCopyDate ): $( $ErrorLog.LogDate )
+$( $syncHash.Data.msgTable.StrErrorLogInfoCopyOperator ): $( $ErrorLog.Operator )
+$( $syncHash.Data.msgTable.StrErrorLogInfoCopySeverity ): $( $ErrorLog.Severity )
+$( $syncHash.Data.msgTable.StrErrorLogInfoCopyLogText ): $( $ErrorLog.ErrorMessage )
+$( $syncHash.Data.msgTable.StrErrorLogInfoCopyUserInput ): $( $ErrorLog.UserInput )
+"@
+
+	$a | Clip
 } )
 
 # Search the errorlogs for entered data
@@ -2591,18 +2648,6 @@ $syncHash.Controls.BtnErrorLogSearch.Add_Click( {
 	$syncHash.Controls.BtnClearErrorLogSearch.Visibility = [System.Windows.Visibility]::Visible
 	$syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Clear()
 	$syncHash.Data.ParsedErrorLogs | Where-Object { $_.ScriptErrorLogs.( $syncHash.Controls.CbErrorLogSearchType.SelectedItem.Content ) -match $syncHash.Controls.TbErrorLogSearchText.Text } | ForEach-Object { $syncHash.Controls.Window.Resources['CvsErrorLogsScriptNames'].Source.Add( $_ ) }
-} )
-
-# If errorlogs have been parsed, open the selected data in the errorlogs-tab
-$syncHash.Controls.BtnOpenErrorLog.Add_Click( {
-	if ( $syncHash.Controls.CbErrorLogsScriptNames.HasItems )
-	{
-		$syncHash.Controls.TbAdmin.SelectedIndex = 2
-		$syncHash.Controls.CbErrorLogsScriptNames.SelectedItem = $syncHash.Controls.CbErrorLogsScriptNames.Items.Where( { $_.ScriptName -eq $syncHash.Controls.CbLogsScriptNames.Text } )[0]
-		Start-Sleep 0.5
-		$syncHash.Controls.DgErrorLogs.SelectedIndex = $syncHash.Controls.DgErrorLogs.Items.IndexOf( ( $syncHash.Controls.DgErrorLogs.Items.Where( { $_.Logdate -eq $syncHash.Controls.CbLogErrorlog.SelectedValue } ) )[0] )
-	}
-	else { Show-MessageBox -Text $syncHash.Data.msgTable.StrErrorlogsNotLoaded }
 } )
 
 # Parse errorlogs and load the data
@@ -2680,6 +2725,37 @@ $syncHash.Controls.BtnPHAddSettingTitle.Add_Click( {
 # Reset all controls
 $syncHash.Controls.BtnResetTemplateInfo.Add_Click( {
 	Reset-NewTemplateControls
+} )
+
+#
+$syncHash.Controls.BtnSendMsFormUrl.Add_Click( {
+	try
+	{
+		if ( Get-ADUser -LDAPFilter "(mail=$( $syncHash.Controls.TbMsFormReceivers.Text ))" -Properties mail )
+		{
+			Send-MailMessage -From $syncHash.Data.msgTable.StrBoMail `
+			-To "$( $syncHash.Controls.TbMsFormReceivers.Text )" `
+			-Encoding bigendianunicode `
+			-SmtpServer $syncHash.Data.msgTable.StrSMTP `
+			-Subject "$( $syncHash.Data.msgTable.StrMailSubjectAdditionRequest )" `
+			-BodyAsHtml `
+			-Body @"
+			<p>$( $syncHash.Data.msgTable.StrMailBodyAdditionRequest )</p>
+			<strong><a href="https://forms.office.com/e/<form id>">MS Form</a></strong><br><br>
+"@
+
+			Show-Splash -Text "${ $syncHash.Data.msgTable.StrNewCodeTemplateUrlSent }"  -NoProgressBar
+			$syncHash.Controls.TbMsFormReceivers.Text = ""
+		}
+		else
+		{
+			throw $syncHash.Data.msgTable.ErrNewCodeTemplateAdditionRequestNoUser
+		}
+	}
+	catch
+	{
+		Show-Splash -Text "${ $syncHash.Data.msgTable.ErrNewCodeTemplateSendUrlAdditionRequest }`n$( $_.Exception.Message )"  -NoProgressBar
+	}
 } )
 
 # Open contextmenu to add setting for new tool
