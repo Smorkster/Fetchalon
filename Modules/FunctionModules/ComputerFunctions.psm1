@@ -307,10 +307,10 @@ function Get-LastBootUpTime
 					LastBootUpTime = $IntMsgTable.GetLastBootUpTimeNoDateInfo
 				}
 			}
-			$SClient = Invoke-RestMethod -Method Get -Uri "$( $IntMsgTable.SysManServerUrl )/api/Client/?Name=$( $CName )" -UseDefaultCredentials
-			$SInfo = Invoke-RestMethod -Method Get -Uri "$( $IntMsgTable.SysManServerUrl )/api/reporting/client?clientId=$( $SClient.Id )" -UseDefaultCredentials
+			$SClient = Invoke-RestMethod -Method Get -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/client/find?name=$( $CName )" -UseDefaultCredentials
+			$SInfo = Invoke-RestMethod -Method Get -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/client/health?targetId=$( $SClient.Id )&onlyLatest" -UseDefaultCredentials
 
-			Add-Member -InputObject $C -MemberType NoteProperty -Name "SysManLastBootTime" -Value $SInfo.lastBootTime
+			Add-Member -InputObject $C -MemberType NoteProperty -Name "SysManLastBootTime" -Value $SInfo[0].lastBootTime
 			$L.Add( $C ) | Out-Null
 		}
 
@@ -368,8 +368,8 @@ function Get-LastLoggedIn
 			try
 			{
 				$a = ""
-				$Id = ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/client/?name=$_&onlyLatest=true" -UseDefaultCredentials ).id
-				$a = ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/reporting/Client?clientId=$Id" -UseDefaultCredentials ).LastUser
+				$Id = ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/client/?name=$( $_ )&onlyLatest=true" -UseDefaultCredentials ).id
+				$a = ( Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/client/health?targetId=$( $Id )&onlyLatest=true" -UseDefaultCredentials ).LastUser
 				try
 				{
 					$a = ( Get-ADUser $a ).Name
