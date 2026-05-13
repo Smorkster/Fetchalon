@@ -50,32 +50,32 @@ function Install-SysManPrinter
 	$PrinterNames = $InputData.Printers -replace "-", "_" -split "\W" | Where-Object { $_ }
 	$ComputerNames = $InputData.Computers -split "\W" | Where-Object { $_ }
 
-	$PrinterNames | `
-		ForEach-Object {
-			$resp = Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/Printer?name=$( $_ )&take=1&skip=0" -Method Get -UseDefaultCredentials -ContentType "application/json"
-			if ( $resp.totalCount -gt 0 )
-			{
-				$FoundPrinters.Add( $resp ) | Out-Null
-				$PIdsString.Append( "{""id"":$( $resp.result[0].id ),""isDefault"":false}," ) | Out-Null
-			}
-			else
-			{
-				$FailedPrinters.Add( $_ ) | Out-Null
-			}
+	foreach ( $printer in $PrinterNames )
+	{
+		$resp_p = Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/printer/search?filter=$( $printer )&active=true&take=1&skip=0&searchType=Name" -Method Get -UseDefaultCredentials -ContentType "application/json"
+		if ( $resp_p.totalCount -gt 0 )
+		{
+			$FoundPrinters.Add( $resp_p ) | Out-Null
+			$PIdsString.Append( "{""id"":$( $resp_p.result[0].id ),""isDefault"":false}," ) | Out-Null
 		}
-	$ComputerNames | `
-		ForEach-Object {
-			$resp = Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/Client?name=$( $_ )&take=1&skip=0" -Method Get -UseDefaultCredentials -ContentType "application/json"
-			if ( $resp.totalCount -gt 0 )
-			{
-				$FoundComputers.Add( $resp ) | Out-Null
-				$CIdsString.Append( "$( $resp.result[0].id )," ) | Out-Null
-			}
-			else
-			{
-				$FailedComputers.Add( $_ ) | Out-Null
-			}
+		else
+		{
+			$FailedPrinters.Add( $printer ) | Out-Null
 		}
+	}
+	foreach ( $computer in $ComputerNames )
+	{
+		$resp_c = Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/client/find?name=$( $computer )" -Method Get -UseDefaultCredentials -ContentType "application/json"
+		if ( $null -ne $resp_c )
+		{
+			$FoundComputers.Add( $resp_c ) | Out-Null
+			$CIdsString.Append( "$( $resp_c.id )," ) | Out-Null
+		}
+		else
+		{
+			$FailedComputers.Add( $computer ) | Out-Null
+		}
+	}
 
 	$OFS = "`n"
 	if ( $PIdsString.Length -gt 0 )
@@ -86,14 +86,14 @@ function Install-SysManPrinter
 			try
 			{
 				$OFS = ", "
-				Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/printer/Install" -Method Post -UseDefaultCredentials -ContentType "application/json" -Body $b -ErrorAction Stop | Out-Null
+				Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/printer/install" -Method Post -UseDefaultCredentials -ContentType "application/json" -Body $b -ErrorAction Stop | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccess ) | Out-Null
 				$OpMessage.AppendLine() | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccessPrintersTitle ) | Out-Null
 				$OpMessage.AppendLine( $FoundPrinters.result.Name ) | Out-Null
 				$OpMessage.AppendLine() | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccessComputerTitle ) | Out-Null
-				$OpMessage.AppendLine( $FoundComputers.result.Name ) | Out-Null
+				$OpMessage.AppendLine( $FoundComputers.displayName ) | Out-Null
 				$OpMessage.AppendLine() | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.InstallSysManPrinterSuccessEnding ) | Out-Null
 
@@ -181,32 +181,32 @@ function Uninstall-SysManPrinter
 	$PrinterNames = $InputData.Printers -replace "-", "_" -split "\W" | Where-Object { $_ }
 	$ComputerNames = $InputData.ComputerNames -split "\W" | Where-Object { $_ }
 
-	$PrinterNames | `
-		ForEach-Object {
-			$resp = Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/Printer?name=$( $_ )&take=1&skip=0" -Method Get -UseDefaultCredentials -ContentType "application/json"
-			if ( $resp.totalCount -gt 0 )
-			{
-				$FoundPrinters.Add( $resp ) | Out-Null
-				$PIdsString.Append( "$( $resp.result[0].id )," ) | Out-Null
-			}
-			else
-			{
-				$FailedPrinters.Add( $_ ) | Out-Null
-			}
+	foreach ( $printer in $PrinterNames )
+	{
+		$resp = Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/printer/search?filter=$( $printer )&active=true&take=1&skip=0&searchType=Name" -Method Get -UseDefaultCredentials -ContentType "application/json"
+		if ( $resp.totalCount -gt 0 )
+		{
+			$FoundPrinters.Add( $resp ) | Out-Null
+			$PIdsString.Append( "$( $resp.result[0].id )," ) | Out-Null
 		}
-	$ComputerNames | `
-		ForEach-Object {
-			$resp = Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/Client?name=$( $_ )&take=1&skip=0" -Method Get -UseDefaultCredentials -ContentType "application/json"
-			if ( $resp.totalCount -gt 0 )
-			{
-				$FoundComputers.Add( $resp ) | Out-Null
-				$CIdsString.Append( "$( $resp.result[0].id )," ) | Out-Null
-			}
-			else
-			{
-				$FailedComputers.Add( $_ ) | Out-Null
-			}
+		else
+		{
+			$FailedPrinters.Add( $printer ) | Out-Null
 		}
+	}
+	foreach ( $computer in $ComputerNames )
+	{
+		$resp = Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/client/find?name=$( $computer )" -Method Get -UseDefaultCredentials -ContentType "application/json"
+		if ( $resp.totalCount -gt 0 )
+		{
+			$FoundComputers.Add( $resp ) | Out-Null
+			$CIdsString.Append( "$( $resp.result[0].id )," ) | Out-Null
+		}
+		else
+		{
+			$FailedComputers.Add( $computer ) | Out-Null
+		}
+	}
 
 	$OFS = "`n"
 	if ( $PIdsString.Length -gt 0 )
@@ -217,7 +217,7 @@ function Uninstall-SysManPrinter
 			try
 			{
 				$OFS = ", "
-				Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/printer/Uninstall" -Method Post -UseDefaultCredentials -ContentType "application/json" -Body $b -ErrorAction Stop | Out-Null
+				Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/printer/uninstall" -Method Post -UseDefaultCredentials -ContentType "application/json" -Body $b -ErrorAction Stop | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.UninstallSysManPrinterSuccess ) | Out-Null
 				$OpMessage.AppendLine() | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.UninstallSysManPrinterSuccessPrintersTitle ) | Out-Null
