@@ -15,6 +15,7 @@ GetLastLoggedInStrCompNotFound = Computer name not found in SysMan
 GetLastLoggedInStrCompTitle = Computername
 GetLastLoggedInStrUserTitle = User
 OpenWebPageStrDone = Website opened
+OpenWebPageErr = Could not open website
 RepairCmAgentStrDone = The CM Agent has now been restored
 RepairO365LicensStrCimError = An error occurred with the connection
 RepairO365LicensStrDone = The Office license repair script has now finished
