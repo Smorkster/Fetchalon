@@ -362,6 +362,7 @@ function Test-HyperlinkObjectList
 	$List = [System.Collections.ArrayList]::new()
 	$List.Add( ( [pscustomobject]@{ Text = "Ecosia" ; Address = "https://www.ecosia.org" ; Type = "Hyperlink" } ) ) | Out-Null
 	$List.Add( ( [pscustomobject]@{ Text = "Power Automate" ; Address = "https://make.powerautomate.com/" ; Type = "Hyperlink" } ) ) | Out-Null
+
 	return $List
 }
 
@@ -384,13 +385,25 @@ function Test-StreamOutput
 		Smorkster (smorkster)
 	#>
 
-	Write-Information "Start"
-	Write-Debug "Start ForEach-Object"
-	Write-Error "False Error"
-	Write-Verbose "Verbose"
-	Write-Warning "Warning End"
-	0..10 | ForEach-Object { $p = $_ * 10; Write-Progress "Progress $p" -PercentComplete ( [int]$p ) }
-	Start-Sleep -Seconds 15
+	Write-Progress "Info" -PercentComplete 5
+	Write-Information "Information  Test Message"
+	Write-Progress "Debug" -PercentComplete 15
+	Write-Debug "Debug Test Message"
+	Write-Progress "Error" -PercentComplete 25
+	Write-Error "Error Test Message"
+	Write-Progress "Verbose" -PercentComplete 35
+	Write-Verbose "Verbose Test Message"
+	Write-Progress "Warning" -PercentComplete 45
+	Write-Warning "Warning Test Message"
+	Write-Progress "Progress" -PercentComplete 55
+
+	foreach ( $p in 0..10 )
+	{
+		$p = $p * 10
+		Write-Progress "Progress Test Message $p" -PercentComplete ( [int]$p )
+		Start-Sleep -Seconds 1
+	}
+	Start-Sleep -Seconds 5
 }
 
 function Test-WriteError
