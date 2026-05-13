@@ -55,9 +55,9 @@ function Set-Localizations
 	$syncHash.Controls.Window.Resources['StrModuleOpenPath'] = $syncHash.Data.msgTable.StrModuleOpenPath
 	$syncHash.Controls.Window.Resources['StrModuleOpenRead'] = $syncHash.Data.msgTable.StrModuleOpenRead
 
-	$syncHash.Controls.Window.Resources.MiPathStyle.Setters[0].Handler = $syncHash.Code.ModuleOpenPathClick
-	$syncHash.Controls.Window.Resources.MiReadStyle.Setters[0].Handler = $syncHash.Code.ModuleOpenReadClick
-	$syncHash.Controls.Window.Resources.TblMiReadStyle.Setters[0].Handler = $syncHash.Code.ModuleTextClick
+	$syncHash.Controls.Window.Resources.MiReadStyle.Setters[0].Handler = $syncHash.Code.ModuleReadClick
+	$syncHash.Controls.Window.Resources.TblExpCmdStyle.Setters[0].Handler = $syncHash.Code.TblExpCmdMouseOver
+	$syncHash.Controls.Window.Resources.TblExpCmdStyle.Setters[1].Handler = $syncHash.Code.TblExpCmdMouseLeave
 }
 
 ################### Start script
@@ -65,23 +65,88 @@ $controls = [System.Collections.ArrayList]::new()
 
 BindControls $syncHash $controls
 
-[System.Windows.RoutedEventHandler] $syncHash.Code.ModuleOpenPathClick = {
+$syncHash.Controls.BtnOpenModuleFolder.Add_Click( {
+	$Module = $syncHash.Controls.LbModules.SelectedItem
+
+	Start-Process -FilePath C:\Windows\explorer.exe -ArgumentList "/select, ""$( $Module.Path )"""
+} )
+
+$syncHash.Controls.BtnOpenFile.Add_Click( {
+	$this.ContextMenu.IsOpen = $true
+} )
+
+[System.Windows.RoutedEventHandler] $syncHash.Code.ModuleReadClick = {
 	param ( $SenderObject, $e )
 
-	Start-Process -FilePath C:\Windows\explorer.exe -ArgumentList "/select, ""$( $syncHash.File )"""
-}
-
-[System.Windows.RoutedEventHandler] $syncHash.Code.ModuleOpenReadClick = {
-	param ( $SenderObject, $e )
+	$Module = $syncHash.Controls.LbModules.SelectedItem
 
 	$e.Handled = $true
-	Start-Process -FilePath $e.Source.DataContext.Path -ArgumentList """$( $syncHash.File )"""
+	Start-Process -FilePath $e.Source.DataContext.Path -ArgumentList """$( $Module.Path )"""
 }
 
-[System.Windows.Input.MouseButtonEventHandler] $syncHash.Code.ModuleTextClick = {
-	param ( $SenderObject, $e )
+[System.Windows.Input.MouseEventHandler] $syncHash.Code.TblExpCmdMouseLeave = {
+	$syncHash.Controls.TblExpCmdInfo.Text = ""
+}
 
-	$syncHash.File = $SenderObject.DataContext.Path
+[System.Windows.Input.MouseEventHandler] $syncHash.Code.TblExpCmdMouseOver = {
+	param ( $Sender, $e )
+
+	if ( $null -ne $Sender.DataContext.Description )
+	{
+		$syncHash.Controls.TblExpCmdInfo.Text = $Sender.DataContext.Description
+	}
+	elseif ( $null -ne $Sender.DataContext.Dynopsis )
+	{
+		$syncHash.Controls.TblExpCmdInfo.Text = $Sender.DataContext.Synopsis
+	}
+	else
+	{
+		try
+		{
+			$FunctionName = $Sender.Text
+			$cmd = Get-Command $FunctionName
+			$path = $cmd.Module.Path
+			$text = Get-Content $path -Raw
+
+			$tokens = $null
+			$errors = $null
+			$ast = [System.Management.Automation.Language.Parser]::ParseInput( $text, [ref]$tokens, [ref]$errors )
+
+			$funcAst = $ast.Find( {
+				param( $node )
+
+				$node -is [System.Management.Automation.Language.FunctionDefinitionAst] -and
+				$node.Name -eq $FunctionName
+			}, $true)
+
+			if ( $funcAst )
+			{
+				$start = $funcAst.Extent.StartOffset
+				$end = $funcAst.Extent.EndOffset
+				$Info = GetScriptInfo -Text $text.Substring( $start, $end - $start )
+
+				$t = if ( $null -eq $Info.Description )
+				{
+					$Info.Synopsis
+				}
+				else
+				{
+					$Info.Description
+				}
+
+				if ( $null -eq $t )
+				{
+					throw
+				}
+				$Sender.DataContext.PSObject.Properties.Add( [psnoteproperty]::new( "Description", $t ) )
+				$syncHash.Controls.TblExpCmdInfo.Text = $t
+			}
+		}
+		catch
+		{
+			$syncHash.Controls.TblExpCmdInfo.Text = $syncHash.Data.msgTable.ErrNoExpCmdDesc
+		}
+	}
 }
 
 Set-Localizations

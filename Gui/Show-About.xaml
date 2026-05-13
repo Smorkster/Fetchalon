@@ -30,6 +30,28 @@
         <sys:String x:Key="Version">x</sys:String>
         <Thickness x:Key="StdMargin">5</Thickness>
 
+        <CompositeCollection x:Key="CcEditors">
+            <CollectionContainer Collection="{Binding Source={StaticResource CvsEditors}}" />
+        </CompositeCollection>
+
+        <Style TargetType="Button"
+               x:Key="BtnBaseStyle">
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="Button"
+               x:Key="BtnOpenModuleStyle"
+               BasedOn="{StaticResource BtnBaseStyle}">
+            <Setter Property="IsEnabled"
+                    Value="True" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding ElementName=LbModules, Path=SelectedItems.Count}"
+                             Value="0">
+                    <Setter Property="IsEnabled"
+                            Value="False" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
         <Style TargetType="CheckBox"
                x:Key="ChbBaseStyle">
             <Setter Property="Margin"
@@ -39,18 +61,25 @@
             <Setter Property="VerticalContentAlignment"
                     Value="Center" />
         </Style>
-        <Style TargetType="MenuItem"
-               x:Key="MiPathStyle">
-            <EventSetter Event="Click" />
+        <Style TargetType="Grid"
+               x:Key="GrBaseStyle">
+            <Setter Property="Background"
+                    Value="{DynamicResource {x:Static SystemColors.ControlBrushKey}}" />
+            <Setter Property="Margin"
+                    Value="0" />
         </Style>
         <Style TargetType="MenuItem"
                x:Key="MiReadStyle">
             <EventSetter Event="Click" />
+            <Setter Property="Header"
+                    Value="{Binding Path=Name}" />
         </Style>
         <Style TargetType="ScrollViewer"
                x:Key="SvDefaultStyle">
             <Setter Property="Grid.Column"
                     Value="1" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
             <Setter Property="VerticalScrollBarVisibility"
                     Value="Auto" />
         </Style>
@@ -60,10 +89,10 @@
                     Value="{StaticResource StdMargin}" />
         </Style>
         <Style TargetType="TextBlock"
-               x:Key="TblMiReadStyle">
-            <EventSetter Event="MouseUp" />
-            <Setter Property="Margin"
-                    Value="{StaticResource StdMargin}" />
+               x:Key="TblExpCmdStyle"
+               BasedOn="{StaticResource TblBaseStyle}">
+            <EventSetter Event="Mouse.MouseEnter" />
+            <EventSetter Event="Mouse.MouseLeave" />
         </Style>
         <Style TargetType="TextBlock"
                x:Key="TblSmallTitleStyle"
@@ -93,7 +122,7 @@
                            Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiInfoHeader}" />
             </TabItem.Header>
             <Grid Name="GridInfo"
-                  Margin="{StaticResource StdMargin}">
+                  Style="{StaticResource GrBaseStyle}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition />
@@ -102,8 +131,8 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition MaxHeight="150" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="1*" />
+                    <RowDefinition Height="1*" />
                 </Grid.RowDefinitions>
                 <TextBlock Name="TblVersionTitle"
                            Style="{StaticResource TblTitleStyle}"
@@ -132,91 +161,130 @@
                            Grid.Row="3"
                            Style="{StaticResource TblTitleStyle}"
                            Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblModulesTitle}" />
-                <ScrollViewer Name="SvModules"
-                              Grid.Row="3"
-                              Style="{StaticResource SvDefaultStyle}">
-                    <ItemsControl Name="IcModules"
-                                  ItemsSource="{Binding Source={StaticResource CvsModules}}">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Border BorderThickness="1">
-                                    <Border.Style>
-                                        <Style TargetType="Border">
-                                            <Setter Property="BorderBrush"
-                                                    Value="Transparent" />
-                                            <Style.Triggers>
-                                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
-                                                             Value="True">
-                                                    <Setter Property="BorderBrush"
-                                                            Value="Black" />
-                                                </DataTrigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Border.Style>
-                                    <TextBlock Margin="5,2"
-                                               Style="{StaticResource TblMiReadStyle}"
-                                               Text="{Binding Path=Name}">
-                                        <TextBlock.ContextMenu>
-                                            <ContextMenu>
-                                                <MenuItem Header="{DynamicResource StrModuleOpenPath}"
-                                                          Style="{StaticResource MiPathStyle}" />
-                                                <MenuItem Header="{DynamicResource StrModuleOpenRead}"
-                                                          ItemsSource="{Binding Source={StaticResource CvsEditors}}">
-                                                    <MenuItem.Resources>
-                                                        <Style TargetType="MenuItem"
-                                                               BasedOn="{StaticResource MiReadStyle}" />
-                                                    </MenuItem.Resources>
-                                                    <MenuItem.ItemTemplate>
-                                                        <DataTemplate>
-                                                            <TextBlock Text="{Binding Path=Name}" />
-                                                        </DataTemplate>
-                                                    </MenuItem.ItemTemplate>
-                                                </MenuItem>
-                                            </ContextMenu>
-                                        </TextBlock.ContextMenu>
-                                    <TextBlock.ToolTip>
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition />
-                                                <ColumnDefinition />
-                                            </Grid.ColumnDefinitions>
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition />
-                                                <RowDefinition />
-                                                <RowDefinition />
-                                            </Grid.RowDefinitions>
-                                            <TextBlock Style="{StaticResource TblSmallTitleStyle}"
-                                                       Text="{DynamicResource ValueTtVersion}" />
-                                            <TextBlock Grid.Column="1"
-                                                       Style="{StaticResource TblValueStyle}"
-                                                       Text="{Binding Path=Version}" />
-                                            <TextBlock Grid.Row="1"
-                                                       Style="{StaticResource TblSmallTitleStyle}"
-                                                       Text="{DynamicResource ValueTtDescription}" />
-                                            <TextBlock Grid.Column="1"
-                                                       Grid.Row="1"
-                                                       Style="{StaticResource TblValueStyle}"
-                                                       Text="{Binding Path=Description}" />
-                                            <TextBlock Grid.Row="2"
-                                                       Style="{StaticResource TblSmallTitleStyle}"
-                                                       Text="{DynamicResource ValueTtPath}" />
-                                            <TextBlock Grid.Column="1"
-                                                       Grid.Row="2"
-                                                       Style="{StaticResource TblValueStyle}"
-                                                       Text="{Binding Path=Path}" />
-                                        </Grid>
-                                    </TextBlock.ToolTip>
-                                </TextBlock>
-                                </Border>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </ScrollViewer>
+                <Grid Grid.Row="3"
+                      Grid.Column="1"
+                      HorizontalAlignment="Stretch"
+                      Margin="{StaticResource StdMargin}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="1*" />
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <ListBox Name="LbModules"
+                             DisplayMemberPath="Name"
+                             ItemsSource="{Binding Source={StaticResource CvsModules}}"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    <Grid DataContext="{Binding ElementName=LbModules, Path=SelectedItem}"
+                          Grid.Column="1">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition />
+                        </Grid.RowDefinitions>
+                        <TextBlock Style="{StaticResource TblSmallTitleStyle}"
+                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblValueTtOpen}" />
+                        <Grid Grid.Column="1">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition />
+                                <ColumnDefinition />
+                            </Grid.ColumnDefinitions>
+                            <Button Name="BtnOpenModuleFolder"
+                                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnOpenFolder}"
+                                    Style="{StaticResource BtnOpenModuleStyle}" />
+                            <Button Name="BtnOpenFile"
+                                    Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentBtnOpenFile}"
+                                    Grid.Column="1"
+                                    Style="{StaticResource BtnOpenModuleStyle}">
+                                <Button.ContextMenu>
+                                    <ContextMenu ItemsSource="{StaticResource CcEditors}">
+                                        <ContextMenu.Resources>
+                                            <Style TargetType="MenuItem"
+                                                   BasedOn="{StaticResource MiReadStyle}" />
+                                        </ContextMenu.Resources>
+                                    </ContextMenu>
+                                </Button.ContextMenu>
+                            </Button>
+                        </Grid>
+                        <TextBlock Grid.Row="1"
+                                   Style="{StaticResource TblSmallTitleStyle}"
+                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblValueTtVersion}" />
+                        <TextBlock Grid.Column="1"
+                                   Grid.Row="1"
+                                   Style="{StaticResource TblValueStyle}"
+                                   Text="{Binding Path=Version}" />
+                        <TextBlock Grid.Row="2"
+                                   Style="{StaticResource TblSmallTitleStyle}"
+                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblValueTtDescription}" />
+                        <TextBlock Grid.Column="1"
+                                   Grid.Row="2"
+                                   Style="{StaticResource TblValueStyle}"
+                                   Text="{Binding Path=Description}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="3"
+                                   Style="{StaticResource TblSmallTitleStyle}"
+                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblValueTtPath}" />
+                        <TextBlock Grid.Column="1"
+                                   Grid.Row="3"
+                                   Style="{StaticResource TblValueStyle}"
+                                   Text="{Binding Path=Path}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock Grid.Row="4"
+                                   Style="{StaticResource TblSmallTitleStyle}"
+                                   Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblValueTtExportedCommands}" />
+                        <Grid Grid.Column="1"
+                              Grid.Row="4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="1*" />
+                            </Grid.ColumnDefinitions>
+                            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                                <ItemsControl Name="IcExportedCommands"
+                                              ItemsSource="{Binding Path=ExportedCommands}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel />
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Path=Key}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock"
+                                                           BasedOn="{StaticResource TblExpCmdStyle}">
+                                                        <Setter Property="Margin"
+                                                                Value="0" />
+                                                        <Setter Property="Padding"
+                                                                Value="5" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource Mode=Self}, Path=IsMouseOver}"
+                                                                         Value="True">
+                                                                <Setter Property="Background"
+                                                                        Value="#FFDCF1F7" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+                            <TextBlock Name="TblExpCmdInfo"
+                                       Grid.Column="1"
+                                       Margin="{StaticResource StdMargin}"
+                                       TextWrapping="Wrap" />
+                        </Grid>
+                    </Grid>
+                </Grid>
                 <TextBlock Name="TblQuickAccessTitle"
                            Grid.Row="4"
                            Style="{StaticResource TblTitleStyle}"
@@ -254,8 +322,9 @@
                                     </Grid.ColumnDefinitions>
                                     <TextBlock FontSize="16"
                                                FontWeight="Bold"
-                                               Margin="10"
-                                               Text="{Binding Path=Key}" />
+                                               Margin="{StaticResource StdMargin}"
+                                               Text="{Binding Path=Key}"
+                                               VerticalAlignment="Top" />
                                     <Grid Grid.Column="1">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition MinWidth="150"
@@ -305,7 +374,8 @@
                 <TextBlock Style="{StaticResource TblTitleStyle}"
                            Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTiSettingsHeader}" />
             </TabItem.Header>
-            <Grid Name="GridSettings">
+            <Grid Name="GridSettings"
+                  Style="{StaticResource GrBaseStyle}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition />
