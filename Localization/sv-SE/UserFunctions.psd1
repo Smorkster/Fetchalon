@@ -52,6 +52,9 @@ RemoveProfileVKQuestionTitle = Ange organisation
 RemoveProfileVKTCSelectCustomer = Kunde inte uttyda organisation, för vilken organisation ska profilen rensas?
 RemoveProfileVKTCSelectCustomerTitle = Välj organisation
 StrCompareUserGroupsNoValidUsers = Inte tillräckligt många användare att jämföra
+StrGetFolderMembershipStart = Hämtar grupper från AD. Kan ta någon minut...
+StrGetFolderMembershipCountInfo = AD-grupper hittades för filbehörighet
+StrGetFolderMembershipFilterInfo = Filtrerar fakta
 StrGetFolderMembershipPropCodeNotMatch = .*_App_Office(key|_Mallar).*
 StrGetFolderMembershipPropCodeReplace1 = \\\\\\\\dfs\\\\gem\\$
 StrGetFolderMembershipPropCodeReplace2 = \\\\\\\\dfs\\\\org2\\$
@@ -61,5 +64,5 @@ StrGetFolderMembershipPropTitleGroup = AD-grupp
 StrGetFolderMembershipPropTitlePermission = Behörighetstyp
 StrGetFolderMembershipPropValRead = Läsa
 StrGetFolderMembershipPropValWrite = Skriva
-SysManServerUrl = http://sysman.test.com/
+SysManServerUrl = https://sysman.test.com/
 '@
