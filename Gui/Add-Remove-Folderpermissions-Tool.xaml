@@ -4,16 +4,27 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Page.Resources>
+        <sys:Double x:Key="ControlHeight">40</sys:Double>
         <Brush x:Key="DefaultFontColor">#FF444444</Brush>
-        <GridLength x:Key="RowDefHeight">40</GridLength>
         <Thickness x:Key="StdMargin">5</Thickness>
 
         <Style TargetType="Button"
                x:Key="BtnBaseStyle">
+            <Setter Property="Height"
+                    Value="{StaticResource ControlHeight}" />
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
             <Setter Property="Padding"
                     Value="{StaticResource StdMargin}" />
+        </Style>
+        <Style TargetType="ComboBox"
+               x:Key="CbBaseStyle">
+            <Setter Property="Height"
+                    Value="{StaticResource ControlHeight}" />
+            <Setter Property="Margin"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
         </Style>
         <Style TargetType="Grid"
                x:Key="GridBaseStyle">
@@ -70,13 +81,13 @@
         </Grid.RowDefinitions>
         <Grid Style="{StaticResource GridBaseStyle}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="1*" />
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="120" />
             </Grid.RowDefinitions>
             <TextBlock Name="TblDisk"
@@ -84,8 +95,7 @@
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblDisk}" />
             <ComboBox Name="CbDisk"
                       Grid.Row="1"
-                      Margin="{StaticResource StdMargin}"
-                      VerticalContentAlignment="Center" />
+                      Style="{StaticResource CbBaseStyle}" />
             <TextBlock Name="TblFolderSearch"
                        Grid.Row="2"
                        Style="{StaticResource TblBaseStyle}"
@@ -153,11 +163,11 @@
         <Grid Grid.Column="1"
               Style="{StaticResource GridBaseStyle}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="1*" />
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="1*" />
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="1*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
@@ -198,8 +208,8 @@
         <Grid Grid.Column="2"
               Style="{StaticResource GridBaseStyle}">
             <Grid.RowDefinitions>
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
-                <RowDefinition Height="{StaticResource RowDefHeight}" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="1*" />
             </Grid.RowDefinitions>
             <TextBlock Name="TblLog"
