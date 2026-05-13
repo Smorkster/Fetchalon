@@ -177,7 +177,6 @@ function Get-SomeFiles
 		None
 	.OutputType
 		ObjectList
-	.NoRunspace
 	.State
 		Dev
 	.Author
