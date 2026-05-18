@@ -752,7 +752,7 @@ function Update-DiskList
 			{
 				if ( $syncHash.HandledFolders -contains $TopFolder )
 				{
-					$syncHash.DC.CbDisk[0].Add( $_ )
+					$syncHash.DC.CbDisk[0].Add( $TopFolder )
 				}
 			}
 		}

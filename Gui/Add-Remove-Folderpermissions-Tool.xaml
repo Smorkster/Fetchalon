@@ -61,10 +61,18 @@
         </Style>
         <Style TargetType="TextBox"
                x:Key="TbBaseStyle">
-            <Setter Property="AcceptsReturn"
-                    Value="True" />
             <Setter Property="Margin"
                     Value="{StaticResource StdMargin}" />
+            <Setter Property="Padding"
+                    Value="{StaticResource StdMargin}" />
+            <Setter Property="VerticalContentAlignment"
+                    Value="Center" />
+        </Style>
+        <Style TargetType="TextBox"
+               BasedOn="{StaticResource TbBaseStyle}"
+               x:Key="TbMultilineStyle">
+            <Setter Property="AcceptsReturn"
+                    Value="True" />
             <Setter Property="VerticalContentAlignment"
                     Value="Top" />
         </Style>
@@ -176,21 +184,21 @@
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForWritePermission}" />
             <TextBox Name="TbUsersForWritePermission"
                      Grid.Row="1"
-                     Style="{StaticResource TbBaseStyle}" />
+                     Style="{StaticResource TbMultilineStyle}" />
             <TextBlock Name="TblUsersForReadPermission"
                        Grid.Row="2"
                        Style="{StaticResource TblBaseStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForReadPermission}" />
             <TextBox Name="TbUsersForReadPermission"
                      Grid.Row="3"
-                     Style="{StaticResource TbBaseStyle}" />
+                     Style="{StaticResource TbMultilineStyle}" />
             <TextBlock Name="TblUsersForRemovePermission"
                        Grid.Row="4"
                        Style="{StaticResource TblBaseStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblUsersForRemovePermission}" />
             <TextBox Name="TbUsersForRemovePermission"
                      Grid.Row="5"
-                     Style="{StaticResource TbBaseStyle}" />
+                     Style="{StaticResource TbMultilineStyle}" />
             <Grid Grid.Row="6">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
