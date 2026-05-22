@@ -38,7 +38,7 @@ if ( -not $StartUpMutex.WaitOne( 200 ) )
 	return
 }
 
-function Add-MenuItem
+function Add-MenuListItem
 {
 	<#
 	.Synopsis
@@ -51,103 +51,65 @@ function Add-MenuItem
 		[string] $ModuleName
 	)
 
-	if ( $MiObject.State -eq "Dev" )
+	# Should menuitem be in a sublist?
+	if ( $null -ne $MiObject.SubMenu )
 	{
-		$StateApproved = $PSCommandPath -match "(Development)|(User)"
+		$CvsTopName = "CvsMi$( $ModuleName )"
+		if ( [string]::IsNullOrEmpty( $ModuleName ) )
+		{
+			$CvsTopName = "CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions"
+		}
+
+		# Submenu has not been created, create a CollectionViewSource for the menuitems in the submenu
+		$ResourceName = "$( $CvsTopName )Sub$( $MiObject.SubMenu )"
 	}
 	else
 	{
-		$StateApproved = $true
-	}
-
-	# Check permissions for using the function or tool that MiObject refers to
-	if (
-		( -not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and `
-			-not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or `
-			$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or `
-			$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0 ) -and `
-		$StateApproved -and `
-		( $MiObject.ValidDateApproved -in $null, $true )
-	)
-	{
-		# Should menuitem be in a sublist?
-		if ( $null -ne $MiObject.SubMenu )
+		if ( "Suite" -eq $MiObject.ObjectOperations )
 		{
-			if ( [string]::IsNullOrEmpty( $ModuleName ) )
+			$ResourceName = "CvsMiAbout"
+		}
+		elseif (
+		$null -ne $MiObject.ObjectOperations -and `
+			"None" -ne $MiObject.ObjectOperations -and `
+			$null -ne ( $ResourceName = $syncHash.Window.Resources.Keys -match "CvsMi$( $MiObject.ObjectOperations )Functions$" )
+		)
+		{
+			try
 			{
-				$CvsTopName = "CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $MiObject.ObjectOperations ) )Functions"
-			}
-			else
-			{
-				$CvsTopName = "CvsMi$( $ModuleName )"
-			}
-
-			# Submenu has not been created, create a CollectionViewSource for the menuitems in the submenu
-			$ResourceName = "$( $CvsTopName )Sub$( $MiObject.SubMenu )"
-			if ( $syncHash.Window.Resources.Keys -notcontains $ResourceName )
-			{
-				$Cvs = [System.Windows.Data.CollectionViewSource]::new()
-				$SortDesc = [System.ComponentModel.SortDescription]::new( "MenuItem", [System.ComponentModel.ListSortDirection]::Ascending )
-				$Cvs.SortDescriptions.Add( $SortDesc )
-
-				$syncHash.Window.Resources.Add( $ResourceName , $Cvs )
-				$syncHash.Window.Resources.$ResourceName.Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-
-				$SubMenu = [pscustomobject]@{
-					IsSubMenuHeader = 1
-					MenuItem = "$( $MiObject.SubMenu )$( $syncHash.Data.msgTable.StrSubMenuGroupTitleSuffix )"
-					MenuItems = $syncHash.Window.Resources.$ResourceName.View
+				if ( $syncHash.Window.Resources."$( $ResourceName )".Source.Name -match $MiObject.Name )
+				{
+					$ResourceName = $null
 				}
-				$syncHash.Window.Resources.$CvsTopName.Source.Add( $SubMenu )
 			}
+			catch
+			{
+				Write-Error $_
+			}
+		}
+		elseif ( -not [string]::IsNullOrEmpty( $ModuleName ) )
+		{
+			$ResourceName = "CvsMi$( $ModuleName )"
 		}
 		else
 		{
-			if ( "Suite" -eq $MiObject.ObjectOperations )
-			{
-				$ResourceName = "CvsMiAbout"
-			}
-			elseif (
-				$null -ne $MiObject.ObjectOperations -and `
-				"None" -ne $MiObject.ObjectOperations -and `
-				$null -ne ( $ResourceName = $syncHash.Window.Resources.Keys -match "CvsMi$( $MiObject.ObjectOperations )Functions$" )
-			)
-			{
-				try
-				{
-					if ( $syncHash.Window.Resources."$( $ResourceName )".Source.Name -match $MiObject.Name )
-					{
-						$ResourceName = $null
-					}
-				}
-				catch
-				{
-					Write-Error $_
-				}
-			}
-			elseif ( -not [string]::IsNullOrEmpty( $ModuleName ) )
-			{
-				$ResourceName = "CvsMi$( $ModuleName )"
-			}
-			else
-			{
-				$ResourceName = "CvsMiTools"
-			}
+			$ResourceName = "CvsMiTools"
 		}
+	}
 
-		$Sub = if ( $MiObject.PSObject.Properties[ 'SubMenu' ] ) { $MiObject.SubMenu } else { '' }
-		$Ops = if ( $MiObject.PSObject.Properties[ 'ObjectOperations' ] ) { $MiObject.ObjectOperations } else { '' }
+	$Sub = if ( $MiObject.PSObject.Properties[ 'SubMenu' ] ) { $MiObject.SubMenu } else { '' }
+	$Ops = if ( $MiObject.PSObject.Properties[ 'ObjectOperations' ] ) { $MiObject.ObjectOperations } else { '' }
 
-		$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( "MenuKey", ( "{0}|{1}|{2}" -f $MiObject.Name, $ops, $sub ) ) )
+	$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( "MenuKey", ( "{0}|{1}|{2}" -f $MiObject.Name, $ops, $sub ) ) )
 
-		if ( $null -ne $ResourceName -and `
-			$MiObject.MenuKey -notin $syncHash.Window.Resources."$( $ResourceName )".Source.MenuKey
-		)
+	if ( $null -ne $ResourceName )
+	{
+		if ( $syncHash.Data.MenuList.Keys -notcontains "$( $ResourceName )" )
 		{
-			if ( $syncHash.Data.MenuList.Keys -notcontains "$( $ResourceName )" )
-			{
-				$syncHash.Data.MenuList."$( $ResourceName )" = @()
-			}
+			$syncHash.Data.MenuList."$( $ResourceName )" = @()
+		}
+		if ( $MiObject.MenuKey -notin $syncHash.Data.MenuList."$( $ResourceName )".MenuKey )
+		{
 			$syncHash.Data.MenuList."$( $ResourceName )" += $MiObject
 		}
 	}
@@ -553,6 +515,54 @@ function Connect-O365
 	Check-O365Roles
 }
 
+function Create-SubMenu
+{
+	<#
+	.Synopsis
+		Create a submenu and associated CollectionViewSource
+	.Parameter key
+		Has key to name the CVS
+	.Parameter FirstItem
+		An item in the collection to extract ObjectClass/ObjectOperations from
+	#>
+
+	param (
+		$key,
+		$FirstItem
+	)
+
+	$ParamName = $FirstItem.psobject.Properties.Name -match "Object(Class)|(Operations)"
+	$CvsTopName = "CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $FirstItem."$( $ParamName )" ) )Functions"
+
+	# Submenu has not been created, create a CollectionViewSource for the menuitems in the submenu
+	$ResourceName = $key
+	if ( $syncHash.Window.Resources.Keys -notcontains $ResourceName )
+	{
+		$Cvs = [System.Windows.Data.CollectionViewSource]::new()
+		$SortDesc = [System.ComponentModel.SortDescription]::new( "MenuItem", [System.ComponentModel.ListSortDirection]::Ascending )
+		$Cvs.SortDescriptions.Add( $SortDesc )
+
+		$syncHash.Window.Resources.Add( $ResourceName , $Cvs )
+		$syncHash.Window.Resources.$ResourceName.Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+
+		$SubMenu = [pscustomobject]@{
+			IsSubMenuHeader = 1
+			MenuItem = "$( $FirstItem.SubMenu )$( $syncHash.Data.msgTable.StrSubMenuGroupTitleSuffix )"
+			MenuItems = $syncHash.Window.Resources.$ResourceName.View
+		}
+		try
+		{
+			$syncHash.Window.Resources.$CvsTopName.Source.Add( $SubMenu )
+		}
+		catch
+		{
+			Write-Host $CvsTopName
+		}
+	}
+
+	return $syncHash.Window.FindResource( $ResourceName )
+}
+
 function Display-View
 {
 	<#
@@ -620,72 +630,53 @@ function Focus-WindowHandle
 	return [GuiNative.Win]::SetForegroundWindow( $Handle )
 }
 
+function Generate-MenuListFile
+{
+	<#
+	.Synopsis
+		Create the menu template file
+	#>
+
+	'Computer', 'DirectoryInfo','FileInfo','Group','Other','PrintQueue','SeparateTools','User' | `
+		ForEach-Object {
+			Load-Menu $_
+		}
+
+	Load-OtherMenus $_
+
+	New-Item -ItemType "File" -Path $MenuListFilePath -Value  ( $syncHash.Data.MenuList | ConvertTo-Json -Depth 5 ) -Force | Out-Null
+
+}
+
 function Generate-Menus
 {
 	<#
 	.Synopsis
 		Create content for the menus
+	.Parameter Refresh
+		Should menu list file be refreshed?
 	#>
 
-	function Create-SubMenu
-	{
-		<#
-		.Synopsis
-			Create a submenu and associated CollectionViewSource
-		.Parameter key
-			Has key to name the CVS
-		.Parameter FirstItem
-			An item in the collection to extract ObjectClass/ObjectOperations from
-		#>
-
-		param (
-			$key,
-			$FirstItem
-		)
-
-		$ParamName = $FirstItem.psobject.Properties.Name -match "Object(Class)|(Operations)"
-		$CvsTopName = "CvsMi$( ( Get-Culture ).TextInfo.ToTitleCase( $FirstItem."$( $ParamName )" ) )Functions"
-
-		# Submenu has not been created, create a CollectionViewSource for the menuitems in the submenu
-		$ResourceName = $key
-		if ( $syncHash.Window.Resources.Keys -notcontains $ResourceName )
-		{
-			$Cvs = [System.Windows.Data.CollectionViewSource]::new()
-			$SortDesc = [System.ComponentModel.SortDescription]::new( "MenuItem", [System.ComponentModel.ListSortDirection]::Ascending )
-			$Cvs.SortDescriptions.Add( $SortDesc )
-
-			$syncHash.Window.Resources.Add( $ResourceName , $Cvs )
-			$syncHash.Window.Resources.$ResourceName.Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-
-			$SubMenu = [pscustomobject]@{
-				IsSubMenuHeader = 1
-				MenuItem = "$( $FirstItem.SubMenu )$( $syncHash.Data.msgTable.StrSubMenuGroupTitleSuffix )"
-				MenuItems = $syncHash.Window.Resources.$ResourceName.View
-			}
-			try
-			{
-				$syncHash.Window.Resources.$CvsTopName.Source.Add( $SubMenu )
-			}
-			catch
-			{
-				Write-Host $CvsTopName
-			}
-		}
-
-		return $syncHash.Window.FindResource( $ResourceName )
-	}
+	[CmdletBinding()]
+	param ( [switch] $Refresh )
 
 	$MenuListFilePath = "$( $syncHash.Data.BaseDir )\Output\Suite\MenuList.json"
-	if ( -not ( Test-Path $MenuListFilePath ) )
+
+	if ( $Refresh )
 	{
-		'Computer', 'DirectoryInfo','FileInfo','Group','Other','PrintQueue','SeparateTools','User' | `
-			ForEach-Object {
-				Load-Menu $_
-			}
+		Remove-Item -Path $MenuListFilePath -Force
+		$syncHash.Data.MenuList.Clear()
+		$Keys = $syncHash.Data.Keys | `
+			Where-Object { $_ -match "FunctionsLoaded$" }
+		foreach ( $k in $Keys )
+		{
+			$syncHash.Data."$( $k )" = $false
+		}
+	}
 
-		Load-OtherMenus $_
-
-		New-Item -ItemType "File" -Path $MenuListFilePath -Value  ( $syncHash.Data.MenuList | ConvertTo-Json -Depth 5 ) -Force | Out-Null
+	if ( -not [System.IO.File]::Exists( $MenuListFilePath ) )
+	{
+		Generate-MenuListFile
 	}
 	$Content = Get-Content $MenuListFilePath -Raw -Encoding UTF8 | ConvertFrom-Json
 
@@ -702,48 +693,52 @@ function Generate-Menus
 
 		foreach ( $item in $Content."$( $key )" )
 		{
-			if ( $item.psobject.properties.name -match "^Ps$" )
+			# Check permissions for using the function or tool that item refers to
+			if ( Test-UsePermission $item )
 			{
-				"Ps", "Xaml", "Localization" | `
-					ForEach-Object {
-						if ( $null -ne $item."$( $_ )" )
-						{
-							$n = $_
-							if ( Test-Path $item."$( $n )" )
+				if ( $item.psobject.properties.name -match "^Ps$" )
+				{
+					"Ps", "Xaml", "Localization" | `
+						ForEach-Object {
+							if ( $null -ne $item."$( $_ )" )
 							{
-								try
+								$n = $_
+								if ( Test-Path $item."$( $n )" )
 								{
-									$item."$( $n )" = Get-Item $item."$( $n )" -ErrorAction Stop
+									try
+									{
+										$item."$( $n )" = Get-Item $item."$( $n )" -ErrorAction Stop
+									}
+									catch
+									{
+										$item."$( $n )" = Get-Item $item."$( $n )".FullName
+									}
 								}
-								catch
+								else
 								{
 									$item."$( $n )" = Get-Item $item."$( $n )".FullName
 								}
 							}
-							else
-							{
-								$item."$( $n )" = Get-Item $item."$( $n )".FullName
-							}
 						}
-					}
-			}
-
-			if ( $null -ne $item.EnableQuickAccess )
-			{
-				$syncHash.Data.QuickAccessWordList."$( $item.EnableQuickAccess )" = $item
-			}
-
-			try
-			{
-				if ( $Rs.Source.Name -notcontains $item.Name )
-				{
-					$Rs.Source.Add( $item )
 				}
-			}
-			catch
-			{
-				Write-Host $key
-				break
+
+				if ( $null -ne $item.EnableQuickAccess )
+				{
+					$syncHash.Data.QuickAccessWordList."$( $item.EnableQuickAccess )" = $item
+				}
+
+				try
+				{
+					if ( $Rs.Source.Name -notcontains $item.Name )
+					{
+						$Rs.Source.Add( $item )
+					}
+				}
+				catch
+				{
+					Write-Host $key
+					break
+				}
 			}
 		}
 
@@ -879,7 +874,7 @@ function Get-ModuleFunctions
 
 	$Tokens = $null
 	$Errors = $null
-	$Ast = [System.Management.Automation.Language.Parser]::ParseInput( $code, [ref]$Tokens, [ref]$Errors )
+	$Ast = [System.Management.Automation.Language.Parser]::ParseInput( $Code, [ref]$Tokens, [ref]$Errors )
 
 	$FuncAsts = $Ast.FindAll( {
 		param( $n ) $n -is [System.Management.Automation.Language.FunctionDefinitionAst]
@@ -899,7 +894,7 @@ function Get-ModuleFunctions
 		$HelpBlock = $Matches[0]
 
 		$MiObject = [pscustomobject]@{ Name = $f.Name }
-		$MiObject = GetScriptInfo -Text $helpBlock -InfoObject $MiObject -NoErrorRecord
+		$MiObject = GetScriptInfo -Text $HelpBlock -InfoObject $MiObject -NoErrorRecord
 
 		if ( $null -eq $MiObject )
 		{
@@ -911,7 +906,7 @@ function Get-ModuleFunctions
 			$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'ObjectClass', ( $ModuleName -replace "Functions$" ) ) )
 		}
 
-		Add-MenuItem $MiObject "$( $ModuleName )Functions"
+		Add-MenuListItem $MiObject "$( $ModuleName )Functions"
 	}
 }
 
@@ -955,14 +950,10 @@ function Load-OtherMenus
 		ForEach-Object {
 			$MiObject = $File = $null
 			$File = $_
-			$MiObject = GetScriptInfo -FilePath $File.FullName -NoErrorRecord
-
-			if (
-				-not ( $MiObject | Get-Member -Name "RequiredAdGroups" ) -and -not ( $MiObject | Get-Member -Name "AllowedUsers" ) -or`
-				$MiObject.AllowedUsers -match ( [Environment]::UserName ) -or`
-				$syncHash.Data.UserGroups.Where( { $MiObject.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0
-			)
+			try
 			{
+				$MiObject = GetScriptInfo -FilePath $File.FullName
+
 				$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'BaseDir', $File.Directory.FullName ) )
 				$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'PageObject', $null ) )
 				$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Process', $null ) )
@@ -973,24 +964,163 @@ function Load-OtherMenus
 				{
 					$xamlPath = Get-Item ( Join-Path $syncHash.Data.BaseDir ( "Gui\{0}.xaml" -f $File.BaseName ) )
 
-					if ( Test-Path -LiteralPath $xamlPath )
+					if ( [System.IO.File]::Exists( $xamlPath ) )
 					{
 						$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( 'Xaml', $xamlPath ) )
 					}
 
 					$locPath = Get-Item ( Join-Path $syncHash.Data.BaseDir ( "Localization\{0}\{1}.psd1" -f $syncHash.Data.Culture.Name, $File.BaseName ) )
-					if ( -not ( Test-Path -LiteralPath $locPath.FullName ) )
+					if ( -not ( [System.IO.File]::Exists( $locPath.FullName ) ) )
 					{
 						$locPath = Get-Item ( Join-Path $syncHash.Data.BaseDir ( "Localization\sv-SE\{0}.psd1" -f $File.BaseName ) )
 					}
 					$MiObject.PSObject.Properties.Add( [psnoteproperty]::new( "Localization", $locPath ) )
 				}
 
-				Add-MenuItem $MiObject
+				Add-MenuListItem $MiObject
+			}
+			catch
+			{
+				Write-Error "$( $syncHash.Data.msgTable.ErrToolNoValidScriptInfo )`n$_"
 			}
 		}
 
 	$syncHash.Data.ToolsLoaded = $true
+}
+
+function Load-PagedTool
+{
+	param ( $ModuleName, $DataContext )
+
+	try
+	{
+		$page = CreatePage -FilePath $DataContext.Xaml
+		$page.Data.BaseDir = $syncHash.Data.BaseDir
+		$page.Data.ModuleStartup = Get-Date
+		$page.Data.msgTable = Import-LocalizedData -BaseDirectory $DataContext.Localization.Directory.FullName -FileName $DataContext.Localization.Name
+		$page.Data.Modules = Get-Module
+		$page.Data.MainWindow = $syncHash.Window
+		$page.Data.ScriptInfo = $DataContext
+		$page.Page.DataContext = [pscustomobject]@{
+			MsgTable = $page.Data.msgTable
+		}
+		$DataContext.PageObject = $page
+		$syncHash.Window.Resources.Add( "LoadedPage$( $ModuleName )" , $page )
+
+		Import-Module $DataContext.PS -ArgumentList $page -Verbose:$false -Force | Out-Null
+
+		if ( $DataContext.Name -eq "Send-Feedback" )
+		{
+			if ( $null -eq $syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsFunctions'].Source )
+			{
+				# Insert a reference to all functions and tools
+				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalPropHandlers'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+
+				$syncHash.Window.Resources.GetEnumerator() | `
+					Where-Object { $_.Name -match "^CvsMi(?!(O365)|(Output))" } | `
+					Sort-Object -Property Name | `
+					ForEach-Object {
+						try
+						{
+							$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalFunctions'].Source.Add( ( [pscustomobject]@{
+								MenuItem = $syncHash."$( $_.Name -replace "^Cvs" )".Header.Children[1].Text
+								Module = $_.Name -replace "^CvsMi" -replace "Sub.*$"
+								Items = $_.Value.Source | Sort-Object MenuItem
+							} ) )
+						}
+						catch {}
+					}
+
+				$syncHash.Code.PropHandlers.GetEnumerator() | `
+					Where-Object { $_.Value.Count -ne 0 } | `
+					ForEach-Object {
+						$Items = $_.Value.GetEnumerator() | `
+							ForEach-Object {
+								$Item = $_.Value.psobject.Copy()
+								if ( $null -eq ( $Item | Get-Member -MemberType NoteProperty | Where-Object { $_.Name -match "Author" } ) )
+								{
+									$Item.PSObject.Properties.Add( [psnoteproperty]::new( 'Author', "-" ) )
+								}
+								$Item.PSObject.Properties.Add( [psnoteproperty]::new( 'MenuItem', ( ( $_.Name -split $_.Value.MandatorySource )[1] ) ) )
+								$Item
+							} | `
+							Sort-Object MenuItem
+						$PH = [pscustomobject]@{
+							MenuItem = $_.Name
+							Items = $Items
+						}
+						$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalPropHandlers'].Source.Add( $PH )
+					}
+			}
+		}
+		elseif ( $DataContext.Name -eq "Show-About" )
+		{
+			$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Data.SuiteBaseName = ( Get-Item $PSCommandPath ).BaseName
+			$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Data.SuiteSettings = $syncHash.Data.UserSettings
+			$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
+			$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsQuickAccessWordList'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
+			$syncHash.Data.QuickAccessWordList.GetEnumerator() | `
+				ForEach-Object {
+					$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsQuickAccessWordList'].Source.Add( $_ ) | Out-Null
+				}
+		}
+		elseif ( $DataContext.Name -eq "Open-Admin" )
+		{
+			$MenuItemsHash = $syncHash.Window.Resources.GetEnumerator() | `
+				Where-Object { $_.Name -match "^CvsMi((?!(O365)|(Sub)).)*$" } | `
+				ForEach-Object {
+					$ResourceName = $_.Name
+					$N = $_.Name -replace "CvsMi" -replace "Functions"
+					$_.Value.Source | `
+						Where-Object { -not $_.IsSubMenuHeader } | `
+						ForEach-Object {
+							$SO = 0
+							switch -Regex ( $N )
+							{
+								"User" { $SO = 0 }
+								"DirectoryInfo" { $SO = 1 }
+								"FileInfo" { $SO = 2 }
+								"Computer" { $SO = 3 }
+								"Group" { $SO = 4 }
+								"PrintQueue" { $SO = 5 }
+								"Other" { $SO = 6 }
+								"Tools" { $SO = 7 }
+								"SeparateTools" { $SO = 8 }
+								"About" { $SO = 9 }
+							}
+							[pscustomobject]@{
+								N = "$( $SO )_$( $N )_$( $syncHash."$( $ResourceName -replace "^Cvs" )".Header.Children[1].Text )"
+								MenuItem = $_.MenuItem
+								Description = $_.Description
+								SearchedItemRequest = $_.SearchedItemRequest
+								Separate = $_.Separate
+								State = $_.State
+								RequiredAdGroups = $_.RequiredAdGroups
+								Name = $_.Name
+							}
+						}
+				} | Group-Object -AsHashTable -Property N
+
+			$SubMenus = $syncHash.Window.Resources.GetEnumerator() | `
+				Where-Object { $_.Name -match "^CvsMi.*FunctionsSub.*$" }
+			$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['MenuItemsHash'] = $MenuItemsHash
+			$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['SubMenus'] = $SubMenus
+			$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Data.SuiteBaseName = ( Get-Item $PSCommandPath ).BaseName
+			$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['PropHandlerNames'] = $syncHash.Code.PropHandlers.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator() } | ForEach-Object { $_.Name }
+		}
+	}
+	catch
+	{
+		if ( "NotPage" -eq $_.Exception.Message )
+		{
+			Show-MessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
+		}
+		elseif ( $_.Exception.Message -notmatch "Item has already been added.*$( $ModuleName )" )
+		{
+			Show-MessageBox -Text "Load-PagedTool:`n$_"
+		}
+	}
 }
 
 function New-SearchedItem
@@ -1225,14 +1355,14 @@ function Open-SeparateTool
 		Start a tool which handles its own GUI
 	#>
 
-	param ( $SenderObject )
+	param ( $DataContext )
 
-	$ToolKey = $SenderObject.DataContext.MenuKey
+	$ToolKey = $DataContext.MenuKey
 	$proc = Get-OpenedSeparateToolProcess -ToolKey $ToolKey
 
 	if ( $null -eq $proc )
 	{
-		Start-SeparateTool $SenderObject
+		Start-SeparateTool $DataContext
 		return
 	}
 
@@ -1763,12 +1893,12 @@ function Start-Search
 
 function Start-SeparateTool
 {
-	param ( $SenderObject )
+	param ( $DataContext )
 
-	$ToolKey = $SenderObject.DataContext.MenuKey
+	$ToolKey = $DataContext.MenuKey
 
 	$proc = Start-Process powershell `
-		-ArgumentList $SenderObject.DataContext.Ps, $syncHash.Data.BaseDir `
+		-ArgumentList $DataContext.Ps, $syncHash.Data.BaseDir `
 		-WindowStyle Hidden `
 		-PassThru
 
@@ -1777,6 +1907,7 @@ function Start-SeparateTool
 	$syncHash.Data.SeparateToolWindows[$ToolKey] = [pscustomobject]@{
 		ProcessId = $proc.Id
 		Handle = $handle
+		ToolStartup = Get-Date
 	}
 
 	Register-ObjectEvent -InputObject $proc -EventName Exited -MessageData $ToolKey -Action {
@@ -2084,6 +2215,75 @@ function Submit-ListProperties
 	$syncHash.ChbPropFilterVisible.IsChecked = $true
 	$syncHash.ChbPropFilterNotVisible.IsChecked = $true
 	$syncHash.Window.Resources['CvsDetailedProps'].View.Refresh()
+}
+
+function Test-FileUpdated
+{
+	<#
+	.Synopsis
+		Check if a file has been changed since last read
+	#>
+
+	param ( $TestObject )
+
+	if ( $null -eq $TestObject )
+	{
+		return $false
+	}
+	elseif ( $TestObject -is [PsModuleInfo] )
+	{
+		return ( Get-Item $TestObject.Path ).LastWriteTime -gt $syncHash."Mi$( $TestObject.Name )".Tag
+	}
+	else
+	{
+		if ( $TestObject.DataContext.Separate )
+		{
+			return ( Get-Item -Path $TestObject.DataContext.Ps ).LastWriteTime -gt $syncHash.Data.SeparateToolWindows[ $TestObject.DataContext.MenuKey ].ToolStartup
+		}
+		else
+		{
+			$name = $TestObject.DataContext.Name -replace "\W"
+			$ModuleData = $syncHash.Window.Resources."LoadedPage$( $name )".Data
+			$ModuleStartup = $ModuleData.ModuleStartup
+
+			# Check if tool has been updated after last it was started/accessed
+			return ( Get-Item -Path $ModuleData.ScriptInfo.Ps ).LastWriteTime -gt $ModuleStartup -or `
+				( Get-Item -Path $ModuleData.ScriptInfo.Xaml ).LastWriteTime -gt $ModuleStartup -or `
+				( Get-Item -Path $ModuleData.ScriptInfo.Localization ).LastWriteTime -gt $ModuleStartup
+		}
+	}
+}
+
+function Test-UsePermission
+{
+	param ( $MiItem )
+
+	if ( $MiItem.State -eq "Dev" )
+	{
+		$StateApproved = $PSCommandPath -match "(Development)|(User)"
+	}
+	else
+	{
+		$StateApproved = $true
+	}
+
+	# Check permissions for using the function or tool that MiObject refers to
+	if (
+		( -not ( $MiItem | Get-Member -Name "RequiredAdGroups" ) -and `
+			-not ( $MiItem | Get-Member -Name "AllowedUsers" ) -or `
+			$MiItem.AllowedUsers -match ( [Environment]::UserName ) -or `
+			$syncHash.Data.UserGroups.Where( { $MiItem.RequiredAdGroups -match "$( $_ )\b" } ).Count -gt 0 ) -and `
+		$StateApproved -and `
+		( $MiItem.ValidDateApproved -in $null, $true )
+	)
+	{
+		return $true
+	}
+	else
+	{
+		return $false
+	}
+
 }
 
 function Wait-ForMainWindowHandle
@@ -2530,7 +2730,13 @@ $syncHash.Code.SBlockExecuteFunction = {
 	if ( -not $ScriptObject.NoRunspace )
 	{
 		Add-Type -AssemblyName PresentationFramework
-		Import-Module ( $Modules | Where-Object { Test-Path $_.Path } ) -WarningAction SilentlyContinue -Verbose:$false
+		foreach( $m in $Modules )
+		{
+			if ( [System.IO.File]::Exists( $m.Path ) )
+			{
+				Import-Module $m -WarningAction SilentlyContinue -Verbose:$false -Force
+			}
+		}
 	}
 
 	$Info = [pscustomobject]@{
@@ -3310,191 +3516,124 @@ $(
 		Search
 	#>
 
-	function Load-PagedTool
-	{
-		param ( $ModuleName )
-
-		try
-		{
-			$page = CreatePage -FilePath $SenderObject.DataContext.Xaml
-			$page.Data.ModuleStartup = Get-Date
-			$syncHash.Data.Test = $SenderObject
-			$page.Data.msgTable = Import-LocalizedData -BaseDirectory $SenderObject.DataContext.Localization.Directory.FullName -FileName $SenderObject.DataContext.Localization.Name
-			$page.Data.Modules = Get-Module
-			$page.Data.MainWindow = $syncHash.Window
-			$page.Data.ScriptInfo = $SenderObject.DataContext
-			$page.Page.DataContext = [pscustomobject]@{
-				MsgTable = $page.Data.msgTable
-			}
-			$SenderObject.DataContext.PageObject = $page
-			$syncHash.Window.Resources.Add( "LoadedPage$( $ModuleName )" , $page )
-
-			Import-Module $SenderObject.DataContext.PS -ArgumentList $page -Verbose:$false -Force | Out-Null
-
-			if ( $SenderObject.DataContext.Name -eq "Send-Feedback" )
-			{
-				if ( $null -eq $syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsFunctions'].Source )
-				{
-					# Insert a reference to all functions and tools
-					$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalFunctions'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-					$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalPropHandlers'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-
-					$syncHash.Window.Resources.GetEnumerator() | `
-						Where-Object { $_.Name -match "^CvsMi(?!(O365)|(Output))" } | `
-						Sort-Object -Property Name | `
-						ForEach-Object {
-							try
-							{
-								$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalFunctions'].Source.Add( ( [pscustomobject]@{
-									MenuItem = $syncHash."$( $_.Name -replace "^Cvs" )".Header.Children[1].Text
-									Items = $_.Value.Source | Sort-Object MenuItem
-								} ) )
-							}
-							catch {}
-						}
-
-					$syncHash.Code.PropHandlers.GetEnumerator() | `
-						Where-Object { $_.Value.Count -ne 0 } | `
-						ForEach-Object {
-							$Items = $_.Value.GetEnumerator() | `
-								ForEach-Object {
-									$Item = $_.Value.psobject.Copy()
-									if ( $null -eq ( $Item | Get-Member -MemberType NoteProperty | Where-Object { $_.Name -match "Author" } ) )
-									{
-										$Item.PSObject.Properties.Add( [psnoteproperty]::new( 'Author', "-" ) )
-									}
-									$Item.PSObject.Properties.Add( [psnoteproperty]::new( 'MenuItem', ( ( $_.Name -split $_.Value.MandatorySource )[1] ) ) )
-									$Item
-								} | `
-								Sort-Object MenuItem
-							$PH = [pscustomobject]@{
-								MenuItem = $_.Name
-								Items = $Items
-							}
-							$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsHierarchicalPropHandlers'].Source.Add( $PH )
-						}
-				}
-			}
-			elseif ( $SenderObject.DataContext.Name -eq "Show-About" )
-			{
-				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Data.SuiteBaseName = ( Get-Item $PSCommandPath ).BaseName
-				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Data.SuiteSettings = $syncHash.Data.UserSettings
-				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['Version'] = "3 - $( ( Get-Date ( Get-Item $PSCommandPath ).LastWriteTime ).ToShortDateString() )"
-				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsQuickAccessWordList'].Source = [System.Collections.ObjectModel.ObservableCollection[object]]::new()
-				$syncHash.Data.QuickAccessWordList.GetEnumerator() | `
-					ForEach-Object {
-						$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['CvsQuickAccessWordList'].Source.Add( $_ ) | Out-Null
-					}
-			}
-			elseif ( $SenderObject.DataContext.Name -eq "Open-Admin" )
-			{
-				$MenuItemsHash = $syncHash.Window.Resources.GetEnumerator() | `
-					Where-Object { $_.Name -match "^CvsMi((?!(O365)|(Sub)).)*$" } | `
-					ForEach-Object {
-						$ResourceName = $_.Name
-						$N = $_.Name -replace "CvsMi" -replace "Functions"
-						$_.Value.Source | `
-							Where-Object { -not $_.IsSubMenuHeader } | `
-							ForEach-Object {
-								$SO = 0
-								switch -Regex ( $N )
-								{
-									"User" { $SO = 0 }
-									"DirectoryInfo" { $SO = 1 }
-									"FileInfo" { $SO = 2 }
-									"Computer" { $SO = 3 }
-									"Group" { $SO = 4 }
-									"PrintQueue" { $SO = 5 }
-									"Other" { $SO = 6 }
-									"Tools" { $SO = 7 }
-									"SeparateTools" { $SO = 8 }
-									"About" { $SO = 9 }
-								}
-								[pscustomobject]@{
-									N = "$( $SO )_$( $N )_$( $syncHash."$( $ResourceName -replace "^Cvs" )".Header.Children[1].Text )"
-									MenuItem = $_.MenuItem
-									Description = $_.Description
-									SearchedItemRequest = $_.SearchedItemRequest
-									Separate = $_.Separate
-									State = $_.State
-									RequiredAdGroups = $_.RequiredAdGroups
-									Name = $_.Name
-								}
-							}
-					} | Group-Object -AsHashTable -Property N
-
-				$SubMenus = $syncHash.Window.Resources.GetEnumerator() | `
-					Where-Object { $_.Name -match "^CvsMi.*FunctionsSub.*$" }
-				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['MenuItemsHash'] = $MenuItemsHash
-				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['SubMenus'] = $SubMenus
-				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Data.SuiteBaseName = ( Get-Item $PSCommandPath ).BaseName
-				$syncHash.Window.Resources["LoadedPage$( $ModuleName )"].Page.Resources['PropHandlerNames'] = $syncHash.Code.PropHandlers.GetEnumerator() | ForEach-Object { $_.Value.GetEnumerator() } | ForEach-Object { $_.Name }
-			}
-		}
-		catch
-		{
-			if ( "NotPage" -eq $_.Exception.Message )
-			{
-				Show-MessageBox -Text $syncHash.Data.msgTable.ErrToolGuiNotPage
-			}
-			elseif ( $_.Exception.Message -notmatch "Item has already been added.*$( $ModuleName )" )
-			{
-				Show-MessageBox -Text $_
-			}
-		}
-	}
-
 	if ( $SenderObject.DataContext.IsSubMenuHeader -ne 1 )
 	{
-		# Menuitem represents a tool
-		if ( $SenderObject.DataContext.PS -ne $null )
-		{
-			# The tool has Xaml to be shown in main window
-			if ( $SenderObject.DataContext.Separate -eq $false )
-			{
-				$name = $SenderObject.DataContext.Name -replace "\W"
-				#Check if tool already is loaded
-				if ( -not ( $syncHash.Window.Resources.Keys.Contains( "LoadedPage$( $name )" ) ) )
-				{
-					Load-PagedTool -ModuleName $name
-				}
-				elseif ( $syncHash.Window.Resources.Keys.Contains( "LoadedPage$( $name )" ) )
-				{
-					$ModuleStartup = $syncHash.Window.Resources."LoadedPage$( $name )".Data.ModuleStartup
+		$PermOk = $true
 
-					# Check if tool has been updated after last it was started/accessed
-					if ( ( Get-Item -Path $syncHash.Window.Resources."LoadedPage$( $name )".Data.ScriptInfo.Ps ).LastWriteTime -gt $ModuleStartup -or `
-						( Get-Item -Path $syncHash.Window.Resources."LoadedPage$( $name )".Data.ScriptInfo.Xaml ).LastWriteTime -gt $ModuleStartup -or `
-						( Get-Item -Path $syncHash.Window.Resources."LoadedPage$( $name )".Data.ScriptInfo.Localization ).LastWriteTime -gt $ModuleStartup
-					)
+		# Menuitem represents a tool
+		if ( $SenderObject.DataContext.PS )
+		{
+			if ( $SenderObject.DataContext.Separate )
+			{
+				$TempSo = $SenderObject.PsObject.Copy()
+				$TempDc = $SenderObject.DataContext.PsObject.Copy()
+				$FullName = $SenderObject.DataContext.Name
+				# The tool is handling its GUI by itself, in separate window
+
+				if ( $null -ne $syncHash.Data.SeparateToolWindows[ $SenderObject.DataContext.MenuKey ] )
+				{
+					if ( Test-FileUpdated $SenderObject )
 					{
-						$syncHash.Window.Resources.Remove( "LoadedPage$( $name )" )
-						Remove-Module $SenderObject.DataContext.Name
 						Show-Splash -Text $syncHash.Data.msgTable.StrPagedModuleUpdated -NoProgressBar -NoTitle -SelfAdmin
-						Load-PagedTool -ModuleName $name
+						$OpenedWindow = $syncHash.Data.SeparateToolWindows[ $SenderObject.DataContext.MenuKey ]
+						$P = Get-Process -Id $OpenedWindow.ProcessId
+						$P.CloseMainWindow()
+						$P.Close()
+
+						$ObjectClass = if ( $SenderObject.DataContext.ObjectClass ) { $SenderObject.DataContext.ObjectClass } else { $SenderObject.DataContext.ObjectOperations }
+						$ModuleName = switch( $ObjectClass )
+						{
+							"None" { "Tools" }
+							$null { "Tools" }
+							"Suite" { "About" }
+							default { "$( $_ )Functions" }
+						}
+						Clear-TopMenu -ModuleName $ModuleName
+						Generate-Menus -Refresh
+
+						$TempDc = $syncHash."Mi$( $ModuleName )".Items.Where( { $_.Name -eq $FullName } )[0]
+						$PermOk = $null -ne $TempDc
 						Close-SplashScreen
 					}
 				}
 
-				# Copy SearchedItem to page resource
-				if ( $SenderObject.DataContext.ObjectOperations -eq $syncHash.Data.SearchedItem.ObjectClass )
+				if ( $PermOk )
 				{
-					$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['SearchedItem'] = $syncHash.Data.SearchedItem
+					Open-SeparateTool $TempDc
 				}
-
-				if ( $SenderObject -is [pscustomobject] )
+				else
 				{
-					$syncHash.Window.Resources["LoadedPage$( $name )"].Page.Resources['QuickAccessParam'] = ( $syncHash.DC.TbSearch[0] -split " ", 2 )[1]
-					$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Hidden
-					$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Visible
+					Display-View -ViewName "None"
+					Show-Splash -Text $syncHash.Data.msgTable.ErrNewUsePermissions -NoProgressBar -Duration 3
 				}
-				Display-View -ViewName 'FrameTool'
-				$syncHash.FrameTool.Navigate( $syncHash.Window.Resources["LoadedPage$( $name )"].Page )
 			}
-			# The tool is handling its GUI by itself, in separate window
 			else
 			{
-				Open-SeparateTool $SenderObject
+				# The tool has Xaml to be shown in main window
+
+				$LoadedName = $SenderObject.DataContext.Name -replace "\W"
+				$FullName = $SenderObject.DataContext.Name
+				$TempDc = $SenderObject.DataContext.PsObject.Copy()
+				$TempSo = $SenderObject.PsObject.Copy()
+
+				#Check if tool already is loaded
+				if ( $syncHash.Window.Resources.Keys.Contains( "LoadedPage$( $LoadedName )" ) )
+				{
+					# Check if tool has been updated after last it was started/accessed
+					if ( Test-FileUpdated $SenderObject )
+					{
+						Show-Splash -Text $syncHash.Data.msgTable.StrPagedModuleUpdated -NoProgressBar -NoTitle -SelfAdmin
+						$syncHash.Window.Resources.Remove( "LoadedPage$( $LoadedName )" )
+						Remove-Module $SenderObject.DataContext.Name -Verbose:$false
+
+						$ObjectClass = if ( $SenderObject.DataContext.ObjectClass ) { $SenderObject.DataContext.ObjectClass } else { $SenderObject.DataContext.ObjectOperations }
+						$ModuleName = switch( $ObjectClass )
+						{
+							"None" { "Tools" }
+							$null { "Tools" }
+							"Suite" { "About" }
+							default { "$( $_ )Functions" }
+						}
+						Clear-TopMenu -ModuleName $ModuleName
+						Generate-Menus -Refresh
+
+						$TempDc = $syncHash."Mi$( $ModuleName )".Items.Where( { $_.Name -eq $FullName } )[0]
+						$PermOk = $null -ne $TempDc
+						Close-SplashScreen
+					}
+				}
+
+				if ( $PermOk )
+				{
+					try
+					{
+						Load-PagedTool -ModuleName $LoadedName -DataContext $TempDc
+
+						# Copy SearchedItem to page resource
+						if ( $TempDc.ObjectOperations -eq $syncHash.Data.SearchedItem.ObjectClass )
+						{
+							$syncHash.Window.Resources["LoadedPage$( $LoadedName )"].Page.Resources['SearchedItem'] = $syncHash.Data.SearchedItem
+						}
+
+						if ( $TempSo -is [pscustomobject] )
+						{
+							$syncHash.Window.Resources["LoadedPage$( $LoadedName )"].Page.Resources['QuickAccessParam'] = ( $syncHash.DC.TbSearch[0] -split " ", 2 )[1]
+							$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Hidden
+							$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Visible
+						}
+						$syncHash.FrameTool.Navigate( $syncHash.Window.Resources["LoadedPage$( $LoadedName )"].Page )
+					}
+					catch
+					{
+						
+					}
+					Display-View -ViewName 'FrameTool'
+				}
+				else
+				{
+					Display-View -ViewName "None"
+					Show-Splash -Text $syncHash.Data.msgTable.ErrNewUsePermissions -NoProgressBar -Duration 3
+				}
 			}
 		}
 		# The menuitem represents a function
@@ -3557,39 +3696,59 @@ $(
 					$Page = 'ProgressPage'
 				}
 			}
-			Display-View -ViewName 'FrameTool' -PageName $Page
 
-			if ( $null -eq ( Get-Module "$( $SenderObject.DataContext.ObjectClass )Functions" ) )
+			$syncHash.TempSo = $SenderObject.PSObject.Copy()
+			$syncHash.TempSoDc = $SenderObject.DataContext.PSObject.Copy()
+			$ObjectClass = if ( $SenderObject.DataContext.ObjectClass ) { $SenderObject.DataContext.ObjectClass } else { $SenderObject.DataContext.ObjectOperations }
+			$FunctionModule = Get-Module "$( $ObjectClass )Functions"
+
+			if ( Test-FileUpdated $FunctionModule )
 			{
-				Import-Module "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\$( $SenderObject.DataContext.ObjectClass )Functions.psm1" -Force | Out-Null
-			}
-			elseif ( ( Get-Item ( Get-Module ( Get-Command $SenderObject.DataContext.Name ).Source ).Path ).LastWriteTime -gt $syncHash."Mi$( ( Get-Command $SenderObject.DataContext.Name ).Source )".Tag )
-			{
-				$TempSO = $SenderObject.psobject.Copy()
-				$TempSODC = $SenderObject.DataContext.psobject.Copy()
-				$ModuleName = ( Get-Command $TempSO.DataContext.Name ).Source
-				Show-Splash -Text "$( $syncHash."Mi$( $ModuleName )".Header.Children[1].Text )$( $syncHash.Data.msgTable.StrFunctionModuleUpdated )`n$( $syncHash.Data.msgTable.StrFunctionModuleUpdated2 )" -NoProgressBar -NoTitle -SelfAdmin
-				Clear-TopMenu -ModuleName $ModuleName
-				Generate-Menus
-				$SenderObject = $TempSO.psobject.Copy()
-				$SenderObject.DataContext = $TempSODC.psobject.Copy()
+				Show-Splash -Text "$( $syncHash."Mi$( $FunctionModule.Name )".Header.Children[1].Text )$( $syncHash.Data.msgTable.StrFunctionModuleUpdated )`n$( $syncHash.Data.msgTable.StrFunctionModuleUpdated2 )" -NoProgressBar -NoTitle -SelfAdmin
+				Clear-TopMenu -ModuleName $FunctionModule.Name
+				Remove-Module $FunctionModule -Force -Verbose:$false
+				Generate-Menus -Refresh
+
+				$syncHash.Data.NewSenderObject = $syncHash.Window.Resources.GetEnumerator().Where( { $_.Key -match "^CvsMi$( $ObjectClass )" } ).Value.Source.Where( { $_.Name -eq $syncHash.TempSoDc.Name } )[0]
+				$PermOk = $null -ne $syncHash.Data.NewSenderObject
+
 				Close-SplashScreen
+				if ( $PermOk )
+				{
+					$SenderObject = [pscustomobject]@{
+						DataContext = $syncHash.Data.NewSenderObject
+					}
+				}
 			}
 
-			$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
-			if ( $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count -gt 0 -or `
-				$syncHash.GridFunctionOp.DataContext.Note.NoteType -eq "Warning"
-			)
+			if ( $null -eq ( Get-Module "$( $ObjectClass )Functions" ) )
 			{
-				$syncHash.BtnEnterFunctionInput.IsEnabled = $false
-				$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count
+				Import-Module "$( $syncHash.Data.BaseDir )\Modules\FunctionModules\$( $ObjectClass )Functions.psm1" -Force -Verbose:$false | Out-Null
+			}
+
+			if ( $PermOk )
+			{
+				Display-View -ViewName 'FrameTool' -PageName $Page
+				$syncHash.GridFunctionOp.DataContext = $SenderObject.DataContext
+				if ( $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count -gt 0 -or `
+					$syncHash.GridFunctionOp.DataContext.Note.NoteType -eq "Warning"
+				)
+				{
+					$syncHash.BtnEnterFunctionInput.IsEnabled = $false
+					$syncHash.DC.TblUnfinishedInputCount[0] = $syncHash.GridFunctionOp.DataContext.InputData.Where( { $_.Mandatory } ).Count
+				}
+				else
+				{
+					$syncHash.BtnEnterFunctionInput.IsEnabled = $true
+				}
+
+				Prepare-ToRunScript $SenderObject.DataContext
 			}
 			else
 			{
-				$syncHash.BtnEnterFunctionInput.IsEnabled = $true
+				Display-View -ViewName "None"
+				Show-Splash -Text $syncHash.Data.msgTable.ErrNewUsePermissions -NoProgressBar -Duration 3
 			}
-
-			Prepare-ToRunScript $SenderObject.DataContext
 		}
 	}
 	WriteLog -Text "$( $syncHash.Data.msgTable.LogToolStarted ) $( $SenderObject.DataContext.Name )" -Success $true | Out-Null
