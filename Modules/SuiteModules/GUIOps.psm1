@@ -335,12 +335,38 @@ function Close-SplashScreen
 
 	param ( [int] $Duration )
 
-	if ( $Duration )
+	if ( $null -eq $Script:SplashHash -or ( -not $Script:SplashHash.Contains( "Window" ) ) )
 	{
-		Start-Sleep -Seconds $Duration
+		return
 	}
-	$Script:SplashHash.Window.Dispatcher.Invoke( "Normal", [action]{ $Script:SplashHash.Window.Close() } )
-	$Script:SplashShell.EndInvoke( $SplashHandle ) | Out-Null
+
+	try
+	{
+		if ( $Duration )
+		{
+			Start-Sleep -Seconds $Duration
+		}
+
+		if ( $Script:SplashHash.Window.Dispatcher.CheckAccess() )
+		{
+			$Script::SplashHash.Window.Close()
+		}
+		else
+		{
+			$Script:SplashHash.Window.Dispatcher.Invoke( [action] {
+				$Script:SplashHash.Window.Close()
+			} )
+		}
+
+		$Script:SplashShell.EndInvoke( $Script:SplashHandle ) | Out-Null
+	}
+	catch
+	{}
+	finally
+	{
+		$Script:SplashHash = $null
+		$Script:SplashWindow = $null
+	}
 }
 
 function Set-SplashTopMost
@@ -533,7 +559,6 @@ function Show-Splash
 		[switch] $SelfAdmin
 	)
 
-	$LabelText = $Text
 	$Script:SplashHash = [hashtable]::Synchronized( @{} )
 
 	if ( $NoProgressBar ) { $ProgressBarVisibility = "Collapsed" }
@@ -549,7 +574,7 @@ function Show-Splash
 	$SplashRunspace.ThreadOptions = "ReuseThread"
 	$SplashRunspace.Open()
 	$SplashRunspace.SessionStateProxy.SetVariable( "hash", $Script:SplashHash )
-	$SplashRunspace.SessionStateProxy.SetVariable( "LabelText", $LabelText )
+	$SplashRunspace.SessionStateProxy.SetVariable( "LabelText", $Text )
 	$SplashRunspace.SessionStateProxy.SetVariable( "Title", $Title )
 	$SplashRunspace.SessionStateProxy.SetVariable( "ProgressBarVisibility", $ProgressBarVisibility )
 	$SplashRunspace.SessionStateProxy.SetVariable( "ProgressIndeterminate", $ProgressIndeterminate )
@@ -612,16 +637,16 @@ function Show-Splash
 
 		$hash.Window.ShowDialog()
 	} ) | Out-Null
-	# Open splash screen
 
+	# Open splash screen
 	Start-SplashScreen
 
+	$Script:SplashHash.Shell = $Script:SplashShell
 	if ( -not $SelfAdmin )
 	{
 		Start-Sleep -Seconds $Duration
 		Close-SplashScreen
 	}
-	$Script:SplashHash.Shell = $Script:SplashShell
 }
 
 function Start-SplashScreen
@@ -633,6 +658,11 @@ function Start-SplashScreen
 
 	$Script:SplashShell.Runspace = $SplashRunspace
 	$Script:SplashHandle = $Script:SplashShell.BeginInvoke()
+	do
+	{
+		Start-Sleep -Milliseconds 100
+	} until ( $null -ne $Script:SplashHash.Window )
+	$Script:SplashWindow = $Script:SplashHash.Window
 }
 
 function Update-SplashProgress
