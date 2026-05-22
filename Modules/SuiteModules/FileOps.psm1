@@ -100,7 +100,7 @@ class Log
 	[array] $ErrorLogDate
 	[string] $ErrorLogFile
 	[array] $OutputFile
-	[string] $LogDate
+	[datetime] $LogDate
 	[string] $Operator
 
 	Log()
@@ -118,7 +118,7 @@ class Log
 
 	Log ( [pscustomobject] $o )
 	{
-		$this.LogDate = $o.LogDate
+		$this.LogDate = [datetime] $o.LogDate
 		$this.LogText = $o.LogText
 		$this.UserInput = $o.UserInput
 		$this.Success = $o.Success
@@ -924,6 +924,7 @@ function WriteSurvey
 		An hashtable containing the filepath of file that was writte, and the date/time when the file was written
 	#>
 
+	[CmdletBinding()]
 	param (
 	[Parameter(Mandatory = $true)]
 		[Survey] $Survey,
