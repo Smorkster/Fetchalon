@@ -197,10 +197,10 @@ function Uninstall-SysManPrinter
 	foreach ( $computer in $ComputerNames )
 	{
 		$resp = Invoke-RestMethod -Uri "$( $IntMsgTable.SysManServerUrl )/api/v2/client/find?name=$( $computer )" -Method Get -UseDefaultCredentials -ContentType "application/json"
-		if ( $resp.totalCount -gt 0 )
+		if ( $null -ne $resp )
 		{
 			$FoundComputers.Add( $resp ) | Out-Null
-			$CIdsString.Append( "$( $resp.result[0].id )," ) | Out-Null
+			$CIdsString.Append( "$( $resp.id )," ) | Out-Null
 		}
 		else
 		{
@@ -224,7 +224,7 @@ function Uninstall-SysManPrinter
 				$OpMessage.AppendLine( $FoundPrinters.result.Name ) | Out-Null
 				$OpMessage.AppendLine() | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.UninstallSysManPrinterSuccessComputerTitle ) | Out-Null
-				$OpMessage.AppendLine( $FoundComputers.result.Name ) | Out-Null
+				$OpMessage.AppendLine( $FoundComputers.Name ) | Out-Null
 				$OpMessage.AppendLine() | Out-Null
 				$OpMessage.AppendLine( $IntMsgTable.UninstallSysManPrinterSuccessEnding ) | Out-Null
 
