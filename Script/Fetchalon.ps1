@@ -70,14 +70,14 @@ function Add-MenuListItem
 			$ResourceName = "CvsMiAbout"
 		}
 		elseif (
-		$null -ne $MiObject.ObjectOperations -and `
-			"None" -ne $MiObject.ObjectOperations -and `
-			$null -ne ( $ResourceName = $syncHash.Window.Resources.Keys -match "CvsMi$( $MiObject.ObjectOperations )Functions$" )
+			$null -ne $MiObject.ObjectOperations -and `
+			"None" -ne $MiObject.ObjectOperations
 		)
 		{
+			$ResourceName = "CvsMi$( $MiObject.ObjectOperations )Functions"
 			try
 			{
-				if ( $syncHash.Window.Resources."$( $ResourceName )".Source.Name -match $MiObject.Name )
+				if ( $syncHash.Data.MenuList[ $ResourceName ].Name -match $MiObject.Name )
 				{
 					$ResourceName = $null
 				}
@@ -556,7 +556,7 @@ function Create-SubMenu
 		}
 		catch
 		{
-			Write-Host $CvsTopName
+			Write-Host "Create-SubMenu, Error: $CvsTopName`n $_"
 		}
 	}
 
@@ -596,7 +596,10 @@ function Display-View
 
 	if ( $null -ne $PageName -and
 		"FrameTool" -eq $ViewName -and
-		$PageName -ne $syncHash.FrameTool.Content.Name
+		(
+			$null -eq $syncHash.FrameTool.Content -or
+			$PageName -ne $syncHash.FrameTool.Content.Name
+		)
 	)
 	{
 		$syncHash.FrameTool.Navigate( $syncHash.Window.Resources.$PageName )
@@ -672,6 +675,7 @@ function Generate-Menus
 		{
 			$syncHash.Data."$( $k )" = $false
 		}
+		$syncHash.Data.ToolsLoaded = $false
 	}
 
 	if ( -not [System.IO.File]::Exists( $MenuListFilePath ) )
@@ -736,7 +740,7 @@ function Generate-Menus
 				}
 				catch
 				{
-					Write-Host $key
+					Write-Host "Generate-Menus Error: $key"
 					break
 				}
 			}
@@ -1005,7 +1009,7 @@ function Load-PagedTool
 			MsgTable = $page.Data.msgTable
 		}
 		$DataContext.PageObject = $page
-		$syncHash.Window.Resources.Add( "LoadedPage$( $ModuleName )" , $page )
+		$syncHash.Window.Resources[ "LoadedPage$( $ModuleName )" ] = $page
 
 		Import-Module $DataContext.PS -ArgumentList $page -Verbose:$false -Force | Out-Null
 
@@ -1119,6 +1123,10 @@ function Load-PagedTool
 		elseif ( $_.Exception.Message -notmatch "Item has already been added.*$( $ModuleName )" )
 		{
 			Show-MessageBox -Text "Load-PagedTool:`n$_"
+		}
+		else
+		{
+			throw $_
 		}
 	}
 }
@@ -1860,7 +1868,10 @@ function Start-Search
 
 	if ( $syncHash.Data.QuickAccessWordList.ContainsKey( ( $QAWord = ( $syncHash.DC.TbSearch[0] -split "\s" )[0] ) ) )
 	{
-		$SO = [pscustomobject]@{ DataContext = $syncHash.Data.QuickAccessWordList."$( $QAWord )" }
+		$SO = [pscustomobject]@{
+			DataContext = $syncHash.Data.QuickAccessWordList."$( $QAWord )"
+			RunAsQuickAccess = $true
+		}
 		$syncHash.Code.MenuItemClick.Invoke( $SO, $null )
 	}
 	else
@@ -3602,32 +3613,35 @@ $(
 						Close-SplashScreen
 					}
 				}
+				else
+				{
+					Load-PagedTool -ModuleName $LoadedName -DataContext $TempDc
+				}
 
 				if ( $PermOk )
 				{
 					try
 					{
-						Load-PagedTool -ModuleName $LoadedName -DataContext $TempDc
-
 						# Copy SearchedItem to page resource
 						if ( $TempDc.ObjectOperations -eq $syncHash.Data.SearchedItem.ObjectClass )
 						{
 							$syncHash.Window.Resources["LoadedPage$( $LoadedName )"].Page.Resources['SearchedItem'] = $syncHash.Data.SearchedItem
 						}
 
-						if ( $TempSo -is [pscustomobject] )
+						if ( $TempSo.RunAsQuickAccess )
 						{
 							$syncHash.Window.Resources["LoadedPage$( $LoadedName )"].Page.Resources['QuickAccessParam'] = ( $syncHash.DC.TbSearch[0] -split " ", 2 )[1]
 							$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Hidden
 							$syncHash.FrameTool.Visibility = [System.Windows.Visibility]::Visible
 						}
+						Display-View -ViewName "FrameTool"
 						$syncHash.FrameTool.Navigate( $syncHash.Window.Resources["LoadedPage$( $LoadedName )"].Page )
 					}
 					catch
 					{
-						
+						Write-Host "MenuItemClick Error: $_"
+						Display-View -ViewName "None"
 					}
-					Display-View -ViewName 'FrameTool'
 				}
 				else
 				{
