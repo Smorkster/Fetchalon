@@ -251,7 +251,9 @@ function Get-String
 		Smorkster (smorkster)
 	#>
 
+	Write-Progress "Should write to progress..."
 	WriteLog -Text "Test" -Success $true | Out-Null
+	Write-Progress "Wrote to progress"
 
 	return "A string"
 }
@@ -275,7 +277,7 @@ function Get-StringList
 		Smorkster (smorkster)
 	#>
 
-	$s = [system.collections.arraylist]::new()
+	$s = [System.Collections.Generic.List[string]]::new()
 
 	foreach ( $a in 0..50 ) { [void] $s.Add( "En string" ) }
 
