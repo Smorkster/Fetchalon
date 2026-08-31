@@ -4,7 +4,6 @@ ContentBtnCopyFrom = Copy groups
 ContentBtnPerform = Run
 ContentBtnRefetchGroups = Reload groups
 ContentBtnUndo = Abort
-ContentChbUseSignature = User signature in solution message
 ContentTblAddedUsersTitle = Added permissions
 ContentTblApp = Select application
 ContentTblAppGroupList = Select app group by double clicking

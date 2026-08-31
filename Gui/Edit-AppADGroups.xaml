@@ -292,9 +292,8 @@
                 </Button>
                 <TextBlock Name="TblCopyFromInfo"
                            Grid.ColumnSpan="{Binding RelativeSource={RelativeSource AncestorType=Grid}, Path=ColumnDefinitions.Count}"
-                           Grid.Row="1"
-                           Style="{StaticResource TblBaseStyle}"
-                           TextWrapping="Wrap" />
+                           Grid.Row="1" Style="{StaticResource TblBaseStyle}"
+                           TextWrapping="Wrap"/>
             </Grid>
             <TextBlock Name="TblGroupsChosen"
                        Grid.Row="6"
@@ -399,17 +398,11 @@
               Margin="{StaticResource StdMargin}">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="Auto" />
                 <RowDefinition />
             </Grid.RowDefinitions>
             <TextBlock Name="TblLog"
                        Style="{StaticResource TblTitleStyle}"
                        Text="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentTblLog}" />
-            <CheckBox Name="ChbUseSignature"
-                      Content="{Binding ElementName=Window, Path=DataContext.MsgTable.ContentChbUseSignature}"
-                      Grid.Row="1"
-                      Margin="{StaticResource StdMargin}"
-                      VerticalContentAlignment="Center" />
             <ScrollViewer Grid.Row="2"
                           Margin="{StaticResource StdMargin}"
                           VerticalScrollBarVisibility="Auto">
