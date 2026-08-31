@@ -4,6 +4,7 @@ ContentBtnCopyFrom = Kopiera grupper
 ContentBtnPerform = Utför
 ContentBtnRefetchGroups = Läs in grupper igen
 ContentBtnUndo = Avbryt
+ContentChbUseSignature = Använd signatur i lösningsmeddelande
 ContentTblAddedUsersTitle = Tillagd behörighet
 ContentTblApp = Välj applikation
 ContentTblAppGroupList = Välj app-grupp genom att dubbelklicka
