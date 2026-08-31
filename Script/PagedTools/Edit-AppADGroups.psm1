@@ -313,11 +313,7 @@ function Create-Message
 
 	$Message.AppendLine() | Out-Null
 	$Message.AppendLine( "$( $syncHash.Data.msgTable.StrLogOut )" ) | Out-Null
-
-	if ( $syncHash.DC.ChbUseSignature[0] )
-	{
-		$Message.AppendLine( "$( $syncHash.Data.Signature )" ) | Out-Null
-	}
+	$Message.AppendLine( "$( $syncHash.Data.Signature )" ) | Out-Null
 
 	$OutputEncoding = [System.Text.UnicodeEncoding]::new( $false, $false ).psobject.BaseObject
 	$Message.ToString().Trim() | clip
@@ -335,22 +331,10 @@ function Create-SpecMessage
 
 	if ( $syncHash.AddUsers )
 	{
-		if ( $null -ne $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgNameSplitChar )
-		{
-			$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )".SpecMsgAddIntro ) `n" ) | Out-Null
-			$CN = ( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Name -split "$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgNameSplitChar )" )["$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgNameSplitIndex )"]
-			$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )"."$( $CN )" )" ) | Out-Null
-			$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )".SpecMsgAddOutro ) `n" ) | Out-Null
-		}
-		else
-		{
-			$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )".SpecMsgAddIntro ) `n" ) | Out-Null
-			$syncHash.AddUsers.AD | `
-				ForEach-Object {
-					$Message.AppendLine( "`t$( $_.Name )" ) | Out-Null
-				}
-			$Message.AppendLine( "`n$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )".SpecMsgAddOutro ) `n" ) | Out-Null
-		}
+		$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )".SpecMsgAddIntro ) `n" ) | Out-Null
+		$CN = ( $syncHash.Controls.Window.Resources['CvsSelectedGrps'].Source.Name -split "$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgNameSplitChar )" )["$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgNameSplitIndex )"]
+		$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )"."$( $CN )" )" ) | Out-Null
+		$Message.AppendLine( "$( $syncHash.Data.SpecialMsgEnums."$( $syncHash.Controls.CbApp.SelectedItem.Tag.SpecialMsgEnums )".SpecMsgAddOutro ) `n" ) | Out-Null
 	}
 
 	if ( $syncHash.RemoveUsers )
@@ -505,6 +489,7 @@ function Perform-Permissions
 		{
 			try
 			{
+				#Set-ADAccountPassword -Identity $u.AD -Reset -NewPassword ( ConvertTo-SecureString -AsPlainText $u.PW -Force )
 				Set-ADUser -Identity $u.AD -ChangePasswordAtLogon $false -Confirm:$false
 			}
 			catch
@@ -609,13 +594,39 @@ function Set-Localizations
 	$syncHash.Controls.IcLog.Resources['BrdClick'].Setters.Where( { $_.Event.Name -match "MouseDown" } )[0].Handler = $syncHash.Code.LogItemClickHandler
 
 	$syncHash.Data.SpecialMsgEnums = @{}
-	$syncHash.Data.SpecialMsgEnums.App3 = @{
-		SpecMsgAddIntro = $syncHash.Data.msgTable.StrSpecAddIntroApp3
-		SpecMsgAddOutro = $syncHash.Data.msgTable.StrSpecAddOutroApp3
-		SpecMsgRemoveIntro = $syncHash.Data.msgTable.StrSpecRemIntroApp3
-		Org1 = "Org1"
-		Org2 = "Org2 `n
-Org2"
+	$syncHash.Data.SpecialMsgEnums.SB = @{
+		SpecMsgAddIntro = $syncHash.Data.msgTable.StrSpecAddIntroSB
+		SpecMsgAddOutro = $syncHash.Data.msgTable.StrSpecAddOutroSB
+		SpecMsgRemoveIntro = $syncHash.Data.msgTable.StrSpecRemIntroSB
+		#10100 - 
+		SLSO = "http://servicebarometern-slso.regionstockholm.se/kundsidor/stockholms-lans-sjukvardsomrade `n
+https://servicebarometern.regionstockholm.se/rapport/stockholms-lans-sjukvardsomrade"
+		KS = "https://servicebarometern.regionstockholm.se/kundsidor/karolinska-universitetssjukhuset `n
+https://servicebarometern.regionstockholm.se/rapport/karolinska-universitetssjukhuset"
+		Danderyd = "http://servicebarometern-slso.regionstockholm.se/kundsidor/danderyd `n
+https://servicebarometern.regionstockholm.se/rapport/danderyd"
+		SOS = "https://servicebarometern.regionstockholm.se/kundsidor/sodersjukhuset-ab `n
+https://servicebarometern.regionstockholm.se/rapport/sodersjukhuset-ab"
+		HSF = "https://servicebarometern.regionstockholm.se/kundsidor/halso-och-sjukvardsforvaltningen `n
+https://servicebarometern.regionstockholm.se/rapport/halso-och-sjukvardsforvaltningen"
+		STS = "https://servicebarometern.regionstockholm.se/kundsidor/sodertalje-sjukhus-ab `n
+https://servicebarometern.regionstockholm.se/rapport/sodertalje-sjukhus-ab"
+		Tobiasregistret = "https://servicebarometern.regionstockholm.se/kundsidor/tobiasregistret-ab `n
+https://servicebarometern.regionstockholm.se/rapport/tobiasregistret-ab"
+		FILM = "https://servicebarometern.regionstockholm.se/kundsidor/film-stockholm-ab `n
+https://servicebarometern.regionstockholm.se/rapport/film-stockholm-ab"
+		FFUT = "https://servicebarometern.regionstockholm.se/kundsidor/forvaltning-for-utbyggd-tunnelbana `n
+https://servicebarometern.regionstockholm.se/rapport/forvaltning-for-utbyggd-tunnelbana"
+		KF = "https://servicebarometern.regionstockholm.se/kundsidor/kulturforvaltningen `n
+https://servicebarometern.regionstockholm.se/rapport/kulturforvaltningen"
+		PATFV = "https://servicebarometern.regionstockholm.se/kundsidor/patientnamndens-forvaltning `n
+https://servicebarometern.regionstockholm.se/rapport/patientnamndens-forvaltning"
+		REGVIS = "https://servicebarometern.regionstockholm.se/kundsidor/regionrevisorerna `n
+https://servicebarometern.regionstockholm.se/rapport/regionrevisorerna"
+		RLK = "https://servicebarometern.regionstockholm.se/kundsidor/regionledningskontoret `n
+https://servicebarometern.regionstockholm.se/rapport/regionledningskontoret"
+		TF = "https://servicebarometern.regionstockholm.se/kundsidor/trafikforvaltningen"
+		SF = "https://servicebarometern.regionstockholm.se/"
 	}
 }
 
@@ -628,21 +639,20 @@ function Set-UserSettings
 
 	try
 	{
+		$a = Get-ADPrincipalGroupMembership -Identity ( [Environment]::UserName )
 		$syncHash.Data.Signature = "`n$( $syncHash.Data.msgTable.StrSigGen )"
-		if ( ( Get-ADGroupMember $syncHash.Data.msgTable.StrOpGrp ).SamAccountName -contains [System.Environment]::UserName )
+		if ( $a.SamAccountName -match $syncHash.Data.msgTable.StrOpGrp )
 		{
 			$syncHash.LogFilePath = $syncHash.Data.msgTable.StrOpLogPath
 			$syncHash.ErrorLogFilePath = "$( $syncHash.Data.msgTable.StrOpLogPath )\Errorlogs\$( [Environment]::UserName )-Errorlog.txt"
 		}
-		elseif ( ( $syncHash.Data.msgTable.StrBORoleGrp, $syncHash.Data.msgTable.StrSDRoleGrp | Get-ADGroupMember ).SamAccountName -contains [Environment]::UserName )
+		elseif ( ( $syncHash.Data.msgTable.StrBORoleGrp, $syncHash.Data.msgTable.StrSDRoleGrp | Get-ADGroupMember ).Name -contains ( Get-ADUser -Identity ( [Environment]::UserName ) ).Name )
 		{
 			$syncHash.Data.Signature += "`n`n$( $syncHash.Data.msgTable.StrSigSD )"
 			$syncHash.Data.Signature += "`n$( $syncHash.Data.msgTable.StrSigSD2 )"
 		}
 		else
-		{
-			throw
-		}
+		{ throw }
 	}
 	catch
 	{
@@ -677,30 +687,184 @@ function Update-AppList
 	$apps = @()
 	if ( $syncHash.Data.msgTable.StrBORoleGrp -in ( ( Get-ADUser -Identity ( [Environment]::UserName ) -Properties MemberOf ).MemberOf | Get-ADGroup | Select-Object -ExpandProperty Name ) )
 	{
-		$apps += [pscustomobject]@{ Text = "App1"
-			Tag = @{ AppFilter = "(Name=App1*)"
-				GroupType = "App1-groups"
+		$apps += [pscustomobject]@{ Text = "AW-server"
+			Tag = @{ AppFilter = "(Name=Sll_Acc_Rtg_AWABV*)"
+				GroupType = "AW-server-grupper"
+				Exclude = @( "NTS" )
+				ExcludeSplitCharacter = "_"
+				ExcludedWordIndex = 4
 				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 			}
 		}
 
-		$apps += [pscustomobject]@{ Text = "App2"
-			Tag = @{ AppFilter = "(&(Name=App2_)(!(Name=*DNS*)))"
-				GroupType = "App2-groups"
-				Exclude = @( "DNS", "Acceptans" )
+		$apps += [pscustomobject]@{ Text = "Citrix Distansanslutning"
+			Tag = @{ AppFilter = "(&(Name=Sll_Acc_ADCVPN*_Users)(!(Name=*DNSReg*)))"
+				GroupType = "Citrix Distans-grupper"
+				Exclude = @( "DNSReg", "Acceptans" )
 				ExcludeSplitCharacter = "_"
 				ExcludedWordIndex = 3
 				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 				AddComputer = $true
-				ComputerAdGroups = [System.Collections.ArrayList]::new( @( "App2_Cpt_Inst" ) )
+				ComputerAdGroups = [System.Collections.ArrayList]::new( @( "Sll_App_CitrixWorkspace_18.10.0_R01_I" ) )
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "FileMaker"
+			Tag = @{ AppFilter = "(Name=Kar_Vkl_FileMaker*)"
+				Exclude = $null
+				GroupType = "FileMaker-grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "Kar Hermes"
+			Tag = @{ AppFilter = "(Name=Kar_Vkl_Hermes*)"
+				Exclude = $null
+				GroupType = "Hermes-grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "Logisticaps / Clockworks"
+			Tag = @{ AppFilter = "(Name=*_Sys_Logistics_*Remote_Usr)"
+				Exclude = $null
+				GroupType = "Logisticaps-grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "MammoRIS Citrix"
+			Tag = @{ AppFilter = "(Name=Gai_Vkl_Mammo_RIS*)"
+				Exclude = $null
+				GroupType = "MammoRIS Citrix-behörighet"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "Mosaiq"
+			Tag = @{ AppFilter = "(Name=Sos_Vkl_Mosaiq_*)"
+				Exclude = $null
+				GroupType = "Mosaiq-behörighet"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "Nutrium vKlient"
+			Tag = @{ AppFilter = "(Name=Gai_Vkl_Nutrium_*)"
+				Exclude = $null
+				GroupType = "Nutrium-behörighet"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "Patient Online (Karolinska)"
+			Tag = @{ AppFilter = "(name=Kar_Dlg_POL_*Users)"
+				Exclude = $null
+				GroupType = "Patient online-grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "QlikView/QlikSense Dan"
+			Tag = @{ AppFilter = "(Name=Dan_Acc_Qlik*)"
+				Exclude = $null
+				GroupType = "QlikView-grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "QlikView/QlikSense Sts"
+			Tag = @{ AppFilter = "(Name=Sts_acc_Qlik*)"
+				Exclude = $null
+				GroupType = "QlikView-grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "QlikView/QlikSense Sös"
+			Tag = @{ AppFilter = "(|(Name=Sos_Mig_Qlik*)(Name=Sos_Acc_Qlik*))"
+				Exclude = $null
+				GroupType = "QlikView-grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "Regionens Applikationskatalog"
+			Tag = @{ AppFilter = "(Name=Sll_Acc_LeanIX_*)"
+				Exclude = @( "Admin", "SuperUser" )
+				ExcludeSplitCharacter = "_"
+				ExcludedWordIndex = 3
+				GroupType = "Applikationskatalog-grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "Syngovia"
+			Tag = @{ AppFilter = "(Name=Sll_Acc_Rtg_Syngovia*)"
+				Exclude = @( "NTS" )
+				ExcludeSplitCharacter = "_"
+				ExcludedWordIndex = 4
+				GroupType = "Syngovia-grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "Tableau (Kar)"
+			Tag = @{ AppFilter = "(Name=Kar_Tableau*)"
+				GroupType = "Tableau-grupper"
+				Exclude = @( "Akut", "AoS", "BoK", "DOS", "DS", "Halso", "HK", "ILOV", "Inkop", "Innovation", "ITPortfolj", "KULab", "Neuro", "OpChef", "PoU", "PUppf", "SMB", "SSVP", "ToRM", "UUR" )
+				ExcludeSplitCharacter = "_"
+				ExcludedWordIndex = 2
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "Tableau (Regional)"
+			Tag = @{ AppFilter = "(&(Name=*Dlg_Tableau*)(|(Name=*Site)(Name=*Users)))"
+				GroupType = "Tableau regionala grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			}
+		}
+
+		$apps += [pscustomobject]@{ Text = "Upphandlings- och avtalstjänsten (UAT)"
+			Tag = @{ AppFilter = "(Name=Sll_Acc_UAT_eAvrop_*Users)"
+				GroupType = "Upphandlings- och avtalstjänstens grupper"
+				GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 			}
 		}
 	}
 
-	$apps += [pscustomobject]@{ Text = "App4"
-		Tag = @{ AppFilter = "(Name=App4)"
+	$apps += [pscustomobject]@{ Text = "Aria"
+		Tag = @{ AppFilter = "(|(Name=Kar_Vkl_Aria*)(Name=Sos_Vkl_Aria*))"
 			Exclude = $null
-			GroupType = "App4-groups"
+			GroupType = "Aria-grupper"
+			GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+		}
+	}
+
+	$apps += [pscustomobject]@{ Text = "Servicebarometern"
+		Tag = @{ AppFilter = "(Name=Sll_Acc_SB_*_Users*)"
+			Exclude = @( "Docs" )
+			GroupType = "Behörighet Servicebarometern"
+			GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+			SpecialMsgEnums = "SB"
+			SpecialMsgNameSplitChar = "_"
+			SpecialMsgNameSplitIndex = 3
+		}
+	}
+
+	$apps += [pscustomobject]@{ Text = "LinnéFiler"
+		Tag = @{ AppFilter = "(Name=Kar_Dlg_KS_*_Users)"
+			Exclude = $null
+			GroupType = "LinnéFiler-grupper"
+			GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
+		}
+	}
+
+	$apps += [pscustomobject]@{ Text = "LIMS / Labware"
+		Tag = @{ AppFilter = "(Name=Kar_Vkl_Scarab_*)"
+			Exclude = $null
+			GroupType = "LIMS-grupper"
 			GroupList = [System.Collections.ObjectModel.ObservableCollection[Object]]::new()
 		}
 	}
@@ -830,11 +994,6 @@ function Write-ToLogFile
 }
 
 ######################### Script start #########################
-
-$controls = New-Object Collections.ArrayList
-[void]$controls.Add( @{ CName = "ChbUseSignature" ; Props = @( @{ PropName = "IsChecked"; PropVal = $false } ) } )
-
-BindControls $syncHash $controls
 
 $syncHash.Data.ErrorHashes = @()
 $syncHash.ErrorLogFilePath = ""
